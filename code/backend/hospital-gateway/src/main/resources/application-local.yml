@@ -5,3 +5,44 @@ hlw:
     group: DEFAULT_GROUP
     username: nacos
     password: nacos
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: hospital-auth-local
+          uri: http://127.0.0.1:9100
+          predicates:
+            - Path=/auth/**
+        - id: hospital-system-local
+          uri: http://127.0.0.1:9200
+          predicates:
+            - Path=/system/**
+        - id: hospital-doctor-local
+          uri: http://127.0.0.1:9400
+          predicates:
+            - Path=/doctor/**
+        - id: hospital-patient-local
+          uri: http://127.0.0.1:9300
+          predicates:
+            - Path=/patient/**
+        - id: hospital-appointment-local
+          uri: http://127.0.0.1:9600
+          predicates:
+            - Path=/appointment/**
+        - id: hospital-consult-local
+          uri: http://127.0.0.1:9500
+          predicates:
+            - Path=/consult/**,/ws/consult/**
+        - id: hospital-prescription-local
+          uri: http://127.0.0.1:9700
+          predicates:
+            - Path=/prescription/**
+        - id: hospital-drug-local
+          uri: http://127.0.0.1:9800
+          predicates:
+            - Path=/drug/**
+        - id: hospital-order-local
+          uri: http://127.0.0.1:9900
+          predicates:
+            - Path=/order/**
