@@ -13,6 +13,22 @@ export interface PatientProfile {
   gender: string;
 }
 
+export interface HospitalItem {
+  key: string;
+  tenantName: string;
+  packageName: string;
+  adminName: string;
+  expireAt: string;
+  status: string;
+}
+
+export interface DepartmentItem {
+  id: number;
+  name: string;
+  doctorCount: number;
+  queue: string;
+}
+
 export interface PatientDoctor {
   id: number;
   name: string;
@@ -22,6 +38,7 @@ export interface PatientDoctor {
   status: string;
   consultStatus: "ONLINE" | "BUSY" | "OFFLINE";
   consultFee: string;
+  schedule: string;
 }
 
 interface BackendPatientDoctor {
@@ -33,6 +50,7 @@ interface BackendPatientDoctor {
   status: string;
   consultStatus?: "ONLINE" | "BUSY" | "OFFLINE";
   consultFee?: string;
+  schedule?: string;
 }
 
 export interface ConsultMessageItem {
@@ -55,9 +73,51 @@ export interface CreatedConsult {
   chiefComplaint: string;
 }
 
+export interface AppointmentItem {
+  key: string;
+  appointmentNo: string;
+  patientName: string;
+  doctorName: string;
+  clinicTime: string;
+  source: string;
+  status: string;
+}
+
+export interface PrescriptionItem {
+  key: string;
+  prescriptionNo: string;
+  patientName: string;
+  doctorName: string;
+  drugCount: number;
+  issuedAt: string;
+  status: string;
+}
+
+export interface OrderItem {
+  key: string;
+  orderNo: string;
+  businessType: string;
+  patientName: string;
+  amount: string;
+  payStatus: string;
+  createdAt: string;
+}
+
 export async function fetchPatientProfile(): Promise<PatientProfile> {
   console.info("[patient] 查询患者档案");
   const response = await http.get<ApiResult<PatientProfile>>("/patient/profile");
+  return response.data.data;
+}
+
+export async function fetchHospitals(): Promise<HospitalItem[]> {
+  console.info("[patient] 查询医院租户列表");
+  const response = await http.get<ApiResult<HospitalItem[]>>("/system/tenants");
+  return response.data.data;
+}
+
+export async function fetchDepartments(): Promise<DepartmentItem[]> {
+  console.info("[patient] 查询科室列表");
+  const response = await http.get<ApiResult<DepartmentItem[]>>("/doctor/departments");
   return response.data.data;
 }
 
@@ -73,14 +133,33 @@ export async function fetchPatientDoctors(): Promise<PatientDoctor[]> {
     specialty: doctor.specialty,
     status: doctor.status,
     consultStatus: doctor.consultStatus ?? "OFFLINE",
-    consultFee: doctor.consultFee ?? "0.00"
+    consultFee: doctor.consultFee ?? "0.00",
+    schedule: doctor.schedule ?? "待确认"
   }));
 }
 
-export async function createConsult(chiefComplaint: string): Promise<CreatedConsult> {
-  console.info("[consult] 创建问诊", chiefComplaint);
+export async function fetchPatientDoctorDetail(doctorId: number): Promise<PatientDoctor> {
+  console.info("[patient] 查询医生详情", doctorId);
+  const response = await http.get<ApiResult<BackendPatientDoctor>>(`/doctor/doctors/${doctorId}`);
+  const doctor = response.data.data;
+
+  return {
+    id: doctor.id,
+    name: doctor.name,
+    title: doctor.title,
+    department: doctor.department,
+    specialty: doctor.specialty,
+    status: doctor.status,
+    consultStatus: doctor.consultStatus ?? "OFFLINE",
+    consultFee: doctor.consultFee ?? "0.00",
+    schedule: doctor.schedule ?? "待确认"
+  };
+}
+
+export async function createConsult(type: string, chiefComplaint: string): Promise<CreatedConsult> {
+  console.info("[consult] 创建问诊", type, chiefComplaint);
   const response = await http.post<ApiResult<CreatedConsult>>("/consult/consults", {
-    type: "IMAGE_TEXT",
+    type,
     chiefComplaint
   });
   return response.data.data;
@@ -97,4 +176,31 @@ export async function fetchConsultMessages(consultId: number): Promise<ConsultMe
     content: message.content,
     contentType: message.contentType
   }));
+}
+
+export async function createAppointment(doctorName: string, timeSlot: string): Promise<AppointmentItem> {
+  console.info("[appointment] 创建预约", doctorName, timeSlot);
+  const response = await http.post<ApiResult<AppointmentItem>>("/appointment/appointments", {
+    doctorName,
+    timeSlot
+  });
+  return response.data.data;
+}
+
+export async function fetchAppointments(): Promise<AppointmentItem[]> {
+  console.info("[appointment] 查询预约列表");
+  const response = await http.get<ApiResult<AppointmentItem[]>>("/appointment/appointments");
+  return response.data.data;
+}
+
+export async function fetchPrescriptions(): Promise<PrescriptionItem[]> {
+  console.info("[prescription] 查询处方列表");
+  const response = await http.get<ApiResult<PrescriptionItem[]>>("/prescription/prescriptions");
+  return response.data.data;
+}
+
+export async function fetchOrders(): Promise<OrderItem[]> {
+  console.info("[order] 查询订单列表");
+  const response = await http.get<ApiResult<OrderItem[]>>("/order/orders");
+  return response.data.data;
 }

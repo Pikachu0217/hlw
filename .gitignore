@@ -21,6 +21,8 @@ dist/
 coverage/
 .turbo/
 *.tsbuildinfo
+vite.config.js
+vite.config.d.ts
 
 # Logs
 *.log

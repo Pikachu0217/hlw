@@ -14,7 +14,7 @@ type ConsultChatProps = {
 
 export function ConsultChat({ remainingSeconds, messages }: ConsultChatProps) {
   return (
-    <Space direction="vertical" block style={{ "--gap": "12px" }}>
+    <Space direction="vertical" block className="chat-stack">
       <div className="chat-header">
         <Tag color="warning">剩余时间 {formatRemainingTime(remainingSeconds)}</Tag>
         <div className="section-description">WebSocket 地址预留为 /ws/consult/{"{consultId}"}</div>

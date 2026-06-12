@@ -32,6 +32,14 @@ body {
   padding: 14px 14px 80px;
 }
 
+.mobile-stack {
+  --gap: 16px;
+}
+
+.chat-stack {
+  --gap: 12px;
+}
+
 .hero-card,
 .confirm-card,
 .quick-entry,

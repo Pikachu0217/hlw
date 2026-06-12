@@ -1,30 +1,50 @@
-import { List, Space, Tag } from "antd-mobile";
+import { List, Space, SpinLoading, Tag } from "antd-mobile";
+import { useEffect, useState } from "react";
+import { fetchOrders, type OrderItem } from "../../../app/api";
 import { SectionCard } from "../../../components/SectionCard";
 
 export function OrderListPage() {
+  const [orders, setOrders] = useState<OrderItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+
+    fetchOrders()
+      .then((records) => {
+        if (!ignore) {
+          setOrders(records);
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   return (
     <SectionCard title="我的订单" description="聚合预约挂号、问诊费和药品配送订单。">
+      {loading ? <SpinLoading /> : null}
       <List>
-        <List.Item
-          description={
-            <Space>
-              <Tag color="success">已支付</Tag>
-              <span>预约挂号订单</span>
-            </Space>
-          }
-        >
-          ORD20260612001
-        </List.Item>
-        <List.Item
-          description={
-            <Space>
-              <Tag color="warning">待配送</Tag>
-              <span>药品订单</span>
-            </Space>
-          }
-        >
-          ORD20260612002
-        </List.Item>
+        {orders.map((order) => (
+          <List.Item
+            key={order.key}
+            description={
+              <Space>
+                <Tag color={order.payStatus.includes("已") ? "success" : "warning"}>{order.payStatus}</Tag>
+                <span>{order.businessType}</span>
+              </Space>
+            }
+          >
+            {order.orderNo}
+          </List.Item>
+        ))}
       </List>
     </SectionCard>
   );

@@ -15,7 +15,7 @@ export function HomePage() {
   const navigate = useNavigate();
 
   return (
-    <Space direction="vertical" block style={{ "--gap": "16px" }}>
+    <Space direction="vertical" block className="mobile-stack">
       <div className="hero-card">
         <Tag color="success">24 小时在线服务</Tag>
         <div className="hero-title">把挂号、问诊、购药装进手机里</div>

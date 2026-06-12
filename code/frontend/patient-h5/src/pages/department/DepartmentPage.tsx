@@ -1,18 +1,39 @@
-import { List, Tag } from "antd-mobile";
+import { List, SpinLoading, Tag } from "antd-mobile";
+import { useEffect, useState } from "react";
+import { fetchDepartments, type DepartmentItem } from "../../app/api";
 import { SectionCard } from "../../components/SectionCard";
 
-const departments = [
-  { name: "儿科", queue: "当前等候 8 人" },
-  { name: "内科", queue: "当前等候 5 人" },
-  { name: "皮肤科", queue: "当前等候 3 人" }
-];
-
 export function DepartmentPage() {
+  const [departments, setDepartments] = useState<DepartmentItem[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+
+    fetchDepartments()
+      .then((records) => {
+        if (!ignore) {
+          setDepartments(records);
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   return (
     <SectionCard title="选择科室" description="根据病情选择科室后，可继续进入医生列表。">
+      {loading ? <SpinLoading /> : null}
       <List>
         {departments.map((department) => (
-          <List.Item key={department.name} extra={<Tag color="warning">{department.queue}</Tag>}>
+          <List.Item key={department.id} extra={<Tag color="warning">{department.queue}</Tag>}>
             {department.name}
           </List.Item>
         ))}

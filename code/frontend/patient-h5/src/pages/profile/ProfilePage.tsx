@@ -17,7 +17,7 @@ export function ProfilePage() {
   }, [setPatientName]);
 
   return (
-    <Space direction="vertical" block style={{ "--gap": "16px" }}>
+    <Space direction="vertical" block className="mobile-stack">
       <div className="hero-card">
         <Tag color="primary">患者档案</Tag>
         <div className="hero-title">{patientName}</div>
