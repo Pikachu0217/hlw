@@ -24,6 +24,7 @@
         <module>hospital-system</module>
         <module>hospital-doctor</module>
         <module>hospital-patient</module>
+        <module>hospital-appointment</module>
     </modules>
 
     <properties>
