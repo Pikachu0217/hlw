@@ -71,7 +71,7 @@ export function findNavigationTrail(
 
 export function getNavigationState(pathname: string): { selectedKeys: string[]; openKeys: string[] } {
   const trail = findNavigationTrail(pathname);
-  const selectedKey = trail.at(-1)?.key;
+  const selectedKey = trail.length > 0 ? trail[trail.length - 1]?.key : undefined;
   const openKeys = trail.slice(0, -1).map((item) => item.key);
 
   return {

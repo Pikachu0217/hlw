@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
 import {
   clearAuthSnapshot,
   emitAuthExpiredEvent,
@@ -14,14 +14,8 @@ apiClient.interceptors.request.use((config) => {
   const token = readSaToken();
 
   if (token) {
-    if (typeof config.headers.set === 'function') {
-      config.headers.set('satoken', token);
-    } else {
-      config.headers = {
-        ...config.headers,
-        satoken: token,
-      };
-    }
+    config.headers = AxiosHeaders.from(config.headers);
+    config.headers.set('satoken', token);
   }
 
   console.info('[api] 发起请求', config.method?.toUpperCase(), config.url);
