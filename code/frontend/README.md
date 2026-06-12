@@ -1,0 +1,77 @@
+# 互联网医院前端工作区说明
+
+本文档用于记录互联网医院前端工作区结构、应用职责、运行命令和后续维护约束。以后每新增一个前端应用、页面模块、工作区脚本或环境变量，都必须在同一个任务提交里同步更新本文档。
+
+## 当前阶段
+
+当前工作区包含两个前端应用：
+
+- `admin-web`：管理端 SPA，面向医院管理后台。
+- `patient-h5`：患者端 H5，面向挂号、问诊、处方和订单流程。
+
+## 当前页面范围
+
+`admin-web` 当前已覆盖以下页面骨架：
+
+- `dashboard`
+- `tenant`
+- `system/users`
+- `system/roles`
+- `system/menus`
+- `doctor`
+- `patient`
+- `consult`
+- `appointment`
+- `prescription`
+- `drug`
+- `order`
+
+`patient-h5` 当前已覆盖以下页面骨架：
+
+- `home`
+- `hospital`
+- `department`
+- `doctor/list`
+- `doctor/detail`
+- `appointment/confirm`
+- `appointment/result`
+- `consult/create`
+- `consult/chat`
+- `prescription/list`
+- `order/list`
+- `profile`
+
+## 工作区结构
+
+```text
+code/frontend/
+├── package.json
+├── pnpm-workspace.yaml
+├── README.md
+├── admin-web/
+└── patient-h5/
+```
+
+## 统一约束
+
+- 管理端使用 React 18、TypeScript、Vite、Ant Design。
+- 患者端使用 React 18、TypeScript、Vite、Ant Design Mobile、Zustand。
+- 两个应用都需要统一支持 `satoken` 认证头透传。
+- 当前阶段只搭建 MVP 骨架和页面结构，不在本文档中承诺已完成的真实联调或构建结果。
+
+## 常用命令
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/frontend
+pnpm install
+pnpm dev:admin
+pnpm dev:patient
+pnpm build
+pnpm test
+```
+
+## 后续维护要求
+
+- 新增页面时同步更新对应应用的页面说明。
+- 新增共享请求层、状态管理或路由约定时同步补充本文档。
+- 如接入真实后端接口、鉴权流程或 WebSocket 地址，需补充环境变量和联调说明。

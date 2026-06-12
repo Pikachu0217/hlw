@@ -60,9 +60,7 @@ code/backend/
 └── hospital-order/
 ```
 
-后续 MVP 阶段会继续新增以下服务模块：
-
-后端业务模块骨架已覆盖 PRD 中的核心服务，后续阶段会继续补充可启动配置、持久化、网关路由和前端工作台。
+后端业务模块骨架已覆盖 PRD 中的核心服务，当前阶段重点转向前端工作台、联调接入、可启动配置、持久化实现和网关路由完善。
 
 ## 本地中间件
 
@@ -110,7 +108,7 @@ psql -U postgres -f sql/init.sql
 
 ## 构建与测试
 
-你可以按需自行执行以下命令。
+你可以按需自行执行以下命令。当前仓库协作约束下，代理默认不会主动执行这些编译或测试命令。
 
 执行当前已实现后端测试：
 
@@ -184,7 +182,7 @@ mvn -pl hospital-prescription,hospital-drug,hospital-order -am test
 
 ## 服务启动
 
-当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 已有模块骨架和接口代码，但尚未加入完整 Spring Boot 启动类、配置文件、Nacos 注册配置和数据库连接配置。后续模块完成到可运行状态时，需要在本节补充实际启动命令。
+当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 以及各业务服务模块已具备接口骨架，但尚未全部补齐完整 Spring Boot 启动类、配置文件、Nacos 注册配置和数据库连接配置。后续模块完成到可运行状态时，需要在本节补充实际启动命令。
 
 PRD 规划端口：
 
@@ -258,6 +256,60 @@ POST /appointment/appointments/{id}/check-in
 POST /appointment/appointments/{id}/grab
 POST /appointment/number-sources/{scheduleId}/lock
 POST /appointment/release-configs
+```
+
+Task 8 引入以下接口路径：
+
+```http
+GET /consult/consults
+POST /consult/consults
+POST /consult/consults/{id}/accept
+POST /consult/consults/{id}/complete
+POST /consult/consults/{id}/timeout-check
+```
+
+Task 9 引入以下接口路径：
+
+```http
+POST /prescription/prescriptions
+POST /prescription/prescriptions/{id}/submit
+POST /prescription/prescriptions/{id}/approve
+POST /prescription/prescriptions/{id}/reject
+GET /drug/drugs
+POST /drug/drugs
+GET /drug/stocks
+POST /drug/stocks
+POST /drug/deliveries/{id}/ship
+POST /order/orders
+POST /order/orders/{id}/pay
+GET /order/orders
+```
+
+Task 8 引入以下接口路径：
+
+```http
+GET /consult/consults
+POST /consult/consults
+POST /consult/consults/{id}/accept
+POST /consult/consults/{id}/complete
+POST /consult/consults/{id}/timeout-check
+```
+
+Task 9 引入以下接口路径：
+
+```http
+POST /prescription/prescriptions
+POST /prescription/prescriptions/{id}/submit
+POST /prescription/prescriptions/{id}/approve
+POST /prescription/prescriptions/{id}/reject
+GET /drug/drugs
+POST /drug/drugs
+GET /drug/stocks
+POST /drug/stocks
+POST /drug/deliveries/{id}/ship
+POST /order/orders
+POST /order/orders/{id}/pay
+GET /order/orders
 ```
 
 预约模块锁 key 约定：
