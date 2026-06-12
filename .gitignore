@@ -1,0 +1,42 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Java / Maven
+target/
+out/
+.classpath
+.project
+.settings/
+
+# Node / pnpm
+node_modules/
+.pnpm-store/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Superpowers 本地运行状态
+.superpowers/
+
+# Docker 本地数据卷
+resources/docker/*-data/
+resources/docker/*-logs/
+resources/docker/pgdata/
+resources/docker/rabbitmq-data/
+
+# Local env
+.env.local
+.env.*.local
