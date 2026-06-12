@@ -1,6 +1,7 @@
 import { LockOutlined, UserOutlined } from '@ant-design/icons';
-import { Button, Card, Checkbox, Form, Input, Space, Tag, Typography } from 'antd';
+import { Button, Card, Checkbox, Form, Input, Space, Tag, Typography, message } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { loginAdmin } from '@/api/auth';
 import { useAuthStore } from '@/store/auth-store';
 
 interface LoginFormValues {
@@ -14,15 +15,16 @@ function LoginPage() {
   const location = useLocation();
   const { login } = useAuthStore();
 
-  function handleFinish(values: LoginFormValues): void {
-    login({
-      token: `satoken-demo-${values.username}`,
-      displayName: values.username || '医疗运营专员',
-      roleName: '系统管理员',
-    });
+  async function handleFinish(values: LoginFormValues): Promise<void> {
+    try {
+      const snapshot = await loginAdmin(values);
+      login(snapshot);
 
-    const redirectPath = (location.state as { from?: string } | null)?.from ?? '/dashboard';
-    navigate(redirectPath, { replace: true });
+      const redirectPath = (location.state as { from?: string } | null)?.from ?? '/dashboard';
+      navigate(redirectPath, { replace: true });
+    } catch {
+      message.error('登录失败，请确认后端认证服务已启动');
+    }
   }
 
   return (
@@ -42,12 +44,12 @@ function LoginPage() {
             <Typography.Title level={3} className="login-card__title">
               登录管理台
             </Typography.Title>
-            <Typography.Text className="login-card__subtitle">演示模式下提交后会直接写入本地 satoken。</Typography.Text>
+            <Typography.Text className="login-card__subtitle">账号密码会提交到后端认证服务并写入 satoken。</Typography.Text>
           </div>
         </Space>
         <Form<LoginFormValues>
           layout="vertical"
-          initialValues={{ username: '运营主任', password: '123456', remember: true }}
+          initialValues={{ username: 'admin', password: 'admin123', remember: true }}
           onFinish={handleFinish}
         >
           <Form.Item label="账号" name="username" rules={[{ required: true, message: '请输入账号' }]}>

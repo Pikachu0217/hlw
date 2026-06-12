@@ -1,16 +1,27 @@
 import { Button, List, Space, Tag } from "antd-mobile";
+import { useEffect } from "react";
+import { fetchPatientProfile } from "../../app/api";
 import { useSessionStore } from "../../store/sessionStore";
 import { SectionCard } from "../../components/SectionCard";
 
 export function ProfilePage() {
   const patientName = useSessionStore((state) => state.patientName);
+  const setPatientName = useSessionStore((state) => state.setPatientName);
+
+  useEffect(() => {
+    fetchPatientProfile()
+      .then((profile) => setPatientName(profile.name))
+      .catch(() => {
+        console.warn("[patient] 患者服务未连接，使用本地患者名称");
+      });
+  }, [setPatientName]);
 
   return (
     <Space direction="vertical" block style={{ "--gap": "16px" }}>
       <div className="hero-card">
         <Tag color="primary">患者档案</Tag>
         <div className="hero-title">{patientName}</div>
-        <div className="hero-copy">默认已注入 mock satoken，用于后续联调接入。</div>
+        <div className="hero-copy">默认已注入本地 satoken，用于访问患者服务接口。</div>
       </div>
       <SectionCard title="常用功能">
         <List>
