@@ -23,6 +23,7 @@
         <module>hospital-auth</module>
         <module>hospital-system</module>
         <module>hospital-doctor</module>
+        <module>hospital-patient</module>
     </modules>
 
     <properties>
