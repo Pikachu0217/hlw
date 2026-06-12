@@ -21,6 +21,7 @@
 - `hospital-doctor`：医生、科室、排班接口骨架与挂号费规则。
 - `hospital-patient`：患者资料、手机号脱敏和健康记录接口骨架。
 - `hospital-appointment`：预约、号源锁定、放号配置和便民门诊抢单骨架。
+- `hospital-consult`：在线问诊生命周期、消息处理、WebSocket 端点和超时调度骨架。
 
 ## 环境要求
 
@@ -49,12 +50,12 @@ code/backend/
 ├── hospital-system/
 ├── hospital-doctor/
 ├── hospital-patient/
-└── hospital-appointment/
+├── hospital-appointment/
+└── hospital-consult/
 ```
 
 后续 MVP 阶段会继续新增以下服务模块：
 
-- `hospital-consult`
 - `hospital-prescription`
 - `hospital-drug`
 - `hospital-order`
@@ -163,6 +164,13 @@ cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
 mvn -pl hospital-appointment -am test
 ```
 
+执行问诊模块生命周期与消息格式测试：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
+mvn -pl hospital-consult -am test
+```
+
 ## 服务启动
 
 当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 已有模块骨架和接口代码，但尚未加入完整 Spring Boot 启动类、配置文件、Nacos 注册配置和数据库连接配置。后续模块完成到可运行状态时，需要在本节补充实际启动命令。
@@ -176,7 +184,7 @@ PRD 规划端口：
 | `hospital-system` | 9200 | 已建模块骨架 |
 | `hospital-patient` | 9300 | 已建模块骨架 |
 | `hospital-doctor` | 9400 | 已建模块骨架 |
-| `hospital-consult` | 9500 | 待实现 |
+| `hospital-consult` | 9500 | 已建模块骨架 |
 | `hospital-appointment` | 9600 | 已建模块骨架 |
 | `hospital-prescription` | 9700 | 待实现 |
 | `hospital-drug` | 9800 | 待实现 |
@@ -246,6 +254,29 @@ POST /appointment/release-configs
 ```text
 抢单锁：hlw:grab:appointment:{appointmentId}
 号源锁：hlw:lock:number:{scheduleId}
+```
+
+Task 8 引入以下接口路径：
+
+```http
+POST /consult/consults
+POST /consult/consults/{id}/accept
+POST /consult/consults/{id}/complete
+POST /consult/consults/{id}/extend
+GET /consult/consults/{id}/messages
+```
+
+问诊 WebSocket 地址约定：
+
+```text
+ws://host/ws/consult/{consultId}?token=xxx
+```
+
+问诊超时规则：
+
+```text
+IN_PROGRESS 问诊 remaining_seconds <= 0 时标记 TIMEOUT。
+remaining_seconds <= 300 时推送五分钟提醒。
 ```
 
 网关租户透传规则：
