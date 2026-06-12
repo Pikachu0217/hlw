@@ -1,5 +1,7 @@
 import { Card, Col, List, Row, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { useEffect, useState } from 'react';
+import { fetchAppointments, fetchConsults, fetchOrders } from '@/api/modules';
 import PageHero from '@/components/PageHero';
 
 interface DashboardTask {
@@ -9,12 +11,6 @@ interface DashboardTask {
   status: string;
 }
 
-const taskData: DashboardTask[] = [
-  { key: '1', module: '医生管理', owner: '排班组', status: '排班确认中' },
-  { key: '2', module: '咨询单', owner: '客服组', status: '等待医生接单' },
-  { key: '3', module: '订单中心', owner: '财务组', status: '退款复核中' },
-];
-
 const taskColumns: ColumnsType<DashboardTask> = [
   { title: '模块', dataIndex: 'module' },
   { title: '责任组', dataIndex: 'owner' },
@@ -22,15 +18,60 @@ const taskColumns: ColumnsType<DashboardTask> = [
 ];
 
 function DashboardPage() {
+  const [taskData, setTaskData] = useState<DashboardTask[]>([]);
+  const [metrics, setMetrics] = useState([
+    ['今日预约', '0', '来自后端预约接口'],
+    ['待处理咨询', '0', '来自后端问诊接口'],
+    ['待支付订单', '0', '来自后端订单接口'],
+  ]);
+  const [notices, setNotices] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+
+    Promise.all([fetchAppointments(), fetchConsults(), fetchOrders()])
+      .then(([appointments, consults, orders]) => {
+        if (ignore) {
+          return;
+        }
+
+        const waitingConsultCount = consults.filter((consult) => consult.status.includes('待')).length;
+        const pendingOrderCount = orders.filter((order) => order.payStatus.includes('待')).length;
+
+        setMetrics([
+          ['今日预约', String(appointments.length), '来自后端预约接口'],
+          ['待处理咨询', String(waitingConsultCount), '按问诊状态实时统计'],
+          ['待支付订单', String(pendingOrderCount), '按订单支付状态实时统计'],
+        ]);
+        setTaskData([
+          { key: 'appointment', module: '预约管理', owner: '门诊运营组', status: `${appointments.length} 单待跟进` },
+          { key: 'consult', module: '咨询单', owner: '客服组', status: `${waitingConsultCount} 单待处理` },
+          { key: 'order', module: '订单中心', owner: '财务组', status: `${pendingOrderCount} 单待支付` },
+        ]);
+        setNotices([
+          `预约接口返回 ${appointments.length} 条记录`,
+          `问诊接口返回 ${consults.length} 条记录`,
+          `订单接口返回 ${orders.length} 条记录`,
+        ]);
+      })
+      .finally(() => {
+        if (!ignore) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   return (
     <div className="page-shell">
       <PageHero eyebrow="运营总览" title="今日医疗运营脉冲" description="把租户、诊疗与履约的关键指标收拢到同一张控制台里。" badgeText="控制台已就绪" />
       <Row gutter={[18, 18]}>
-        {[
-          ['今日预约', '186', '较昨日 +14 单'],
-          ['待处理咨询', '28', '视频咨询占 39%'],
-          ['异常订单', '6', '需财务与运营复核'],
-        ].map(([label, value, hint]) => (
+        {metrics.map(([label, value, hint]) => (
           <Col key={label} xs={24} md={8}>
             <Card className="metric-card" bordered={false}>
               <span className="metric-card__label">{label}</span>
@@ -41,11 +82,11 @@ function DashboardPage() {
         ))}
       </Row>
       <Card className="console-card" bordered={false}>
-        <Table<DashboardTask> rowKey="key" columns={taskColumns} dataSource={taskData} pagination={false} />
+        <Table<DashboardTask> rowKey="key" columns={taskColumns} dataSource={taskData} loading={loading} pagination={false} />
       </Card>
       <Card className="console-card" bordered={false}>
         <List
-          dataSource={['租户续费预警需在本周内完成跟进', '门诊高峰时段集中在 14:00 - 17:30', '图文咨询平均响应时长已降至 8 分钟']}
+          dataSource={notices}
           renderItem={(item) => <List.Item>{item}</List.Item>}
         />
       </Card>

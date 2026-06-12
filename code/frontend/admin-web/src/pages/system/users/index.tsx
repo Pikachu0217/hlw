@@ -1,8 +1,10 @@
 import { Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { fetchUsers } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
+import { useModuleRecords } from '@/hooks/useModuleRecords';
 
-interface UserRecord {
+export interface UserRecord {
   key: string;
   username: string;
   deptName: string;
@@ -11,11 +13,6 @@ interface UserRecord {
   lastLogin: string;
   status: string;
 }
-
-const dataSource: UserRecord[] = [
-  { key: '1', username: '门诊运营', deptName: '运营中心', roleName: '运营管理员', phone: '13800001111', lastLogin: '今天 08:40', status: '启用' },
-  { key: '2', username: '药房主管', deptName: '药房组', roleName: '库存专员', phone: '13800002222', lastLogin: '今天 07:58', status: '启用' },
-];
 
 const columns: ColumnsType<UserRecord> = [
   { title: '账号名称', dataIndex: 'username' },
@@ -27,18 +24,21 @@ const columns: ColumnsType<UserRecord> = [
 ];
 
 function UsersPage() {
+  const { records, loading } = useModuleRecords(fetchUsers, '用户');
+
   return (
     <ModulePage<UserRecord>
       eyebrow="系统管理"
       title="后台用户清单"
       description="沉淀账号、角色、部门和登录信息。"
       metrics={[
-        { label: '启用账号', value: '48', hint: '覆盖 6 个业务组' },
-        { label: '今日登录', value: '19', hint: '高峰出现在 8:00 - 9:00' },
-        { label: '停用账号', value: '5', hint: '等待权限回收' },
+        { label: '启用账号', value: String(records.filter((record) => record.status === '启用').length), hint: '来自后端用户接口' },
+        { label: '用户总数', value: String(records.length), hint: '覆盖当前后台账号' },
+        { label: '业务组', value: String(new Set(records.map((record) => record.deptName)).size), hint: '按部门字段实时统计' },
       ]}
       columns={columns}
-      dataSource={dataSource}
+      dataSource={records}
+      loading={loading}
       tableTitle="用户列表"
       searchPlaceholder="搜索账号、部门、角色"
       getSearchText={(record) => `${record.username} ${record.deptName} ${record.roleName} ${record.phone}`}

@@ -1,8 +1,10 @@
 import { Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { fetchDrugs } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
+import { useModuleRecords } from '@/hooks/useModuleRecords';
 
-interface DrugRecord {
+export interface DrugRecord {
   key: string;
   drugName: string;
   spec: string;
@@ -10,11 +12,6 @@ interface DrugRecord {
   unit: string;
   warningStatus: string;
 }
-
-const dataSource: DrugRecord[] = [
-  { key: '1', drugName: '阿托伐他汀钙片', spec: '20mg*14片', inventory: 124, unit: '盒', warningStatus: '正常' },
-  { key: '2', drugName: '盐酸二甲双胍缓释片', spec: '0.5g*30片', inventory: 42, unit: '盒', warningStatus: '预警' },
-];
 
 const columns: ColumnsType<DrugRecord> = [
   { title: '药品名称', dataIndex: 'drugName' },
@@ -25,18 +22,22 @@ const columns: ColumnsType<DrugRecord> = [
 ];
 
 function DrugPage() {
+  const { records, loading } = useModuleRecords(fetchDrugs, '药品');
+  const warningCount = records.filter((record) => record.warningStatus.includes('预警')).length;
+
   return (
     <ModulePage<DrugRecord>
       eyebrow="药品目录"
       title="药品库存与预警"
       description="先沉淀药品基础目录、规格和库存预警状态。"
       metrics={[
-        { label: '在售药品', value: '328', hint: '口服药占比 58%' },
-        { label: '库存预警', value: '11', hint: '需 24 小时内补货' },
-        { label: '紧缺药品', value: '3', hint: '建议优先协调采购' },
+        { label: '在售药品', value: String(records.length), hint: '来自后端药品接口' },
+        { label: '库存预警', value: String(warningCount), hint: '按预警状态实时统计' },
+        { label: '库存合计', value: String(records.reduce((sum, item) => sum + item.inventory, 0)), hint: '汇总当前列表库存' },
       ]}
       columns={columns}
-      dataSource={dataSource}
+      dataSource={records}
+      loading={loading}
       tableTitle="药品列表"
       searchPlaceholder="搜索药品名称、规格或状态"
       getSearchText={(record) => `${record.drugName} ${record.spec} ${record.warningStatus}`}

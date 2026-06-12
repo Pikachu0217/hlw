@@ -1,8 +1,10 @@
 import { Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { fetchTenants } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
+import { useModuleRecords } from '@/hooks/useModuleRecords';
 
-interface TenantRecord {
+export interface TenantRecord {
   key: string;
   tenantName: string;
   packageName: string;
@@ -10,11 +12,6 @@ interface TenantRecord {
   expireAt: string;
   status: string;
 }
-
-const dataSource: TenantRecord[] = [
-  { key: '1', tenantName: '海岚门诊', packageName: '标准医疗版', adminName: '刘院长', expireAt: '2026-12-31', status: '正常' },
-  { key: '2', tenantName: '青禾互联网医院', packageName: '集团旗舰版', adminName: '姜主任', expireAt: '2026-08-16', status: '续费跟进' },
-];
 
 const columns: ColumnsType<TenantRecord> = [
   { title: '租户名称', dataIndex: 'tenantName' },
@@ -25,19 +22,23 @@ const columns: ColumnsType<TenantRecord> = [
 ];
 
 function TenantPage() {
+  const { records, loading } = useModuleRecords(fetchTenants, '租户');
+  const warningCount = records.filter((record) => record.status !== '正常').length;
+
   return (
     <ModulePage<TenantRecord>
       eyebrow="租户中心"
       title="多租户运营总览"
       description="围绕套餐、管理员与到期时间搭建租户基础运营面板。"
-      badgeText="3 个租户样例"
+      badgeText={`${records.length} 个租户`}
       metrics={[
-        { label: '活跃租户', value: '32', hint: '集团版占 28%' },
-        { label: '本月续费', value: '7', hint: '含 2 家重点跟进' },
-        { label: '到期预警', value: '3', hint: '30 天内即将到期' },
+        { label: '活跃租户', value: String(records.length - warningCount), hint: '来自后端租户接口' },
+        { label: '续费跟进', value: String(warningCount), hint: '按租户状态实时统计' },
+        { label: '租户总数', value: String(records.length), hint: '覆盖当前系统租户' },
       ]}
       columns={columns}
-      dataSource={dataSource}
+      dataSource={records}
+      loading={loading}
       tableTitle="租户列表"
       searchPlaceholder="搜索租户、管理员或套餐"
       getSearchText={(record) => `${record.tenantName} ${record.adminName} ${record.packageName} ${record.status}`}

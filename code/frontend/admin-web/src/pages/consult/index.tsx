@@ -1,8 +1,10 @@
 import { Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { fetchConsults } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
+import { useModuleRecords } from '@/hooks/useModuleRecords';
 
-interface ConsultRecord {
+export interface ConsultRecord {
   key: string;
   consultNo: string;
   patientName: string;
@@ -11,11 +13,6 @@ interface ConsultRecord {
   status: string;
   updatedAt: string;
 }
-
-const dataSource: ConsultRecord[] = [
-  { key: '1', consultNo: 'ZX20260612001', patientName: '赵晓岚', doctorName: '陈知衡', channel: '图文', status: '待接单', updatedAt: '10:18' },
-  { key: '2', consultNo: 'ZX20260612002', patientName: '沈博远', doctorName: '顾清和', channel: '视频', status: '咨询中', updatedAt: '10:07' },
-];
 
 const columns: ColumnsType<ConsultRecord> = [
   { title: '咨询单号', dataIndex: 'consultNo' },
@@ -27,18 +24,22 @@ const columns: ColumnsType<ConsultRecord> = [
 ];
 
 function ConsultPage() {
+  const { records, loading } = useModuleRecords(fetchConsults, '问诊');
+  const waitingCount = records.filter((record) => record.status.includes('待')).length;
+
   return (
     <ModulePage<ConsultRecord>
       eyebrow="咨询中心"
       title="咨询单流转看板"
       description="统一呈现患者、医生、渠道和状态。"
       metrics={[
-        { label: '待接单', value: '12', hint: '视频咨询 5 单' },
-        { label: '咨询中', value: '8', hint: '平均等待 6 分钟' },
-        { label: '今日完结', value: '49', hint: '满意度 96%' },
+        { label: '问诊单', value: String(records.length), hint: '来自后端问诊接口' },
+        { label: '待处理', value: String(waitingCount), hint: '按状态字段实时统计' },
+        { label: '进行中', value: String(records.length - waitingCount), hint: '覆盖图文与视频渠道' },
       ]}
       columns={columns}
-      dataSource={dataSource}
+      dataSource={records}
+      loading={loading}
       tableTitle="咨询单列表"
       searchPlaceholder="搜索咨询单、患者、医生"
       getSearchText={(record) => `${record.consultNo} ${record.patientName} ${record.doctorName} ${record.channel}`}

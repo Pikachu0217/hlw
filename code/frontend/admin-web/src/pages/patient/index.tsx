@@ -1,8 +1,10 @@
 import { Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { fetchPatients } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
+import { useModuleRecords } from '@/hooks/useModuleRecords';
 
-interface PatientRecord {
+export interface PatientRecord {
   key: string;
   patientName: string;
   gender: string;
@@ -11,11 +13,6 @@ interface PatientRecord {
   phone: string;
   lastVisit: string;
 }
-
-const dataSource: PatientRecord[] = [
-  { key: '1', patientName: '赵晓岚', gender: '女', age: 34, riskLevel: '中风险', phone: '13900001111', lastVisit: '2026-06-11' },
-  { key: '2', patientName: '沈博远', gender: '男', age: 58, riskLevel: '高风险', phone: '13900002222', lastVisit: '2026-06-10' },
-];
 
 const columns: ColumnsType<PatientRecord> = [
   { title: '患者姓名', dataIndex: 'patientName' },
@@ -27,18 +24,22 @@ const columns: ColumnsType<PatientRecord> = [
 ];
 
 function PatientPage() {
+  const { records, loading } = useModuleRecords(fetchPatients, '患者');
+  const highRiskCount = records.filter((record) => record.riskLevel.includes('高')).length;
+
   return (
     <ModulePage<PatientRecord>
       eyebrow="患者中心"
       title="患者档案与风险分层"
       description="承接患者基础档案、风险等级与最近就诊时间。"
       metrics={[
-        { label: '在管患者', value: '1,286', hint: '近 30 天新增 82 人' },
-        { label: '高风险患者', value: '43', hint: '需重点随访' },
-        { label: '今日回访', value: '17', hint: '客服与医生联动中' },
+        { label: '在管患者', value: String(records.length), hint: '来自后端患者接口' },
+        { label: '高风险患者', value: String(highRiskCount), hint: '按风险等级实时统计' },
+        { label: '待随访', value: String(records.length - highRiskCount), hint: '建议按最近就诊排序' },
       ]}
       columns={columns}
-      dataSource={dataSource}
+      dataSource={records}
+      loading={loading}
       tableTitle="患者列表"
       searchPlaceholder="搜索患者姓名、电话或风险等级"
       getSearchText={(record) => `${record.patientName} ${record.phone} ${record.riskLevel}`}

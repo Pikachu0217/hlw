@@ -18,6 +18,7 @@ interface ModulePageProps<T extends { key: string }> {
   metrics: MetricCardItem[];
   columns: ColumnsType<T>;
   dataSource: T[];
+  loading?: boolean;
   tableTitle: string;
   searchPlaceholder: string;
   getSearchText: (record: T) => string;
@@ -31,6 +32,7 @@ function ModulePage<T extends { key: string }>({
   metrics,
   columns,
   dataSource,
+  loading = false,
   tableTitle,
   searchPlaceholder,
   getSearchText,
@@ -77,7 +79,7 @@ function ModulePage<T extends { key: string }>({
             <Tag color="blue">当前 {filteredData.length} 条</Tag>
           </Space>
         </div>
-        <Table<T> rowKey="key" columns={columns} dataSource={filteredData} pagination={false} />
+        <Table<T> rowKey="key" columns={columns} dataSource={filteredData} loading={loading} pagination={false} />
       </Card>
     </div>
   );

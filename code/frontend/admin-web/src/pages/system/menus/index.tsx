@@ -1,8 +1,10 @@
 import { Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { fetchMenus } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
+import { useModuleRecords } from '@/hooks/useModuleRecords';
 
-interface MenuRecord {
+export interface MenuRecord {
   key: string;
   menuName: string;
   menuType: string;
@@ -10,11 +12,6 @@ interface MenuRecord {
   routePath: string;
   status: string;
 }
-
-const dataSource: MenuRecord[] = [
-  { key: '1', menuName: '工作台', menuType: '菜单', permission: 'dashboard:view', routePath: '/dashboard', status: '启用' },
-  { key: '2', menuName: '医生管理', menuType: '菜单', permission: 'doctor:list', routePath: '/doctor', status: '启用' },
-];
 
 const columns: ColumnsType<MenuRecord> = [
   { title: '菜单名称', dataIndex: 'menuName' },
@@ -25,18 +22,21 @@ const columns: ColumnsType<MenuRecord> = [
 ];
 
 function MenusPage() {
+  const { records, loading } = useModuleRecords(fetchMenus, '菜单');
+
   return (
     <ModulePage<MenuRecord>
       eyebrow="系统管理"
       title="菜单与权限标识"
       description="把路由、权限标识与按钮位关系先搭好。"
       metrics={[
-        { label: '菜单节点', value: '18', hint: '含分组与业务菜单' },
-        { label: '按钮权限', value: '26', hint: '覆盖新增、编辑、导出' },
-        { label: '待补权限', value: '5', hint: '主要集中在订单与药品模块' },
+        { label: '菜单节点', value: String(records.length), hint: '来自后端菜单接口' },
+        { label: '启用菜单', value: String(records.filter((record) => record.status === '启用').length), hint: '按状态实时统计' },
+        { label: '权限标识', value: String(records.filter((record) => record.permission).length), hint: '覆盖当前返回菜单' },
       ]}
       columns={columns}
-      dataSource={dataSource}
+      dataSource={records}
+      loading={loading}
       tableTitle="菜单配置"
       searchPlaceholder="搜索菜单、权限标识或路由"
       getSearchText={(record) => `${record.menuName} ${record.permission} ${record.routePath}`}

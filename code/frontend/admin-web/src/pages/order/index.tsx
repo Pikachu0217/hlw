@@ -1,8 +1,10 @@
 import { Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { fetchOrders } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
+import { useModuleRecords } from '@/hooks/useModuleRecords';
 
-interface OrderRecord {
+export interface OrderRecord {
   key: string;
   orderNo: string;
   businessType: string;
@@ -11,11 +13,6 @@ interface OrderRecord {
   payStatus: string;
   createdAt: string;
 }
-
-const dataSource: OrderRecord[] = [
-  { key: '1', orderNo: 'DD20260612001', businessType: '门诊预约', patientName: '赵晓岚', amount: '¥58.00', payStatus: '已支付', createdAt: '09:12' },
-  { key: '2', orderNo: 'DD20260612002', businessType: '图文咨询', patientName: '沈博远', amount: '¥39.90', payStatus: '待支付', createdAt: '09:35' },
-];
 
 const columns: ColumnsType<OrderRecord> = [
   { title: '订单号', dataIndex: 'orderNo' },
@@ -27,18 +24,22 @@ const columns: ColumnsType<OrderRecord> = [
 ];
 
 function OrderPage() {
+  const { records, loading } = useModuleRecords(fetchOrders, '订单');
+  const pendingCount = records.filter((record) => record.payStatus.includes('待')).length;
+
   return (
     <ModulePage<OrderRecord>
       eyebrow="订单中心"
       title="诊疗订单与支付状态"
       description="围绕业务类型、支付状态和金额做统一管理。"
       metrics={[
-        { label: '今日订单', value: '214', hint: '处方购药增长明显' },
-        { label: '待支付', value: '17', hint: '建议发起二次提醒' },
-        { label: '退款处理中', value: '6', hint: '需财务复核' },
+        { label: '今日订单', value: String(records.length), hint: '来自后端订单接口' },
+        { label: '待支付', value: String(pendingCount), hint: '按支付状态实时统计' },
+        { label: '已支付', value: String(records.length - pendingCount), hint: '可继续对接履约流转' },
       ]}
       columns={columns}
-      dataSource={dataSource}
+      dataSource={records}
+      loading={loading}
       tableTitle="订单列表"
       searchPlaceholder="搜索订单号、患者或业务类型"
       getSearchText={(record) => `${record.orderNo} ${record.patientName} ${record.businessType} ${record.payStatus}`}

@@ -49,7 +49,7 @@ function LoginPage() {
         </Space>
         <Form<LoginFormValues>
           layout="vertical"
-          initialValues={{ username: 'admin', password: 'admin123', remember: true }}
+          initialValues={{ username: '', password: '', remember: true }}
           onFinish={handleFinish}
         >
           <Form.Item label="账号" name="username" rules={[{ required: true, message: '请输入账号' }]}>
