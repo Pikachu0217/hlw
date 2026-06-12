@@ -26,6 +26,9 @@
         <module>hospital-patient</module>
         <module>hospital-appointment</module>
         <module>hospital-consult</module>
+        <module>hospital-prescription</module>
+        <module>hospital-drug</module>
+        <module>hospital-order</module>
     </modules>
 
     <properties>

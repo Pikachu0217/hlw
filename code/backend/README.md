@@ -22,6 +22,9 @@
 - `hospital-patient`：患者资料、手机号脱敏和健康记录接口骨架。
 - `hospital-appointment`：预约、号源锁定、放号配置和便民门诊抢单骨架。
 - `hospital-consult`：在线问诊生命周期、消息处理、WebSocket 端点和超时调度骨架。
+- `hospital-prescription`：处方创建、提交、审核和驳回接口骨架。
+- `hospital-drug`：药品、库存、发货接口骨架。
+- `hospital-order`：统一订单、模拟支付和支付事件骨架。
 
 ## 环境要求
 
@@ -51,14 +54,15 @@ code/backend/
 ├── hospital-doctor/
 ├── hospital-patient/
 ├── hospital-appointment/
-└── hospital-consult/
+├── hospital-consult/
+├── hospital-prescription/
+├── hospital-drug/
+└── hospital-order/
 ```
 
 后续 MVP 阶段会继续新增以下服务模块：
 
-- `hospital-prescription`
-- `hospital-drug`
-- `hospital-order`
+后端业务模块骨架已覆盖 PRD 中的核心服务，后续阶段会继续补充可启动配置、持久化、网关路由和前端工作台。
 
 ## 本地中间件
 
@@ -171,6 +175,13 @@ cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
 mvn -pl hospital-consult -am test
 ```
 
+执行处方、药品、订单模块测试：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
+mvn -pl hospital-prescription,hospital-drug,hospital-order -am test
+```
+
 ## 服务启动
 
 当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 已有模块骨架和接口代码，但尚未加入完整 Spring Boot 启动类、配置文件、Nacos 注册配置和数据库连接配置。后续模块完成到可运行状态时，需要在本节补充实际启动命令。
@@ -186,9 +197,9 @@ PRD 规划端口：
 | `hospital-doctor` | 9400 | 已建模块骨架 |
 | `hospital-consult` | 9500 | 已建模块骨架 |
 | `hospital-appointment` | 9600 | 已建模块骨架 |
-| `hospital-prescription` | 9700 | 待实现 |
-| `hospital-drug` | 9800 | 待实现 |
-| `hospital-order` | 9900 | 待实现 |
+| `hospital-prescription` | 9700 | 已建模块骨架 |
+| `hospital-drug` | 9800 | 已建模块骨架 |
+| `hospital-order` | 9900 | 已建模块骨架 |
 
 当某个服务模块变为可启动模块时，必须补充：
 
@@ -277,6 +288,31 @@ ws://host/ws/consult/{consultId}?token=xxx
 ```text
 IN_PROGRESS 问诊 remaining_seconds <= 0 时标记 TIMEOUT。
 remaining_seconds <= 300 时推送五分钟提醒。
+```
+
+Task 9 引入以下接口路径：
+
+```http
+POST /prescription/prescriptions
+POST /prescription/prescriptions/{id}/submit
+POST /prescription/prescriptions/{id}/approve
+POST /prescription/prescriptions/{id}/reject
+GET /drug/drugs
+POST /drug/drugs
+GET /drug/stocks
+POST /drug/stocks
+POST /drug/deliveries/{id}/ship
+POST /order/orders
+POST /order/orders/{id}/pay
+GET /order/orders
+```
+
+Task 9 事件 topic 约定：
+
+```text
+prescription.audited
+order.paid
+drug.shipped
 ```
 
 网关租户透传规则：
