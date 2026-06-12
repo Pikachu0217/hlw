@@ -15,18 +15,15 @@ interface AuthContextValue extends AuthSnapshot {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// 提供全局鉴权状态，并在登录失效时与本地存储保持一致。
 export function AuthProvider({ children }: PropsWithChildren) {
   const [snapshot, setSnapshot] = useState<AuthSnapshot>(() => readAuthSnapshot());
 
-  // 执行登录并落盘 satoken。
   function login(payload: AuthSnapshot): void {
     console.info('[auth] 管理端登录成功', payload.displayName);
     persistAuthSnapshot(payload);
     setSnapshot(payload);
   }
 
-  // 执行退出并清理本地会话。
   function logout(reason = '用户主动退出'): void {
     console.info('[auth] 管理端退出登录', reason);
     clearAuthSnapshot();
@@ -37,7 +34,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     });
   }
 
-  // 监听 API 层抛出的登录失效事件。
   useEffect(() => {
     function handleAuthExpired(event: Event): void {
       const customEvent = event as CustomEvent<{ reason?: string }>;
@@ -45,13 +41,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
 
     window.addEventListener('hlw:auth-expired', handleAuthExpired);
-
-    return () => {
-      window.removeEventListener('hlw:auth-expired', handleAuthExpired);
-    };
+    return () => window.removeEventListener('hlw:auth-expired', handleAuthExpired);
   }, []);
 
-  // 缓存上下文值，避免无关组件重复刷新。
   const value = useMemo<AuthContextValue>(
     () => ({
       ...snapshot,
@@ -65,7 +57,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// 读取全局鉴权上下文。
 export function useAuthStore(): AuthContextValue {
   const context = useContext(AuthContext);
 

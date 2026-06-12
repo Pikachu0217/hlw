@@ -1,6 +1,5 @@
 import type { ThemeConfig } from 'antd';
 
-// 定义明亮医疗控制台的主题令牌。
 export const medicalConsoleTheme: ThemeConfig = {
   token: {
     colorPrimary: '#147d8f',
@@ -16,36 +15,5 @@ export const medicalConsoleTheme: ThemeConfig = {
     fontFamily:
       '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif',
     boxShadowSecondary: '0 18px 60px rgba(14, 42, 68, 0.08)',
-  },
-  components: {
-    Layout: {
-      bodyBg: '#f3f8fb',
-      siderBg: 'rgba(8, 39, 62, 0.96)',
-      headerBg: 'transparent',
-      triggerBg: '#10324d',
-    },
-    Menu: {
-      darkItemBg: 'transparent',
-      darkItemColor: 'rgba(226, 241, 248, 0.76)',
-      darkItemHoverBg: 'rgba(87, 174, 198, 0.16)',
-      darkItemSelectedColor: '#ffffff',
-      darkSubMenuItemBg: 'transparent',
-    },
-    Card: {
-      bodyPadding: 22,
-    },
-    Button: {
-      controlHeight: 42,
-      borderRadius: 14,
-    },
-    Input: {
-      controlHeight: 42,
-      borderRadius: 14,
-    },
-    Table: {
-      borderColor: 'rgba(18, 49, 71, 0.08)',
-      headerBg: 'rgba(20, 125, 143, 0.08)',
-      rowHoverBg: 'rgba(20, 125, 143, 0.04)',
-    },
   },
 };

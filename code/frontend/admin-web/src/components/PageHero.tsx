@@ -9,7 +9,6 @@ interface PageHeroProps {
   actions?: ReactNode;
 }
 
-// 渲染各业务页面统一的头部展示区。
 function PageHero({ eyebrow, title, description, badgeText, actions }: PageHeroProps) {
   return (
     <section className="page-hero">
@@ -26,11 +25,7 @@ function PageHero({ eyebrow, title, description, badgeText, actions }: PageHeroP
         <Space wrap>
           <Button type="primary">查看今日任务</Button>
           <Button>导出概览</Button>
-          {badgeText ? (
-            <Tag color="cyan" className="page-hero__status">
-              {badgeText}
-            </Tag>
-          ) : null}
+          {badgeText ? <Tag color="cyan">{badgeText}</Tag> : null}
         </Space>
       </div>
       <div className="page-hero__aside">

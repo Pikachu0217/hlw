@@ -4,7 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 import PageHero from '@/components/PageHero';
 
-export interface MetricCardItem {
+interface MetricCardItem {
   label: string;
   value: string;
   hint: string;
@@ -23,7 +23,6 @@ interface ModulePageProps<T extends { key: string }> {
   getSearchText: (record: T) => string;
 }
 
-// 渲染通用业务列表页，减少重复布局代码。
 function ModulePage<T extends { key: string }>({
   eyebrow,
   title,
@@ -38,18 +37,9 @@ function ModulePage<T extends { key: string }>({
 }: ModulePageProps<T>) {
   const [keyword, setKeyword] = useState('');
 
-  // 根据关键字过滤表格数据。
-  function buildFilteredData(): T[] {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-
-    if (!normalizedKeyword) {
-      return dataSource;
-    }
-
-    return dataSource.filter((record) => getSearchText(record).toLowerCase().includes(normalizedKeyword));
-  }
-
-  const filteredData = buildFilteredData();
+  const filteredData = keyword.trim()
+    ? dataSource.filter((record) => getSearchText(record).toLowerCase().includes(keyword.trim().toLowerCase()))
+    : dataSource;
 
   return (
     <div className="page-shell">
@@ -71,9 +61,7 @@ function ModulePage<T extends { key: string }>({
             <Typography.Title level={4} className="console-card__title">
               {tableTitle}
             </Typography.Title>
-            <Typography.Text className="console-card__subtitle">
-              适合后续接入真实接口与分页查询。
-            </Typography.Text>
+            <Typography.Text className="console-card__subtitle">适合后续接入真实接口与分页查询。</Typography.Text>
           </div>
           <Space wrap>
             <Input

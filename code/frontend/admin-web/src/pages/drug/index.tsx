@@ -14,7 +14,6 @@ interface DrugRecord {
 const dataSource: DrugRecord[] = [
   { key: '1', drugName: '阿托伐他汀钙片', spec: '20mg*14片', inventory: 124, unit: '盒', warningStatus: '正常' },
   { key: '2', drugName: '盐酸二甲双胍缓释片', spec: '0.5g*30片', inventory: 42, unit: '盒', warningStatus: '预警' },
-  { key: '3', drugName: '布地奈德鼻喷雾剂', spec: '120喷/瓶', inventory: 16, unit: '瓶', warningStatus: '紧缺' },
 ];
 
 const columns: ColumnsType<DrugRecord> = [
@@ -22,21 +21,15 @@ const columns: ColumnsType<DrugRecord> = [
   { title: '规格', dataIndex: 'spec' },
   { title: '库存', dataIndex: 'inventory' },
   { title: '单位', dataIndex: 'unit' },
-  {
-    title: '预警状态',
-    dataIndex: 'warningStatus',
-    render: (value: string) => <Tag color={value === '正常' ? 'green' : value === '预警' ? 'orange' : 'red'}>{value}</Tag>,
-  },
+  { title: '预警状态', dataIndex: 'warningStatus', render: (value: string) => <Tag color="green">{value}</Tag> },
 ];
 
-// 渲染药品目录基础页。
 function DrugPage() {
   return (
     <ModulePage<DrugRecord>
       eyebrow="药品目录"
       title="药品库存与预警"
-      description="先沉淀药品基础目录、规格和库存预警状态，后续可直接接入库存流水与批次管理。"
-      badgeText="库存联调预留"
+      description="先沉淀药品基础目录、规格和库存预警状态。"
       metrics={[
         { label: '在售药品', value: '328', hint: '口服药占比 58%' },
         { label: '库存预警', value: '11', hint: '需 24 小时内补货' },

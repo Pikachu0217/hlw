@@ -15,12 +15,8 @@ import PrescriptionPage from '@/pages/prescription';
 import DrugPage from '@/pages/drug';
 import OrderPage from '@/pages/order';
 
-// 构建管理端路由树，未登录时统一走守卫。
 export const appRouter = createBrowserRouter([
-  {
-    path: '/login',
-    element: <LoginPage />,
-  },
+  { path: '/login', element: <LoginPage /> },
   {
     path: '/',
     element: (
@@ -29,62 +25,20 @@ export const appRouter = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      {
-        index: true,
-        element: <Navigate to="/dashboard" replace />,
-      },
-      {
-        path: 'dashboard',
-        element: <DashboardPage />,
-      },
-      {
-        path: 'tenant',
-        element: <TenantPage />,
-      },
-      {
-        path: 'system/users',
-        element: <UsersPage />,
-      },
-      {
-        path: 'system/roles',
-        element: <RolesPage />,
-      },
-      {
-        path: 'system/menus',
-        element: <MenusPage />,
-      },
-      {
-        path: 'doctor',
-        element: <DoctorPage />,
-      },
-      {
-        path: 'patient',
-        element: <PatientPage />,
-      },
-      {
-        path: 'consult',
-        element: <ConsultPage />,
-      },
-      {
-        path: 'appointment',
-        element: <AppointmentPage />,
-      },
-      {
-        path: 'prescription',
-        element: <PrescriptionPage />,
-      },
-      {
-        path: 'drug',
-        element: <DrugPage />,
-      },
-      {
-        path: 'order',
-        element: <OrderPage />,
-      },
+      { index: true, element: <Navigate to="/dashboard" replace /> },
+      { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'tenant', element: <TenantPage /> },
+      { path: 'system/users', element: <UsersPage /> },
+      { path: 'system/roles', element: <RolesPage /> },
+      { path: 'system/menus', element: <MenusPage /> },
+      { path: 'doctor', element: <DoctorPage /> },
+      { path: 'patient', element: <PatientPage /> },
+      { path: 'consult', element: <ConsultPage /> },
+      { path: 'appointment', element: <AppointmentPage /> },
+      { path: 'prescription', element: <PrescriptionPage /> },
+      { path: 'drug', element: <DrugPage /> },
+      { path: 'order', element: <OrderPage /> },
     ],
   },
-  {
-    path: '*',
-    element: <Navigate to="/dashboard" replace />,
-  },
+  { path: '*', element: <Navigate to="/dashboard" replace /> },
 ]);
