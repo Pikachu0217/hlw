@@ -19,6 +19,9 @@
 
     <modules>
         <module>hospital-common</module>
+        <module>hospital-gateway</module>
+        <module>hospital-auth</module>
+        <module>hospital-system</module>
     </modules>
 
     <properties>
