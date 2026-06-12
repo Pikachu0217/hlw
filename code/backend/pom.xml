@@ -22,6 +22,7 @@
         <module>hospital-gateway</module>
         <module>hospital-auth</module>
         <module>hospital-system</module>
+        <module>hospital-doctor</module>
     </modules>
 
     <properties>

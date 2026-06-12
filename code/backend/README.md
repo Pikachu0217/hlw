@@ -18,6 +18,7 @@
 - `hospital-gateway`：网关租户请求头透传过滤器。
 - `hospital-auth`：登录服务与认证接口骨架。
 - `hospital-system`：租户、角色、菜单接口骨架。
+- `hospital-doctor`：医生、科室、排班接口骨架与挂号费规则。
 
 ## 环境要求
 
@@ -43,13 +44,13 @@ code/backend/
 │   └── common-mq/
 ├── hospital-gateway/
 ├── hospital-auth/
-└── hospital-system/
+├── hospital-system/
+└── hospital-doctor/
 ```
 
 后续 MVP 阶段会继续新增以下服务模块：
 
 - `hospital-patient`
-- `hospital-doctor`
 - `hospital-consult`
 - `hospital-appointment`
 - `hospital-prescription`
@@ -139,6 +140,13 @@ cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
 mvn -pl hospital-auth,hospital-system,hospital-gateway -am test
 ```
 
+执行医生模块挂号费规则测试：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
+mvn -pl hospital-doctor -am test
+```
+
 ## 服务启动
 
 当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 已有模块骨架和接口代码，但尚未加入完整 Spring Boot 启动类、配置文件、Nacos 注册配置和数据库连接配置。后续模块完成到可运行状态时，需要在本节补充实际启动命令。
@@ -151,7 +159,7 @@ PRD 规划端口：
 | `hospital-auth` | 9100 | 已建模块骨架 |
 | `hospital-system` | 9200 | 已建模块骨架 |
 | `hospital-patient` | 9300 | 待实现 |
-| `hospital-doctor` | 9400 | 待实现 |
+| `hospital-doctor` | 9400 | 已建模块骨架 |
 | `hospital-consult` | 9500 | 待实现 |
 | `hospital-appointment` | 9600 | 待实现 |
 | `hospital-prescription` | 9700 | 待实现 |
@@ -180,6 +188,20 @@ GET /system/tenants
 POST /system/tenants
 GET /system/roles
 GET /system/menus
+```
+
+Task 5 引入以下接口路径：
+
+```http
+GET /doctor/departments
+POST /doctor/departments
+GET /doctor/doctors
+POST /doctor/doctors
+PUT /doctor/doctors/{id}/status
+POST /doctor/doctors/{id}/departments
+GET /doctor/schedules
+POST /doctor/schedules
+POST /doctor/appointment-fee/resolve
 ```
 
 网关租户透传规则：
