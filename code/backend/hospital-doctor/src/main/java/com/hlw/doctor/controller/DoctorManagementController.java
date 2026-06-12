@@ -15,6 +15,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Map.entry;
+
 @RestController
 @RequestMapping("/doctor")
 public class DoctorManagementController {
@@ -52,31 +54,31 @@ public class DoctorManagementController {
     @GetMapping("/doctors")
     public R<List<Map<String, Object>>> doctors() {
         return R.ok(List.of(
-            Map.of(
-                "id", 1L,
-                "key", "1",
-                "name", "陈知衡",
-                "title", "主任医师",
-                "department", "心内科",
-                "specialty", "冠脉慢病管理",
-                "status", "接诊中",
-                "consultStatus", "ONLINE",
-                "schedule", "上午门诊",
-                "patientCount", 16,
-                "consultFee", "50.00"
+            Map.ofEntries(
+                entry("id", 1L),
+                entry("key", "1"),
+                entry("name", "陈知衡"),
+                entry("title", "主任医师"),
+                entry("department", "心内科"),
+                entry("specialty", "冠脉慢病管理"),
+                entry("status", "接诊中"),
+                entry("consultStatus", "ONLINE"),
+                entry("schedule", "上午门诊"),
+                entry("patientCount", 16),
+                entry("consultFee", "50.00")
             ),
-            Map.of(
-                "id", 2L,
-                "key", "2",
-                "name", "顾清和",
-                "title", "副主任医师",
-                "department", "内分泌科",
-                "specialty", "糖尿病营养干预",
-                "status", "候诊",
-                "consultStatus", "BUSY",
-                "schedule", "下午门诊",
-                "patientCount", 9,
-                "consultFee", "30.00"
+            Map.ofEntries(
+                entry("id", 2L),
+                entry("key", "2"),
+                entry("name", "顾清和"),
+                entry("title", "副主任医师"),
+                entry("department", "内分泌科"),
+                entry("specialty", "糖尿病营养干预"),
+                entry("status", "候诊"),
+                entry("consultStatus", "BUSY"),
+                entry("schedule", "下午门诊"),
+                entry("patientCount", 9),
+                entry("consultFee", "30.00")
             )
         ));
     }
