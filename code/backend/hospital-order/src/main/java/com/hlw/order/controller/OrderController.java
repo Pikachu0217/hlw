@@ -3,6 +3,8 @@ package com.hlw.order.controller;
 import com.hlw.common.core.domain.R;
 import com.hlw.order.service.MockPaymentService;
 import com.hlw.order.service.Order;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +21,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/order")
 public class OrderController {
+    private static final Logger log = LoggerFactory.getLogger(OrderController.class);
+
     private final MockPaymentService mockPaymentService;
 
     /**
@@ -60,6 +64,10 @@ public class OrderController {
      */
     @GetMapping("/orders")
     public R<List<Map<String, Object>>> orders() {
-        return R.ok(List.of());
+        log.info("查询订单列表");
+        return R.ok(List.of(
+            Map.of("key", "1", "orderNo", "DD20260612001", "businessType", "门诊预约", "patientName", "赵晓岚", "amount", "¥58.00", "payStatus", "已支付", "createdAt", "09:12"),
+            Map.of("key", "2", "orderNo", "DD20260612002", "businessType", "图文咨询", "patientName", "沈博远", "amount", "¥39.90", "payStatus", "待支付", "createdAt", "09:35")
+        ));
     }
 }

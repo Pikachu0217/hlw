@@ -2,6 +2,8 @@ package com.hlw.drug.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.drug.service.DrugDeliveryService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +20,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/drug")
 public class DrugController {
+    private static final Logger log = LoggerFactory.getLogger(DrugController.class);
+
     private final DrugDeliveryService drugDeliveryService;
 
     /**
@@ -36,7 +40,11 @@ public class DrugController {
      */
     @GetMapping("/drugs")
     public R<List<Map<String, Object>>> drugs() {
-        return R.ok(List.of());
+        log.info("查询药品列表");
+        return R.ok(List.of(
+            Map.of("key", "1", "drugName", "阿托伐他汀钙片", "spec", "20mg*14片", "inventory", 124, "unit", "盒", "warningStatus", "正常"),
+            Map.of("key", "2", "drugName", "盐酸二甲双胍缓释片", "spec", "0.5g*30片", "inventory", 42, "unit", "盒", "warningStatus", "预警")
+        ));
     }
 
     /**
@@ -57,7 +65,11 @@ public class DrugController {
      */
     @GetMapping("/stocks")
     public R<List<Map<String, Object>>> stocks() {
-        return R.ok(List.of());
+        log.info("查询库存列表");
+        return R.ok(List.of(
+            Map.of("key", "1", "drugName", "阿托伐他汀钙片", "warehouseName", "中心药房", "inventory", 124, "warningStatus", "正常"),
+            Map.of("key", "2", "drugName", "盐酸二甲双胍缓释片", "warehouseName", "中心药房", "inventory", 42, "warningStatus", "预警")
+        ));
     }
 
     /**

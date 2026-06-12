@@ -4,6 +4,8 @@ import com.hlw.common.core.domain.R;
 import com.hlw.patient.service.PatientProfile;
 import com.hlw.patient.service.PatientProfileService;
 import com.hlw.patient.service.UpdatePatientProfileCommand;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,6 +19,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/patient")
 public class PatientProfileController {
+    private static final Logger log = LoggerFactory.getLogger(PatientProfileController.class);
+
     private final PatientProfileService patientProfileService;
 
     /**
@@ -35,7 +39,22 @@ public class PatientProfileController {
      */
     @GetMapping("/profile")
     public R<PatientProfile> profile() {
+        log.info("查询当前患者档案");
         return R.ok(patientProfileService.findProfile(1L));
+    }
+
+    /**
+     * 查询患者列表。
+     *
+     * @return 患者列表
+     */
+    @GetMapping("/patients")
+    public R<List<Map<String, Object>>> patients() {
+        log.info("查询患者列表");
+        return R.ok(List.of(
+            Map.of("key", "1", "patientName", "赵晓岚", "gender", "女", "age", 34, "riskLevel", "中风险", "phone", "13900001111", "lastVisit", "2026-06-11"),
+            Map.of("key", "2", "patientName", "沈博远", "gender", "男", "age", 58, "riskLevel", "高风险", "phone", "13900002222", "lastVisit", "2026-06-10")
+        ));
     }
 
     /**

@@ -3,6 +3,8 @@ package com.hlw.doctor.controller;
 import com.hlw.common.core.domain.R;
 import com.hlw.doctor.service.AppointmentFeePolicy;
 import com.hlw.doctor.service.FeeContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +22,8 @@ import static java.util.Map.entry;
 @RestController
 @RequestMapping("/doctor")
 public class DoctorManagementController {
+    private static final Logger log = LoggerFactory.getLogger(DoctorManagementController.class);
+
     private final AppointmentFeePolicy appointmentFeePolicy = new AppointmentFeePolicy();
 
     /**
@@ -29,9 +33,11 @@ public class DoctorManagementController {
      */
     @GetMapping("/departments")
     public R<List<Map<String, Object>>> departments() {
+        log.info("查询科室列表");
         return R.ok(List.of(
-            Map.of("id", 10L, "name", "心内科", "doctorCount", 8),
-            Map.of("id", 20L, "name", "儿科", "doctorCount", 12)
+            Map.of("id", 10L, "name", "心内科", "doctorCount", 8, "queue", "当前等候 6 人"),
+            Map.of("id", 20L, "name", "儿科", "doctorCount", 12, "queue", "当前等候 8 人"),
+            Map.of("id", 30L, "name", "皮肤科", "doctorCount", 5, "queue", "当前等候 3 人")
         ));
     }
 
@@ -53,6 +59,7 @@ public class DoctorManagementController {
      */
     @GetMapping("/doctors")
     public R<List<Map<String, Object>>> doctors() {
+        log.info("查询医生列表");
         return R.ok(List.of(
             Map.ofEntries(
                 entry("id", 1L),
@@ -81,6 +88,34 @@ public class DoctorManagementController {
                 entry("consultFee", "30.00")
             )
         ));
+    }
+
+    /**
+     * 查询医生详情。
+     *
+     * @param id 医生编号
+     * @return 医生详情
+     */
+    @GetMapping("/doctors/{id}")
+    public R<Map<String, Object>> doctorDetail(@PathVariable Long id) {
+        log.info("查询医生详情，doctorId={}", id);
+        Map<String, Object> detail = doctors().data().stream()
+            .filter(doctor -> id.equals(doctor.get("id")))
+            .findFirst()
+            .orElse(Map.ofEntries(
+                entry("id", id),
+                entry("key", String.valueOf(id)),
+                entry("name", "陈知衡"),
+                entry("title", "主任医师"),
+                entry("department", "心内科"),
+                entry("specialty", "冠脉慢病管理"),
+                entry("status", "接诊中"),
+                entry("consultStatus", "ONLINE"),
+                entry("schedule", "上午门诊"),
+                entry("patientCount", 16),
+                entry("consultFee", "50.00")
+            ));
+        return R.ok(detail);
     }
 
     /**

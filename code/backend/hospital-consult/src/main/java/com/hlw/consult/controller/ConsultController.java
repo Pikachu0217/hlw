@@ -5,6 +5,8 @@ import com.hlw.consult.service.Consult;
 import com.hlw.consult.service.ConsultLifecycleService;
 import com.hlw.consult.ws.ConsultMessage;
 import com.hlw.consult.ws.ConsultMessageRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,6 +21,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/consult")
 public class ConsultController {
+    private static final Logger log = LoggerFactory.getLogger(ConsultController.class);
+
     private final ConsultLifecycleService consultLifecycleService;
     private final ConsultMessageRepository consultMessageRepository;
 
@@ -34,6 +38,20 @@ public class ConsultController {
     ) {
         this.consultLifecycleService = consultLifecycleService;
         this.consultMessageRepository = consultMessageRepository;
+    }
+
+    /**
+     * 查询问诊单列表。
+     *
+     * @return 问诊单列表
+     */
+    @GetMapping("/consults")
+    public R<List<Map<String, Object>>> consults() {
+        log.info("查询问诊单列表");
+        return R.ok(List.of(
+            Map.of("key", "1", "consultNo", "ZX20260612001", "patientName", "赵晓岚", "doctorName", "陈知衡", "channel", "图文", "status", "待接单", "updatedAt", "10:18"),
+            Map.of("key", "2", "consultNo", "ZX20260612002", "patientName", "沈博远", "doctorName", "顾清和", "channel", "视频", "status", "咨询中", "updatedAt", "10:07")
+        ));
     }
 
     /**

@@ -3,6 +3,9 @@ package com.hlw.prescription.controller;
 import com.hlw.common.core.domain.R;
 import com.hlw.prescription.service.Prescription;
 import com.hlw.prescription.service.PrescriptionAuditService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -10,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.List;
 
 /**
  * 处方管理控制器，提供处方创建、提审、审核与驳回接口。
@@ -17,6 +21,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/prescription")
 public class PrescriptionController {
+    private static final Logger log = LoggerFactory.getLogger(PrescriptionController.class);
+
     private final PrescriptionAuditService prescriptionAuditService;
 
     /**
@@ -26,6 +32,20 @@ public class PrescriptionController {
      */
     public PrescriptionController(PrescriptionAuditService prescriptionAuditService) {
         this.prescriptionAuditService = prescriptionAuditService;
+    }
+
+    /**
+     * 查询处方列表。
+     *
+     * @return 处方列表
+     */
+    @GetMapping("/prescriptions")
+    public R<List<Map<String, Object>>> prescriptions() {
+        log.info("查询处方列表");
+        return R.ok(List.of(
+            Map.of("key", "1", "prescriptionNo", "CF20260612001", "patientName", "赵晓岚", "doctorName", "陈知衡", "drugCount", 3, "issuedAt", "09:42", "status", "待审方"),
+            Map.of("key", "2", "prescriptionNo", "CF20260612002", "patientName", "沈博远", "doctorName", "顾清和", "drugCount", 5, "issuedAt", "09:18", "status", "待发药")
+        ));
     }
 
     /**
