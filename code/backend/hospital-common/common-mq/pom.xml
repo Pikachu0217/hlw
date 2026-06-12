@@ -6,19 +6,18 @@
 
     <parent>
         <groupId>com.hlw</groupId>
-        <artifactId>hospital-backend</artifactId>
+        <artifactId>hospital-common</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <artifactId>hospital-common</artifactId>
-    <packaging>pom</packaging>
-    <name>hospital-common</name>
+    <artifactId>common-mq</artifactId>
+    <name>common-mq</name>
 
-    <modules>
-        <module>common-core</module>
-        <module>common-mybatis</module>
-        <module>common-redis</module>
-        <module>common-security</module>
-        <module>common-mq</module>
-    </modules>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
 </project>
