@@ -1,0 +1,21 @@
+hlw:
+  nacos:
+    server-addr: nacos-prod:8848
+    namespace: prod
+    group: PROD_GROUP
+    username: ${NACOS_USERNAME}
+    password: ${NACOS_PASSWORD}
+  datasource:
+    url: jdbc:postgresql://${CONSULT_DB_HOST}:${CONSULT_DB_PORT:5432}/${CONSULT_DB_NAME:hospital_consult}
+    username: ${CONSULT_DB_USERNAME}
+    password: ${CONSULT_DB_PASSWORD}
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}

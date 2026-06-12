@@ -1,0 +1,7 @@
+hlw:
+  nacos:
+    server-addr: nacos-prod:8848
+    namespace: prod
+    group: PROD_GROUP
+    username: ${NACOS_USERNAME}
+    password: ${NACOS_PASSWORD}

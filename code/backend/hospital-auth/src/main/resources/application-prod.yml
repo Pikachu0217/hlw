@@ -1,0 +1,16 @@
+hlw:
+  nacos:
+    server-addr: nacos-prod:8848
+    namespace: prod
+    group: PROD_GROUP
+    username: ${NACOS_USERNAME}
+    password: ${NACOS_PASSWORD}
+  datasource:
+    url: jdbc:postgresql://${AUTH_DB_HOST}:${AUTH_DB_PORT:5432}/${AUTH_DB_NAME:hospital_auth}
+    username: ${AUTH_DB_USERNAME}
+    password: ${AUTH_DB_PASSWORD}
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DATABASE:0}

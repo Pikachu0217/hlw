@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: hospital-consult
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  datasource:
+    url: ${hlw.datasource.url}
+    username: ${hlw.datasource.username}
+    password: ${hlw.datasource.password}
+    driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${hlw.redis.host}
+      port: ${hlw.redis.port}
+      password: ${hlw.redis.password}
+      database: ${hlw.redis.database}
+  cloud:
+    nacos:
+      server-addr: ${hlw.nacos.server-addr}
+      discovery:
+        server-addr: ${hlw.nacos.server-addr}
+        namespace: ${hlw.nacos.namespace}
+        group: ${hlw.nacos.group}
+        username: ${hlw.nacos.username}
+        password: ${hlw.nacos.password}
+        service: ${spring.application.name}
+  rabbitmq:
+    host: ${hlw.rabbitmq.host}
+    port: ${hlw.rabbitmq.port}
+    username: ${hlw.rabbitmq.username}
+    password: ${hlw.rabbitmq.password}
+
+server:
+  port: 9500
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    root: INFO
+    com.hlw.consult: INFO
+
+hlw:
+  nacos:
+    server-addr: ${HLW_NACOS_SERVER_ADDR}
+    namespace: ${HLW_NACOS_NAMESPACE:public}
+    group: ${HLW_NACOS_GROUP:DEFAULT_GROUP}
+    username: ${HLW_NACOS_USERNAME:nacos}
+    password: ${HLW_NACOS_PASSWORD:nacos}
+  datasource:
+    url: ${HLW_DB_URL}
+    username: ${HLW_DB_USERNAME}
+    password: ${HLW_DB_PASSWORD}
+  redis:
+    host: ${HLW_REDIS_HOST}
+    port: ${HLW_REDIS_PORT}
+    password: ${HLW_REDIS_PASSWORD:}
+    database: ${HLW_REDIS_DATABASE:0}
+  rabbitmq:
+    host: ${HLW_RABBITMQ_HOST}
+    port: ${HLW_RABBITMQ_PORT:5672}
+    username: ${HLW_RABBITMQ_USERNAME:guest}
+    password: ${HLW_RABBITMQ_PASSWORD:guest}

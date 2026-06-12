@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: hospital-gateway
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  cloud:
+    nacos:
+      server-addr: ${hlw.nacos.server-addr}
+      discovery:
+        server-addr: ${hlw.nacos.server-addr}
+        namespace: ${hlw.nacos.namespace}
+        group: ${hlw.nacos.group}
+        username: ${hlw.nacos.username}
+        password: ${hlw.nacos.password}
+        service: ${spring.application.name}
+    gateway:
+      routes:
+        - id: hospital-auth
+          uri: lb://hospital-auth
+          predicates:
+            - Path=/auth/**
+        - id: hospital-system
+          uri: lb://hospital-system
+          predicates:
+            - Path=/system/**
+        - id: hospital-doctor
+          uri: lb://hospital-doctor
+          predicates:
+            - Path=/doctor/**
+        - id: hospital-patient
+          uri: lb://hospital-patient
+          predicates:
+            - Path=/patient/**
+        - id: hospital-appointment
+          uri: lb://hospital-appointment
+          predicates:
+            - Path=/appointment/**
+        - id: hospital-consult
+          uri: lb://hospital-consult
+          predicates:
+            - Path=/consult/**,/ws/consult/**
+        - id: hospital-prescription
+          uri: lb://hospital-prescription
+          predicates:
+            - Path=/prescription/**
+        - id: hospital-drug
+          uri: lb://hospital-drug
+          predicates:
+            - Path=/drug/**
+        - id: hospital-order
+          uri: lb://hospital-order
+          predicates:
+            - Path=/order/**
+
+server:
+  port: 9000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: INFO
+    com.hlw.gateway: INFO
+
+hlw:
+  nacos:
+    server-addr: ${HLW_NACOS_SERVER_ADDR}
+    namespace: ${HLW_NACOS_NAMESPACE:public}
+    group: ${HLW_NACOS_GROUP:DEFAULT_GROUP}
+    username: ${HLW_NACOS_USERNAME:nacos}
+    password: ${HLW_NACOS_PASSWORD:nacos}

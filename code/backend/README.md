@@ -184,6 +184,27 @@ mvn -pl hospital-prescription,hospital-drug,hospital-order -am test
 
 当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 以及各业务服务模块已具备接口骨架，但尚未全部补齐完整 Spring Boot 启动类、配置文件、Nacos 注册配置和数据库连接配置。后续模块完成到可运行状态时，需要在本节补充实际启动命令。
 
+本轮已为以下模块补充基础配置文件目录：
+
+- `hospital-gateway`
+- `hospital-auth`
+- `hospital-system`
+- `hospital-doctor`
+- `hospital-patient`
+- `hospital-appointment`
+- `hospital-consult`
+- `hospital-prescription`
+- `hospital-drug`
+- `hospital-order`
+
+每个模块当前包含三类配置文件：
+
+- `application.yml`：统一声明端口、服务名、Nacos、数据库、Redis、RabbitMQ 等键位。
+- `application-local.yml`：本地开发默认值，主要指向 `127.0.0.1` 与本地 PostgreSQL/Redis/Nacos。
+- `application-prod.yml`：生产占位配置，主要通过环境变量注入。
+
+当前阶段这些配置文件用于明确服务启动约定与环境变量命名，并不代表所有模块已经完成可直接启动的 Spring Boot 主类和完整联调。
+
 PRD 规划端口：
 
 | 模块 | 端口 | 当前状态 |

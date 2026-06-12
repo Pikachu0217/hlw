@@ -1,0 +1,21 @@
+hlw:
+  nacos:
+    server-addr: 127.0.0.1:8848
+    namespace: public
+    group: DEFAULT_GROUP
+    username: nacos
+    password: nacos
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/hospital_prescription
+    username: postgres
+    password: hospital123
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: ""
+    database: 0
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
