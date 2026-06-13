@@ -50,7 +50,7 @@ logging:
 
 hlw:
   log:
-    path: ${HLW_LOG_PATH:${user.dir}/../log}
+    path: ${HLW_LOG_PATH:/Users/pakachuzy/Desktop/zzz/project/hlw/code/backend/log}
     max-file-size: ${HLW_LOG_MAX_FILE_SIZE:10MB}
     max-history: ${HLW_LOG_MAX_HISTORY:30}
     total-size-cap: ${HLW_LOG_TOTAL_SIZE_CAP:2GB}
