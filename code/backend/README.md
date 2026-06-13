@@ -512,6 +512,8 @@ GET /order/orders
 
 处方管理已接入 `pre_prescription` 和 `pre_prescription_item` 表，创建处方会写入草稿和药品明细，提交、审核通过、驳回均改为数据库状态变更并保留审核备注。
 
+订单管理已接入 `ord_order` 表，创建订单会写入待支付订单，支付接口会更新支付状态、支付方式和支付时间，并发布 `order.paid` 事件。
+
 Task 9 事件 topic 约定：
 
 ```text

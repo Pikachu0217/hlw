@@ -102,6 +102,19 @@ export interface RejectPrescriptionPayload {
   remark?: string;
 }
 
+export interface CreateOrderPayload {
+  bizType?: string;
+  businessType?: string;
+  bizId?: number;
+  patientId?: number;
+  patientName?: string;
+  amount?: number;
+}
+
+export interface PayOrderPayload {
+  payMethod?: string;
+}
+
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
 async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
   console.info(`[admin-module] 查询${moduleName}列表`, url);
@@ -299,4 +312,18 @@ export async function createDrug(payload: CreateDrugPayload): Promise<DrugRecord
 // 查询订单列表。
 export function fetchOrders(): Promise<OrderRecord[]> {
   return fetchModuleRecords<OrderRecord>('/order/orders', '订单');
+}
+
+// 创建订单。
+export async function createOrder(payload: CreateOrderPayload): Promise<OrderRecord> {
+  console.info('[admin-module] 创建订单', payload);
+  const response = await apiClient.post<ApiResult<OrderRecord>>('/order/orders', payload);
+  return response.data.data;
+}
+
+// 支付订单。
+export async function payOrder(id: string, payload: PayOrderPayload): Promise<OrderRecord> {
+  console.info('[admin-module] 支付订单', id, payload);
+  const response = await apiClient.post<ApiResult<OrderRecord>>(`/order/orders/${id}/pay`, payload);
+  return response.data.data;
 }

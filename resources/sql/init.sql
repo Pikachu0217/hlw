@@ -1537,6 +1537,42 @@ CREATE TABLE IF NOT EXISTS ord_order (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS business_type VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS pay_status VARCHAR(32) NOT NULL DEFAULT '待支付';
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS created_at VARCHAR(32) NOT NULL DEFAULT '09:00';
+ALTER TABLE ord_order ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待支付' WHEN status::text = '1' THEN '已支付' WHEN status::text = '2' THEN '已关闭' WHEN status::text = '3' THEN '已退款' WHEN status::text = 'PENDING_PAY' THEN '待支付' WHEN status::text = 'PAID' THEN '已支付' WHEN status::text = 'CLOSED' THEN '已关闭' WHEN status::text = 'REFUNDED' THEN '已退款' ELSE status::text END;
+ALTER TABLE ord_order ALTER COLUMN pay_status TYPE VARCHAR(32) USING CASE WHEN pay_status::text = '0' THEN '待支付' WHEN pay_status::text = '1' THEN '已支付' WHEN pay_status::text = '2' THEN '已关闭' WHEN pay_status::text = '3' THEN '已退款' WHEN pay_status::text = 'PENDING_PAY' THEN '待支付' WHEN pay_status::text = 'PAID' THEN '已支付' ELSE pay_status::text END;
+
+COMMENT ON TABLE ord_order IS '订单表';
+COMMENT ON COLUMN ord_order.id IS '主键编号';
+COMMENT ON COLUMN ord_order.tenant_id IS '租户编号';
+COMMENT ON COLUMN ord_order.biz_type IS '业务类型编码';
+COMMENT ON COLUMN ord_order.biz_id IS '业务编号';
+COMMENT ON COLUMN ord_order.patient_id IS '患者编号';
+COMMENT ON COLUMN ord_order.order_no IS '订单号';
+COMMENT ON COLUMN ord_order.business_type IS '业务类型';
+COMMENT ON COLUMN ord_order.patient_name IS '患者姓名';
+COMMENT ON COLUMN ord_order.amount IS '订单金额';
+COMMENT ON COLUMN ord_order.status IS '订单状态';
+COMMENT ON COLUMN ord_order.pay_status IS '支付状态';
+COMMENT ON COLUMN ord_order.pay_method IS '支付方式';
+COMMENT ON COLUMN ord_order.pay_time IS '支付时间';
+COMMENT ON COLUMN ord_order.created_at IS '订单创建时间展示值';
+COMMENT ON COLUMN ord_order.create_time IS '创建时间';
+COMMENT ON COLUMN ord_order.update_time IS '更新时间';
+COMMENT ON COLUMN ord_order.create_by IS '创建人编号';
+COMMENT ON COLUMN ord_order.update_by IS '更新人编号';
+COMMENT ON COLUMN ord_order.deleted IS '逻辑删除标识';
+
+INSERT INTO ord_order (id, tenant_id, order_no, biz_type, biz_id, patient_id, business_type, patient_name, amount, pay_status, created_at, status)
+VALUES
+    (1, 100, 'DD20260612001', 'APPOINTMENT', 1, 1, '门诊预约', '赵晓岚', 58.00, '已支付', '09:12', '已支付'),
+    (2, 100, 'DD20260612002', 'CONSULT', 2, 2, '图文咨询', '沈博远', 39.90, '待支付', '09:35', '待支付')
+ON CONFLICT DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('ord_order', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM ord_order), 1), true);
+
 CREATE TABLE IF NOT EXISTS local_message (
     id BIGSERIAL PRIMARY KEY,
     topic VARCHAR(128) NOT NULL,

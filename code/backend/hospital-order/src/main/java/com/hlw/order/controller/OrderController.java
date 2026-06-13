@@ -2,8 +2,7 @@ package com.hlw.order.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.jdbc.DemoDataQuery;
-import com.hlw.order.service.MockPaymentService;
-import com.hlw.order.service.Order;
+import com.hlw.order.service.OrderWorkflowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,17 +23,17 @@ import java.util.Map;
 public class OrderController {
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
-    private final MockPaymentService mockPaymentService;
+    private final OrderWorkflowService orderWorkflowService;
     private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造订单控制器。
      *
-     * @param mockPaymentService 模拟支付服务
+     * @param orderWorkflowService 订单工作流服务
      * @param demoDataQuery 演示数据查询器
      */
-    public OrderController(MockPaymentService mockPaymentService, DemoDataQuery demoDataQuery) {
-        this.mockPaymentService = mockPaymentService;
+    public OrderController(OrderWorkflowService orderWorkflowService, DemoDataQuery demoDataQuery) {
+        this.orderWorkflowService = orderWorkflowService;
         this.demoDataQuery = demoDataQuery;
     }
 
@@ -46,7 +45,7 @@ public class OrderController {
      */
     @PostMapping("/orders")
     public R<Map<String, Object>> create(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(orderWorkflowService.create(command));
     }
 
     /**
@@ -57,8 +56,8 @@ public class OrderController {
      * @return 支付后的订单
      */
     @PostMapping("/orders/{id}/pay")
-    public R<Order> pay(@PathVariable Long id, @RequestBody Map<String, String> command) {
-        return R.ok(mockPaymentService.pay(id, command.getOrDefault("payMethod", "MOCK_PAY")));
+    public R<Map<String, Object>> pay(@PathVariable Long id, @RequestBody Map<String, String> command) {
+        return R.ok(orderWorkflowService.pay(id, command.getOrDefault("payMethod", "MOCK_PAY")));
     }
 
     /**
