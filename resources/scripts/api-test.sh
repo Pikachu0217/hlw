@@ -520,7 +520,7 @@ run_all_cases() {
   run_case "查询医生详情" "GET" "/doctor/doctors/1"
   run_case "创建医生" "POST" "/doctor/doctors" "{\"name\":\"接口测试医生\",\"title\":\"主治医师\",\"department\":\"全科\"}"
   run_case "更新医生状态" "PUT" "/doctor/doctors/1/status" "{\"status\":\"ONLINE\"}"
-  run_case "绑定医生科室" "POST" "/doctor/doctors/1/departments" "{\"departmentId\":1}"
+  run_case "绑定医生科室" "POST" "/doctor/doctors/1/departments" "{\"departmentId\":10,\"appointmentFee\":50}"
   run_case "查询排班列表" "GET" "/doctor/schedules"
   run_case "创建排班" "POST" "/doctor/schedules" "{\"doctorId\":1,\"slot\":\"2026-06-13 上午\"}"
   run_case "计算挂号费" "POST" "/doctor/appointment-fee/resolve" "{\"title\":\"主任医师\",\"doctorFee\":80,\"departmentFee\":20}"

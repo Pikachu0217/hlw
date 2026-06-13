@@ -278,6 +278,14 @@ body {
   width: 260px;
 }
 
+.module-form {
+  padding-top: 8px;
+}
+
+.module-form__number {
+  width: 100%;
+}
+
 .doctor-name-cell {
   display: flex;
   flex-direction: column;

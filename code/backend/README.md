@@ -378,6 +378,8 @@ POST /doctor/schedules
 POST /doctor/appointment-fee/resolve
 ```
 
+医生科室管理已接入 `doc_department` 和 `doc_doctor_department` 表，`POST /doctor/departments` 会写入科室基础资料，`POST /doctor/doctors/{id}/departments` 会校验医生与科室是否存在并幂等创建关联关系。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
+
 Task 6 引入以下接口路径：
 
 ```http

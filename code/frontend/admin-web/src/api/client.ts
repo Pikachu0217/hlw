@@ -23,7 +23,16 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const payload = response.data as { code?: number; message?: string } | undefined;
+
+    if (payload?.code && payload.code !== 200) {
+      console.warn('[api] 业务请求失败', payload.code, payload.message);
+      return Promise.reject(new Error(payload.message ?? '接口业务处理失败'));
+    }
+
+    return response;
+  },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
       console.warn('[api] satoken 已失效，准备跳转登录页');

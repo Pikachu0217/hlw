@@ -21,6 +21,14 @@ interface ApiResult<T> {
   data: T;
 }
 
+export interface CreateDepartmentPayload {
+  name: string;
+  queue?: string;
+  status?: string;
+  sort?: number;
+  description?: string;
+}
+
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
 async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
   console.info(`[admin-module] 查询${moduleName}列表`, url);
@@ -71,6 +79,13 @@ export function fetchPermissions(): Promise<PermissionRecord[]> {
 // 查询科室列表。
 export function fetchDepartments(): Promise<DepartmentRecord[]> {
   return fetchModuleRecords<DepartmentRecord>('/doctor/departments', '科室');
+}
+
+// 创建科室。
+export async function createDepartment(payload: CreateDepartmentPayload): Promise<DepartmentRecord> {
+  console.info('[admin-module] 创建科室', payload);
+  const response = await apiClient.post<ApiResult<DepartmentRecord>>('/doctor/departments', payload);
+  return response.data.data;
 }
 
 // 查询患者列表。

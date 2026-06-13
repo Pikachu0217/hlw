@@ -3,6 +3,7 @@ package com.hlw.doctor.controller;
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.jdbc.DemoDataQuery;
 import com.hlw.doctor.service.AppointmentFeePolicy;
+import com.hlw.doctor.service.DoctorDepartmentService;
 import com.hlw.doctor.service.FeeContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,14 +26,17 @@ public class DoctorManagementController {
 
     private final AppointmentFeePolicy appointmentFeePolicy = new AppointmentFeePolicy();
     private final DemoDataQuery demoDataQuery;
+    private final DoctorDepartmentService doctorDepartmentService;
 
     /**
      * 构造医生管理控制器。
      *
      * @param demoDataQuery 演示数据查询器
+     * @param doctorDepartmentService 医生科室管理服务
      */
-    public DoctorManagementController(DemoDataQuery demoDataQuery) {
+    public DoctorManagementController(DemoDataQuery demoDataQuery, DoctorDepartmentService doctorDepartmentService) {
         this.demoDataQuery = demoDataQuery;
+        this.doctorDepartmentService = doctorDepartmentService;
     }
 
     /**
@@ -42,17 +46,7 @@ public class DoctorManagementController {
      */
     @GetMapping("/departments")
     public R<List<Map<String, Object>>> departments() {
-        log.info("查询科室列表");
-        return R.ok(demoDataQuery.list("科室列表", """
-            SELECT id AS id,
-                   id::text AS key,
-                   department_name AS name,
-                   doctor_count AS "doctorCount",
-                   queue_desc AS queue
-            FROM doc_department
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+        return R.ok(doctorDepartmentService.listDepartments());
     }
 
     /**
@@ -63,7 +57,7 @@ public class DoctorManagementController {
      */
     @PostMapping("/departments")
     public R<Map<String, Object>> createDepartment(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(doctorDepartmentService.createDepartment(command));
     }
 
     /**
@@ -121,7 +115,7 @@ public class DoctorManagementController {
      */
     @PostMapping("/doctors/{id}/departments")
     public R<Map<String, Object>> bindDoctorDepartment(@PathVariable Long id, @RequestBody Map<String, Object> command) {
-        return R.ok(Map.of("doctorId", id, "department", command));
+        return R.ok(doctorDepartmentService.bindDoctorDepartment(id, command));
     }
 
     /**

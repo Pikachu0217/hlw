@@ -22,6 +22,7 @@ interface ModulePageProps<T extends { key: string }> {
   tableTitle: string;
   searchPlaceholder: string;
   getSearchText: (record: T) => string;
+  onCreate?: () => void;
 }
 
 function ModulePage<T extends { key: string }>({
@@ -36,6 +37,7 @@ function ModulePage<T extends { key: string }>({
   tableTitle,
   searchPlaceholder,
   getSearchText,
+  onCreate,
 }: ModulePageProps<T>) {
   const [keyword, setKeyword] = useState('');
 
@@ -74,7 +76,7 @@ function ModulePage<T extends { key: string }>({
               placeholder={searchPlaceholder}
               className="console-card__search"
             />
-            <Button type="primary">新增</Button>
+            <Button type="primary" onClick={onCreate}>新增</Button>
             <Button>批量导出</Button>
             <Tag color="blue">当前 {filteredData.length} 条</Tag>
           </Space>

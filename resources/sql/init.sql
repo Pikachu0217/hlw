@@ -737,10 +737,12 @@ CREATE TABLE IF NOT EXISTS doc_department (
     id BIGSERIAL PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     name VARCHAR(128) NOT NULL,
+    department_name VARCHAR(64) NOT NULL DEFAULT '',
+    doctor_count INTEGER NOT NULL DEFAULT 0,
+    queue_desc VARCHAR(64) NOT NULL DEFAULT '',
     parent_id BIGINT NOT NULL DEFAULT 0,
     sort INTEGER NOT NULL DEFAULT 0,
-    -- status: 0 disabled, 1 enabled
-    status SMALLINT NOT NULL DEFAULT 1,
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
     description VARCHAR(512),
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -748,6 +750,13 @@ CREATE TABLE IF NOT EXISTS doc_department (
     update_by BIGINT,
     deleted SMALLINT NOT NULL DEFAULT 0
 );
+
+ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS department_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS doctor_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS queue_desc VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE doc_department ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
+ALTER TABLE doc_department ALTER COLUMN status SET DEFAULT '启用';
+UPDATE doc_department SET department_name = name WHERE department_name = '' AND name <> '';
 
 CREATE TABLE IF NOT EXISTS doc_doctor (
     id BIGSERIAL PRIMARY KEY,
@@ -814,6 +823,78 @@ CREATE TABLE IF NOT EXISTS local_message (
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+COMMENT ON TABLE doc_department IS '科室信息表';
+COMMENT ON COLUMN doc_department.id IS '主键编号';
+COMMENT ON COLUMN doc_department.tenant_id IS '租户编号';
+COMMENT ON COLUMN doc_department.name IS '兼容旧表科室名称';
+COMMENT ON COLUMN doc_department.department_name IS '科室名称';
+COMMENT ON COLUMN doc_department.doctor_count IS '医生数量';
+COMMENT ON COLUMN doc_department.queue_desc IS '排队描述';
+COMMENT ON COLUMN doc_department.parent_id IS '父级科室编号';
+COMMENT ON COLUMN doc_department.sort IS '科室排序';
+COMMENT ON COLUMN doc_department.status IS '科室状态';
+COMMENT ON COLUMN doc_department.description IS '科室说明';
+COMMENT ON COLUMN doc_department.create_time IS '创建时间';
+COMMENT ON COLUMN doc_department.update_time IS '更新时间';
+COMMENT ON COLUMN doc_department.create_by IS '创建人编号';
+COMMENT ON COLUMN doc_department.update_by IS '更新人编号';
+COMMENT ON COLUMN doc_department.deleted IS '逻辑删除标识';
+COMMENT ON TABLE doc_doctor_department IS '医生科室关联表';
+COMMENT ON COLUMN doc_doctor_department.id IS '主键编号';
+COMMENT ON COLUMN doc_doctor_department.tenant_id IS '租户编号';
+COMMENT ON COLUMN doc_doctor_department.doctor_id IS '医生编号';
+COMMENT ON COLUMN doc_doctor_department.department_id IS '科室编号';
+COMMENT ON COLUMN doc_doctor_department.is_free IS '是否免挂号费';
+COMMENT ON COLUMN doc_doctor_department.appointment_fee IS '挂号费用';
+COMMENT ON COLUMN doc_doctor_department.create_time IS '创建时间';
+COMMENT ON COLUMN doc_doctor_department.update_time IS '更新时间';
+COMMENT ON COLUMN doc_doctor_department.create_by IS '创建人编号';
+COMMENT ON COLUMN doc_doctor_department.update_by IS '更新人编号';
+COMMENT ON COLUMN doc_doctor_department.deleted IS '逻辑删除标识';
+DELETE FROM doc_doctor_department current_row
+USING doc_doctor_department kept_row
+WHERE current_row.id > kept_row.id
+  AND current_row.doctor_id = kept_row.doctor_id
+  AND current_row.department_id = kept_row.department_id
+  AND current_row.deleted = 0
+  AND kept_row.deleted = 0;
+CREATE UNIQUE INDEX IF NOT EXISTS uk_doc_doctor_department_active
+ON doc_doctor_department (doctor_id, department_id)
+WHERE deleted = 0;
+
+INSERT INTO doc_department (id, tenant_id, name, department_name, doctor_count, queue_desc, parent_id, sort, status)
+VALUES
+    (10, 100, '心内科', '心内科', 1, '当前等候 6 人', 0, 1, '启用'),
+    (20, 100, '儿科', '儿科', 1, '当前等候 8 人', 0, 2, '启用'),
+    (30, 100, '皮肤科', '皮肤科', 0, '当前等候 3 人', 0, 3, '启用')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
+                               department_name = EXCLUDED.department_name,
+                               doctor_count = EXCLUDED.doctor_count,
+                               queue_desc = EXCLUDED.queue_desc,
+                               parent_id = EXCLUDED.parent_id,
+                               sort = EXCLUDED.sort,
+                               status = EXCLUDED.status;
+
+INSERT INTO doc_doctor (id, tenant_id, user_id, name, title, specialty, consult_fee, consult_status)
+VALUES
+    (1, 100, 1, '陈知衡', '主任医师', '冠脉慢病管理', 50.00, 1),
+    (2, 100, 2, '顾清和', '副主任医师', '糖尿病营养干预', 30.00, 2)
+ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
+                               name = EXCLUDED.name,
+                               title = EXCLUDED.title,
+                               specialty = EXCLUDED.specialty,
+                               consult_fee = EXCLUDED.consult_fee,
+                               consult_status = EXCLUDED.consult_status;
+
+INSERT INTO doc_doctor_department (id, tenant_id, doctor_id, department_id, is_free, appointment_fee)
+VALUES
+    (1, 100, 1, 10, 0, 50.00),
+    (2, 100, 2, 20, 0, 30.00)
+ON CONFLICT (doctor_id, department_id) WHERE deleted = 0
+DO UPDATE SET is_free = EXCLUDED.is_free,
+              appointment_fee = EXCLUDED.appointment_fee,
+              update_time = CURRENT_TIMESTAMP;
 
 \connect hospital_consult
 

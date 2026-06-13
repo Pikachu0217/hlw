@@ -140,3 +140,5 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 - `/doctor/departments`
 
 系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。
+
+科室管理页面已接入新增科室弹窗，提交后调用 `POST /doctor/departments` 并刷新列表；弹窗样式同样收口在 `src/styles/global.css`。
