@@ -104,7 +104,7 @@ psql -U postgres -f sql/init.sql
 - `hospital_drug`
 - `hospital_order`
 
-每个服务库包含本服务业务表，并包含一张 `local_message` 表，用于本地队列兜底。
+每个服务库包含本服务业务表，并包含一张 `local_message` 表，用于本地队列兜底。`common-mq` 在服务上下文存在 `JdbcOperations` 时会优先将本地消息写入该表；没有数据库上下文的单元测试场景保留内存存储。
 
 `hospital_system` 当前已补齐基础管理表：
 
@@ -486,6 +486,8 @@ GET /consult/consults/{id}/messages
 ```
 
 问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。WebSocket 收到的新消息也会写入 `con_message`，`GET /consult/consults/{id}/messages` 统一从数据库读取消息记录。
+
+`con_consult_image` 仅存在于 `resources/sql/init.sql` 的完整 baseline 中，用于后续图文问诊图片附件扩展；当前前后端消息接口尚未提供图片上传地址和图片排序入参，因此暂不启用该表，避免产生无入口的伪业务数据。
 
 问诊 WebSocket 地址约定：
 
