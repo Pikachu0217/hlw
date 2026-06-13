@@ -1,6 +1,7 @@
 package com.hlw.consult.controller;
 
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.jdbc.DemoDataQuery;
 import com.hlw.consult.service.Consult;
 import com.hlw.consult.service.ConsultLifecycleService;
 import com.hlw.consult.ws.ConsultMessage;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -25,19 +27,23 @@ public class ConsultController {
 
     private final ConsultLifecycleService consultLifecycleService;
     private final ConsultMessageRepository consultMessageRepository;
+    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造问诊控制器。
      *
      * @param consultLifecycleService 问诊生命周期服务
      * @param consultMessageRepository 问诊消息仓储
+     * @param demoDataQuery 演示数据查询器
      */
     public ConsultController(
         ConsultLifecycleService consultLifecycleService,
-        ConsultMessageRepository consultMessageRepository
+        ConsultMessageRepository consultMessageRepository,
+        DemoDataQuery demoDataQuery
     ) {
         this.consultLifecycleService = consultLifecycleService;
         this.consultMessageRepository = consultMessageRepository;
+        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -48,10 +54,18 @@ public class ConsultController {
     @GetMapping("/consults")
     public R<List<Map<String, Object>>> consults() {
         log.info("查询问诊单列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "consultNo", "ZX20260612001", "patientName", "赵晓岚", "doctorName", "陈知衡", "channel", "图文", "status", "待接单", "updatedAt", "10:18"),
-            Map.of("key", "2", "consultNo", "ZX20260612002", "patientName", "沈博远", "doctorName", "顾清和", "channel", "视频", "status", "咨询中", "updatedAt", "10:07")
-        ));
+        return R.ok(demoDataQuery.list("问诊单列表", """
+            SELECT id::text AS key,
+                   consult_no AS "consultNo",
+                   patient_name AS "patientName",
+                   doctor_name AS "doctorName",
+                   channel AS channel,
+                   status AS status,
+                   updated_at AS "updatedAt"
+            FROM con_consult
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**
@@ -112,13 +126,50 @@ public class ConsultController {
      */
     @GetMapping("/consults/{id}/messages")
     public R<List<ConsultMessage>> messages(@PathVariable Long id) {
+        log.info("查询问诊消息，consultId={}", id);
         List<ConsultMessage> messages = consultMessageRepository.findByConsultId(id);
         if (messages.isEmpty()) {
-            return R.ok(List.of(
-                new ConsultMessage(id, 2L, "DOCTOR", "哪里不舒服", "TEXT", false, LocalDateTime.now()),
-                new ConsultMessage(id, 1L, "PATIENT", "孩子从昨晚开始发烧", "TEXT", false, LocalDateTime.now())
-            ));
+            List<ConsultMessage> demoMessages = demoDataQuery.list("问诊消息列表", """
+                    SELECT consult_id AS "consultId",
+                           sender_id AS "senderId",
+                           sender_type AS "senderType",
+                           content AS content,
+                           content_type AS "contentType",
+                           read_flag AS read,
+                           create_time AS "createTime"
+                    FROM con_message
+                    WHERE deleted = 0 AND consult_id = ?
+                    ORDER BY id
+                    """, id)
+                .stream()
+                .map(row -> new ConsultMessage(
+                    ((Number) row.get("consultId")).longValue(),
+                    ((Number) row.get("senderId")).longValue(),
+                    String.valueOf(row.get("senderType")),
+                    String.valueOf(row.get("content")),
+                    String.valueOf(row.get("contentType")),
+                    Boolean.TRUE.equals(row.get("read")),
+                    toLocalDateTime(row.get("createTime"))
+                ))
+                .toList();
+            return R.ok(demoMessages);
         }
         return R.ok(messages);
+    }
+
+    /**
+     * 转换数据库时间字段。
+     *
+     * @param value 数据库时间值
+     * @return 本地日期时间
+     */
+    private LocalDateTime toLocalDateTime(Object value) {
+        if (value instanceof LocalDateTime localDateTime) {
+            return localDateTime;
+        }
+        if (value instanceof Timestamp timestamp) {
+            return timestamp.toLocalDateTime();
+        }
+        return null;
     }
 }

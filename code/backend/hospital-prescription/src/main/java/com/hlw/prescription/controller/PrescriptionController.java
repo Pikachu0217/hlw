@@ -1,6 +1,7 @@
 package com.hlw.prescription.controller;
 
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.jdbc.DemoDataQuery;
 import com.hlw.prescription.service.Prescription;
 import com.hlw.prescription.service.PrescriptionAuditService;
 import org.slf4j.Logger;
@@ -24,14 +25,17 @@ public class PrescriptionController {
     private static final Logger log = LoggerFactory.getLogger(PrescriptionController.class);
 
     private final PrescriptionAuditService prescriptionAuditService;
+    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造处方控制器。
      *
      * @param prescriptionAuditService 处方审核服务
+     * @param demoDataQuery 演示数据查询器
      */
-    public PrescriptionController(PrescriptionAuditService prescriptionAuditService) {
+    public PrescriptionController(PrescriptionAuditService prescriptionAuditService, DemoDataQuery demoDataQuery) {
         this.prescriptionAuditService = prescriptionAuditService;
+        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -42,10 +46,18 @@ public class PrescriptionController {
     @GetMapping("/prescriptions")
     public R<List<Map<String, Object>>> prescriptions() {
         log.info("查询处方列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "prescriptionNo", "CF20260612001", "patientName", "赵晓岚", "doctorName", "陈知衡", "drugCount", 3, "issuedAt", "09:42", "status", "待审方"),
-            Map.of("key", "2", "prescriptionNo", "CF20260612002", "patientName", "沈博远", "doctorName", "顾清和", "drugCount", 5, "issuedAt", "09:18", "status", "待发药")
-        ));
+        return R.ok(demoDataQuery.list("处方列表", """
+            SELECT id::text AS key,
+                   prescription_no AS "prescriptionNo",
+                   patient_name AS "patientName",
+                   doctor_name AS "doctorName",
+                   drug_count AS "drugCount",
+                   issued_at AS "issuedAt",
+                   status AS status
+            FROM pre_prescription
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**

@@ -6,9 +6,7 @@ import com.hlw.auth.service.TokenIssuer;
 import com.hlw.auth.service.UserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.jdbc.core.JdbcOperations;
 
 /**
  * 认证模块本地启动默认配置。
@@ -30,11 +28,12 @@ public class AuthServiceConfig {
     /**
      * 创建本地演示用户仓储。
      *
+     * @param jdbcOperations JDBC 操作组件
      * @return 用户仓储
      */
     @Bean
-    public UserRepository userRepository() {
-        return new DemoUserRepository();
+    public UserRepository userRepository(JdbcOperations jdbcOperations) {
+        return new JdbcUserRepository(jdbcOperations);
     }
 
     /**
@@ -48,38 +47,49 @@ public class AuthServiceConfig {
     }
 
     /**
-     * 内存演示用户仓储，用于本地前后端联调。
+     * 数据库用户仓储，用于从示例用户表读取登录账号。
      */
-    private static final class DemoUserRepository implements UserRepository {
-        private final Map<String, LoginUser> users = new ConcurrentHashMap<>();
+    private static final class JdbcUserRepository implements UserRepository {
+        private final JdbcOperations jdbcOperations;
 
         /**
-         * 初始化默认演示账号。
-         */
-        private DemoUserRepository() {
-            save(new LoginUser(1L, 100L, "admin", "{noop}admin123", "ADMIN"));
-            save(new LoginUser(2L, 100L, "patient", "{noop}patient123", "PATIENT"));
-            save(new LoginUser(3L, 100L, "运营主任", "{noop}123456", "ADMIN"));
-        }
-
-        /**
-         * 保存演示用户。
+         * 构造数据库用户仓储。
          *
-         * @param user 登录用户
+         * @param jdbcOperations JDBC 操作组件
          */
-        private void save(LoginUser user) {
-            users.put(user.username(), user);
+        private JdbcUserRepository(JdbcOperations jdbcOperations) {
+            this.jdbcOperations = jdbcOperations;
         }
 
         /**
-         * 根据账号查询演示用户。
+         * 根据账号查询数据库用户。
          *
          * @param username 用户名
          * @return 登录用户
          */
         @Override
         public LoginUser findByUsername(String username) {
-            return users.get(username);
+            return jdbcOperations.query("""
+                    SELECT id, tenant_id, username, password, user_type
+                    FROM sys_user
+                    WHERE username = ? AND deleted = 0 AND status IN ('启用', 'ACTIVE')
+                    ORDER BY id
+                    LIMIT 1
+                    """,
+                resultSet -> {
+                    if (!resultSet.next()) {
+                        return null;
+                    }
+                    return new LoginUser(
+                        resultSet.getLong("id"),
+                        resultSet.getLong("tenant_id"),
+                        resultSet.getString("username"),
+                        resultSet.getString("password"),
+                        resultSet.getString("user_type")
+                    );
+                },
+                username
+            );
         }
     }
 }

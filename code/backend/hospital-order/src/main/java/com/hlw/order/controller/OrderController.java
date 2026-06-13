@@ -1,6 +1,7 @@
 package com.hlw.order.controller;
 
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.jdbc.DemoDataQuery;
 import com.hlw.order.service.MockPaymentService;
 import com.hlw.order.service.Order;
 import org.slf4j.Logger;
@@ -24,14 +25,17 @@ public class OrderController {
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     private final MockPaymentService mockPaymentService;
+    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造订单控制器。
      *
      * @param mockPaymentService 模拟支付服务
+     * @param demoDataQuery 演示数据查询器
      */
-    public OrderController(MockPaymentService mockPaymentService) {
+    public OrderController(MockPaymentService mockPaymentService, DemoDataQuery demoDataQuery) {
         this.mockPaymentService = mockPaymentService;
+        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -65,9 +69,17 @@ public class OrderController {
     @GetMapping("/orders")
     public R<List<Map<String, Object>>> orders() {
         log.info("查询订单列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "orderNo", "DD20260612001", "businessType", "门诊预约", "patientName", "赵晓岚", "amount", "¥58.00", "payStatus", "已支付", "createdAt", "09:12"),
-            Map.of("key", "2", "orderNo", "DD20260612002", "businessType", "图文咨询", "patientName", "沈博远", "amount", "¥39.90", "payStatus", "待支付", "createdAt", "09:35")
-        ));
+        return R.ok(demoDataQuery.list("订单列表", """
+            SELECT id::text AS key,
+                   order_no AS "orderNo",
+                   business_type AS "businessType",
+                   patient_name AS "patientName",
+                   '¥' || to_char(amount, 'FM999999990.00') AS amount,
+                   pay_status AS "payStatus",
+                   created_at AS "createdAt"
+            FROM ord_order
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 }

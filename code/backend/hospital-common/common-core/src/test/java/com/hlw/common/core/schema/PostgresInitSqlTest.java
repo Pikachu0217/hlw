@@ -18,5 +18,14 @@ class PostgresInitSqlTest {
         assertThat(sql).contains("CREATE TABLE IF NOT EXISTS con_consult");
         assertThat(sql).contains("CREATE TABLE IF NOT EXISTS ord_order");
         assertThat(sql).contains("CREATE TABLE IF NOT EXISTS local_message");
+        assertThat(sql).contains("CREATE TABLE IF NOT EXISTS doc_department");
+        assertThat(sql).contains("CREATE TABLE IF NOT EXISTS doc_schedule");
+        assertThat(sql).contains("CREATE TABLE IF NOT EXISTS apt_number_source");
+        assertThat(sql).contains("CREATE TABLE IF NOT EXISTS con_message");
+        assertThat(sql).contains("CREATE TABLE IF NOT EXISTS drug_stock");
+        assertThat(sql).contains("CREATE TABLE IF NOT EXISTS pat_health_record");
+        assertThat(sql).contains("INSERT INTO doc_doctor");
+        assertThat(sql).contains("INSERT INTO sys_user");
+        assertThat(sql).contains("COMMENT ON COLUMN drug_stock.warehouse_name");
     }
 }

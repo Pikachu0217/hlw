@@ -1,6 +1,7 @@
 package com.hlw.patient.controller;
 
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.jdbc.DemoDataQuery;
 import com.hlw.patient.service.PatientProfile;
 import com.hlw.patient.service.PatientProfileService;
 import com.hlw.patient.service.UpdatePatientProfileCommand;
@@ -22,14 +23,17 @@ public class PatientProfileController {
     private static final Logger log = LoggerFactory.getLogger(PatientProfileController.class);
 
     private final PatientProfileService patientProfileService;
+    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造患者档案控制器。
      *
      * @param patientProfileService 患者档案服务
+     * @param demoDataQuery 演示数据查询器
      */
-    public PatientProfileController(PatientProfileService patientProfileService) {
+    public PatientProfileController(PatientProfileService patientProfileService, DemoDataQuery demoDataQuery) {
         this.patientProfileService = patientProfileService;
+        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -40,7 +44,25 @@ public class PatientProfileController {
     @GetMapping("/profile")
     public R<PatientProfile> profile() {
         log.info("查询当前患者档案");
-        return R.ok(patientProfileService.findProfile(1L));
+        Map<String, Object> profile = demoDataQuery.one("当前患者档案", """
+            SELECT id,
+                   patient_name AS name,
+                   phone,
+                   gender
+            FROM pat_patient
+            WHERE deleted = 0
+            ORDER BY id
+            LIMIT 1
+            """);
+        if (profile.isEmpty()) {
+            throw new IllegalStateException("当前患者档案示例数据未初始化");
+        }
+        return R.ok(new PatientProfile(
+            ((Number) profile.get("id")).longValue(),
+            String.valueOf(profile.get("name")),
+            patientProfileService.maskPhone(String.valueOf(profile.get("phone"))),
+            String.valueOf(profile.get("gender"))
+        ));
     }
 
     /**
@@ -51,10 +73,18 @@ public class PatientProfileController {
     @GetMapping("/patients")
     public R<List<Map<String, Object>>> patients() {
         log.info("查询患者列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "patientName", "赵晓岚", "gender", "女", "age", 34, "riskLevel", "中风险", "phone", "13900001111", "lastVisit", "2026-06-11"),
-            Map.of("key", "2", "patientName", "沈博远", "gender", "男", "age", 58, "riskLevel", "高风险", "phone", "13900002222", "lastVisit", "2026-06-10")
-        ));
+        return R.ok(demoDataQuery.list("患者列表", """
+            SELECT id::text AS key,
+                   patient_name AS "patientName",
+                   gender AS gender,
+                   age AS age,
+                   risk_level AS "riskLevel",
+                   phone AS phone,
+                   to_char(last_visit, 'YYYY-MM-DD') AS "lastVisit"
+            FROM pat_patient
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**
@@ -75,10 +105,15 @@ public class PatientProfileController {
      */
     @GetMapping("/health-records")
     public R<List<Map<String, Object>>> healthRecords() {
-        return R.ok(List.of(
-            Map.of("id", 1L, "title", "发热问诊", "summary", "儿童发热 12 小时，已线上问诊"),
-            Map.of("id", 2L, "title", "复诊续方", "summary", "慢病用药复诊记录")
-        ));
+        log.info("查询健康档案列表");
+        return R.ok(demoDataQuery.list("健康档案列表", """
+            SELECT id AS id,
+                   title AS title,
+                   summary AS summary
+            FROM pat_health_record
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**

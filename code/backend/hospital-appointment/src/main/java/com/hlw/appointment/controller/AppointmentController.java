@@ -6,6 +6,7 @@ import com.hlw.appointment.service.NumberSource;
 import com.hlw.appointment.service.NumberSourceStatus;
 import com.hlw.appointment.service.NumberSourceService;
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.jdbc.DemoDataQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,16 +26,23 @@ public class AppointmentController {
 
     private final NumberSourceService numberSourceService;
     private final GrabAppointmentService grabAppointmentService;
+    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造预约控制器。
      *
      * @param numberSourceService 号源服务
      * @param grabAppointmentService 抢单服务
+     * @param demoDataQuery 演示数据查询器
      */
-    public AppointmentController(NumberSourceService numberSourceService, GrabAppointmentService grabAppointmentService) {
+    public AppointmentController(
+        NumberSourceService numberSourceService,
+        GrabAppointmentService grabAppointmentService,
+        DemoDataQuery demoDataQuery
+    ) {
         this.numberSourceService = numberSourceService;
         this.grabAppointmentService = grabAppointmentService;
+        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -45,10 +53,18 @@ public class AppointmentController {
     @GetMapping("/appointments")
     public R<List<Map<String, Object>>> appointments() {
         log.info("查询预约单列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "appointmentNo", "YY20260612001", "patientName", "赵晓岚", "doctorName", "陈知衡", "clinicTime", "今天 14:00", "source", "小程序", "status", "待就诊"),
-            Map.of("key", "2", "appointmentNo", "YY20260612002", "patientName", "沈博远", "doctorName", "顾清和", "clinicTime", "今天 15:30", "source", "客服代约", "status", "已签到")
-        ));
+        return R.ok(demoDataQuery.list("预约单列表", """
+            SELECT id::text AS key,
+                   appointment_no AS "appointmentNo",
+                   patient_name AS "patientName",
+                   doctor_name AS "doctorName",
+                   clinic_time AS "clinicTime",
+                   source AS source,
+                   status AS status
+            FROM apt_appointment
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**
@@ -59,10 +75,24 @@ public class AppointmentController {
     @GetMapping("/number-sources")
     public R<List<NumberSource>> numberSources() {
         log.info("查询号源列表");
-        return R.ok(List.of(
-            new NumberSource(1L, 1L, 1, NumberSourceStatus.AVAILABLE),
-            new NumberSource(2L, 1L, 2, NumberSourceStatus.AVAILABLE)
-        ));
+        List<NumberSource> sources = demoDataQuery.list("号源列表", """
+                SELECT id AS id,
+                       schedule_id AS "scheduleId",
+                       number_seq AS "numberSeq",
+                       status AS status
+                FROM apt_number_source
+                WHERE deleted = 0
+                ORDER BY id
+                """)
+            .stream()
+            .map(row -> new NumberSource(
+                ((Number) row.get("id")).longValue(),
+                ((Number) row.get("scheduleId")).longValue(),
+                ((Number) row.get("numberSeq")).intValue(),
+                NumberSourceStatus.valueOf(String.valueOf(row.get("status")))
+            ))
+            .toList();
+        return R.ok(sources);
     }
 
     /**

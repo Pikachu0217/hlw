@@ -1,12 +1,12 @@
-CREATE DATABASE hospital_auth;
-CREATE DATABASE hospital_system;
-CREATE DATABASE hospital_patient;
-CREATE DATABASE hospital_doctor;
-CREATE DATABASE hospital_consult;
-CREATE DATABASE hospital_appointment;
-CREATE DATABASE hospital_prescription;
-CREATE DATABASE hospital_drug;
-CREATE DATABASE hospital_order;
+SELECT 'CREATE DATABASE hospital_auth' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_auth')\gexec
+SELECT 'CREATE DATABASE hospital_system' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_system')\gexec
+SELECT 'CREATE DATABASE hospital_patient' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_patient')\gexec
+SELECT 'CREATE DATABASE hospital_doctor' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_doctor')\gexec
+SELECT 'CREATE DATABASE hospital_consult' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_consult')\gexec
+SELECT 'CREATE DATABASE hospital_appointment' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_appointment')\gexec
+SELECT 'CREATE DATABASE hospital_prescription' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_prescription')\gexec
+SELECT 'CREATE DATABASE hospital_drug' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_drug')\gexec
+SELECT 'CREATE DATABASE hospital_order' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_order')\gexec
 
 \connect hospital_system;
 
@@ -25,9 +25,17 @@ CREATE TABLE IF NOT EXISTS sys_tenant (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS tenant_name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS package_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS admin_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS expire_at DATE NOT NULL DEFAULT '2099-12-31';
+ALTER TABLE sys_tenant ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '正常' ELSE status::text END;
+
 COMMENT ON TABLE sys_tenant IS '租户信息表';
 COMMENT ON COLUMN sys_tenant.id IS '主键编号';
 COMMENT ON COLUMN sys_tenant.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_tenant.name IS '兼容旧表租户名称';
 COMMENT ON COLUMN sys_tenant.tenant_name IS '租户名称';
 COMMENT ON COLUMN sys_tenant.package_name IS '套餐名称';
 COMMENT ON COLUMN sys_tenant.admin_name IS '管理员名称';
@@ -39,11 +47,16 @@ COMMENT ON COLUMN sys_tenant.create_by IS '创建人编号';
 COMMENT ON COLUMN sys_tenant.update_by IS '更新人编号';
 COMMENT ON COLUMN sys_tenant.deleted IS '逻辑删除标识';
 
-INSERT INTO sys_tenant (tenant_id, tenant_name, package_name, admin_name, expire_at, status)
+INSERT INTO sys_tenant (id, tenant_id, name, tenant_name, package_name, admin_name, expire_at, status)
 VALUES
-    (100, '海岚门诊', '标准医疗版', '刘院长', '2026-12-31', '正常'),
-    (200, '青禾互联网医院', '集团旗舰版', '姜主任', '2026-08-16', '续费跟进')
-ON CONFLICT DO NOTHING;
+    (1, 100, '海岚门诊', '海岚门诊', '标准医疗版', '刘院长', '2026-12-31', '正常'),
+    (2, 200, '青禾互联网医院', '青禾互联网医院', '集团旗舰版', '姜主任', '2026-08-16', '续费跟进')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
+                               tenant_name = EXCLUDED.tenant_name,
+                               package_name = EXCLUDED.package_name,
+                               admin_name = EXCLUDED.admin_name,
+                               expire_at = EXCLUDED.expire_at,
+                               status = EXCLUDED.status;
 
 \connect hospital_auth;
 
@@ -61,6 +74,8 @@ CREATE TABLE IF NOT EXISTS sys_user (
     update_by BIGINT,
     deleted SMALLINT NOT NULL DEFAULT 0
 );
+
+ALTER TABLE sys_user ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' ELSE status::text END;
 
 COMMENT ON TABLE sys_user IS '系统用户表';
 COMMENT ON COLUMN sys_user.id IS '主键编号';
@@ -89,9 +104,17 @@ CREATE TABLE IF NOT EXISTS sys_role (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS role_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS role_code VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS code VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_role ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' ELSE status::text END;
+
 COMMENT ON TABLE sys_role IS '系统角色表';
 COMMENT ON COLUMN sys_role.id IS '主键编号';
 COMMENT ON COLUMN sys_role.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_role.name IS '兼容旧表角色名称';
+COMMENT ON COLUMN sys_role.code IS '兼容旧表角色编码';
 COMMENT ON COLUMN sys_role.role_name IS '角色名称';
 COMMENT ON COLUMN sys_role.role_code IS '角色编码';
 COMMENT ON COLUMN sys_role.status IS '角色状态';
@@ -115,9 +138,20 @@ CREATE TABLE IF NOT EXISTS sys_menu (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS menu_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS permission VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS route_path VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT '启用';
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS perms VARCHAR(128);
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS type VARCHAR(16) NOT NULL DEFAULT '菜单';
+
 COMMENT ON TABLE sys_menu IS '系统菜单表';
 COMMENT ON COLUMN sys_menu.id IS '主键编号';
 COMMENT ON COLUMN sys_menu.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_menu.name IS '兼容旧表菜单名称';
+COMMENT ON COLUMN sys_menu.perms IS '兼容旧表权限标识';
+COMMENT ON COLUMN sys_menu.type IS '兼容旧表菜单类型';
 COMMENT ON COLUMN sys_menu.menu_name IS '菜单名称';
 COMMENT ON COLUMN sys_menu.permission IS '权限标识';
 COMMENT ON COLUMN sys_menu.route_path IS '路由路径';
@@ -146,8 +180,18 @@ CREATE TABLE IF NOT EXISTS doc_doctor (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE doc_doctor ADD COLUMN IF NOT EXISTS doctor_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE doc_doctor ADD COLUMN IF NOT EXISTS department VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE doc_doctor ADD COLUMN IF NOT EXISTS user_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE doc_doctor ADD COLUMN IF NOT EXISTS name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE doc_doctor ALTER COLUMN user_id SET DEFAULT 0;
+ALTER TABLE doc_doctor ALTER COLUMN name SET DEFAULT '';
+ALTER TABLE doc_doctor ALTER COLUMN consult_status TYPE VARCHAR(32) USING CASE WHEN consult_status::text = '1' THEN 'ONLINE' WHEN consult_status::text = '0' THEN 'OFFLINE' ELSE consult_status::text END;
+
 COMMENT ON TABLE doc_doctor IS '医生信息表';
 COMMENT ON COLUMN doc_doctor.id IS '主键编号';
+COMMENT ON COLUMN doc_doctor.user_id IS '关联用户编号';
+COMMENT ON COLUMN doc_doctor.name IS '兼容旧表医生姓名';
 COMMENT ON COLUMN doc_doctor.tenant_id IS '租户编号';
 COMMENT ON COLUMN doc_doctor.doctor_name IS '医生姓名';
 COMMENT ON COLUMN doc_doctor.title IS '医生职称';
@@ -178,9 +222,20 @@ CREATE TABLE IF NOT EXISTS pat_patient (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS age INT NOT NULL DEFAULT 0;
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS risk_level VARCHAR(32) NOT NULL DEFAULT '低风险';
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS user_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pat_patient ALTER COLUMN user_id SET DEFAULT 0;
+ALTER TABLE pat_patient ALTER COLUMN name SET DEFAULT '';
+ALTER TABLE pat_patient ALTER COLUMN gender TYPE VARCHAR(16) USING CASE WHEN gender::text = '1' THEN '男' WHEN gender::text = '2' THEN '女' ELSE gender::text END;
+
 COMMENT ON TABLE pat_patient IS '患者档案表';
 COMMENT ON COLUMN pat_patient.id IS '主键编号';
 COMMENT ON COLUMN pat_patient.tenant_id IS '租户编号';
+COMMENT ON COLUMN pat_patient.user_id IS '关联用户编号';
+COMMENT ON COLUMN pat_patient.name IS '兼容旧表患者姓名';
 COMMENT ON COLUMN pat_patient.patient_name IS '患者姓名';
 COMMENT ON COLUMN pat_patient.gender IS '患者性别';
 COMMENT ON COLUMN pat_patient.age IS '患者年龄';
@@ -210,9 +265,31 @@ CREATE TABLE IF NOT EXISTS apt_appointment (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS appointment_no VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS doctor_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS clinic_time VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS source VARCHAR(32) NOT NULL DEFAULT '';
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS patient_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS doctor_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS department_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS schedule_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS appointment_type VARCHAR(32) NOT NULL DEFAULT '普通门诊';
+ALTER TABLE apt_appointment ALTER COLUMN patient_id SET DEFAULT 0;
+ALTER TABLE apt_appointment ALTER COLUMN doctor_id SET DEFAULT 0;
+ALTER TABLE apt_appointment ALTER COLUMN department_id SET DEFAULT 0;
+ALTER TABLE apt_appointment ALTER COLUMN schedule_id SET DEFAULT 0;
+ALTER TABLE apt_appointment ALTER COLUMN appointment_type SET DEFAULT '普通门诊';
+ALTER TABLE apt_appointment ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待就诊' ELSE status::text END;
+
 COMMENT ON TABLE apt_appointment IS '预约单表';
 COMMENT ON COLUMN apt_appointment.id IS '主键编号';
 COMMENT ON COLUMN apt_appointment.tenant_id IS '租户编号';
+COMMENT ON COLUMN apt_appointment.patient_id IS '患者编号';
+COMMENT ON COLUMN apt_appointment.doctor_id IS '医生编号';
+COMMENT ON COLUMN apt_appointment.department_id IS '科室编号';
+COMMENT ON COLUMN apt_appointment.schedule_id IS '排班编号';
+COMMENT ON COLUMN apt_appointment.appointment_type IS '预约类型';
 COMMENT ON COLUMN apt_appointment.appointment_no IS '预约单号';
 COMMENT ON COLUMN apt_appointment.patient_name IS '患者姓名';
 COMMENT ON COLUMN apt_appointment.doctor_name IS '医生姓名';
@@ -242,9 +319,24 @@ CREATE TABLE IF NOT EXISTS con_consult (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS consult_no VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS doctor_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS channel VARCHAR(32) NOT NULL DEFAULT '';
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS patient_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS doctor_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS consult_type VARCHAR(32) NOT NULL DEFAULT 'IMAGE_TEXT';
+ALTER TABLE con_consult ALTER COLUMN patient_id SET DEFAULT 0;
+ALTER TABLE con_consult ALTER COLUMN doctor_id SET DEFAULT 0;
+ALTER TABLE con_consult ALTER COLUMN consult_type SET DEFAULT 'IMAGE_TEXT';
+ALTER TABLE con_consult ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待接单' ELSE status::text END;
+
 COMMENT ON TABLE con_consult IS '问诊单表';
 COMMENT ON COLUMN con_consult.id IS '主键编号';
 COMMENT ON COLUMN con_consult.tenant_id IS '租户编号';
+COMMENT ON COLUMN con_consult.patient_id IS '患者编号';
+COMMENT ON COLUMN con_consult.doctor_id IS '医生编号';
+COMMENT ON COLUMN con_consult.consult_type IS '问诊类型';
 COMMENT ON COLUMN con_consult.consult_no IS '问诊单号';
 COMMENT ON COLUMN con_consult.patient_name IS '患者姓名';
 COMMENT ON COLUMN con_consult.doctor_name IS '医生姓名';
@@ -269,6 +361,14 @@ CREATE TABLE IF NOT EXISTS local_message (
     update_by BIGINT,
     deleted SMALLINT NOT NULL DEFAULT 0
 );
+
+ALTER TABLE local_message ADD COLUMN IF NOT EXISTS tenant_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE local_message ADD COLUMN IF NOT EXISTS payload TEXT NOT NULL DEFAULT '';
+ALTER TABLE local_message ADD COLUMN IF NOT EXISTS create_by BIGINT;
+ALTER TABLE local_message ADD COLUMN IF NOT EXISTS update_by BIGINT;
+ALTER TABLE local_message ADD COLUMN IF NOT EXISTS deleted SMALLINT NOT NULL DEFAULT 0;
+ALTER TABLE local_message ADD COLUMN IF NOT EXISTS body TEXT NOT NULL DEFAULT '';
+COMMENT ON COLUMN local_message.body IS '兼容旧表消息内容';
 
 COMMENT ON TABLE local_message IS '本地消息表';
 COMMENT ON COLUMN local_message.id IS '主键编号';
@@ -300,9 +400,24 @@ CREATE TABLE IF NOT EXISTS pre_prescription (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS prescription_no VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS doctor_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS drug_count INT NOT NULL DEFAULT 0;
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS consult_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS patient_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS doctor_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE pre_prescription ALTER COLUMN consult_id SET DEFAULT 0;
+ALTER TABLE pre_prescription ALTER COLUMN patient_id SET DEFAULT 0;
+ALTER TABLE pre_prescription ALTER COLUMN doctor_id SET DEFAULT 0;
+ALTER TABLE pre_prescription ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待审方' ELSE status::text END;
+
 COMMENT ON TABLE pre_prescription IS '处方表';
 COMMENT ON COLUMN pre_prescription.id IS '主键编号';
 COMMENT ON COLUMN pre_prescription.tenant_id IS '租户编号';
+COMMENT ON COLUMN pre_prescription.consult_id IS '问诊编号';
+COMMENT ON COLUMN pre_prescription.patient_id IS '患者编号';
+COMMENT ON COLUMN pre_prescription.doctor_id IS '医生编号';
 COMMENT ON COLUMN pre_prescription.prescription_no IS '处方编号';
 COMMENT ON COLUMN pre_prescription.patient_name IS '患者姓名';
 COMMENT ON COLUMN pre_prescription.doctor_name IS '医生姓名';
@@ -331,9 +446,16 @@ CREATE TABLE IF NOT EXISTS drug_info (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE drug_info ADD COLUMN IF NOT EXISTS drug_name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE drug_info ADD COLUMN IF NOT EXISTS inventory INT NOT NULL DEFAULT 0;
+ALTER TABLE drug_info ADD COLUMN IF NOT EXISTS warning_status VARCHAR(32) NOT NULL DEFAULT '正常';
+ALTER TABLE drug_info ADD COLUMN IF NOT EXISTS name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE drug_info ALTER COLUMN name SET DEFAULT '';
+
 COMMENT ON TABLE drug_info IS '药品信息表';
 COMMENT ON COLUMN drug_info.id IS '主键编号';
 COMMENT ON COLUMN drug_info.tenant_id IS '租户编号';
+COMMENT ON COLUMN drug_info.name IS '兼容旧表药品名称';
 COMMENT ON COLUMN drug_info.drug_name IS '药品名称';
 COMMENT ON COLUMN drug_info.spec IS '药品规格';
 COMMENT ON COLUMN drug_info.inventory IS '库存数量';
@@ -354,6 +476,7 @@ CREATE TABLE IF NOT EXISTS ord_order (
     business_type VARCHAR(64) NOT NULL,
     patient_name VARCHAR(64) NOT NULL,
     amount NUMERIC(10, 2) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT '待支付',
     pay_status VARCHAR(32) NOT NULL,
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -362,16 +485,521 @@ CREATE TABLE IF NOT EXISTS ord_order (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS business_type VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS pay_status VARCHAR(32) NOT NULL DEFAULT '';
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT '待支付';
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS biz_type VARCHAR(32) NOT NULL DEFAULT '';
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS biz_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS patient_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE ord_order ALTER COLUMN biz_type SET DEFAULT '';
+ALTER TABLE ord_order ALTER COLUMN biz_id SET DEFAULT 0;
+ALTER TABLE ord_order ALTER COLUMN patient_id SET DEFAULT 0;
+ALTER TABLE ord_order ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待支付' WHEN status::text = '1' THEN '已支付' ELSE status::text END;
+
 COMMENT ON TABLE ord_order IS '订单表';
 COMMENT ON COLUMN ord_order.id IS '主键编号';
 COMMENT ON COLUMN ord_order.tenant_id IS '租户编号';
+COMMENT ON COLUMN ord_order.biz_type IS '兼容旧表业务类型';
+COMMENT ON COLUMN ord_order.biz_id IS '兼容旧表业务编号';
+COMMENT ON COLUMN ord_order.patient_id IS '患者编号';
 COMMENT ON COLUMN ord_order.order_no IS '订单号';
 COMMENT ON COLUMN ord_order.business_type IS '业务类型';
 COMMENT ON COLUMN ord_order.patient_name IS '患者姓名';
 COMMENT ON COLUMN ord_order.amount IS '订单金额';
+COMMENT ON COLUMN ord_order.status IS '订单状态';
 COMMENT ON COLUMN ord_order.pay_status IS '支付状态';
 COMMENT ON COLUMN ord_order.create_time IS '创建时间';
 COMMENT ON COLUMN ord_order.update_time IS '更新时间';
 COMMENT ON COLUMN ord_order.create_by IS '创建人编号';
 COMMENT ON COLUMN ord_order.update_by IS '更新人编号';
 COMMENT ON COLUMN ord_order.deleted IS '逻辑删除标识';
+
+\connect hospital_system;
+
+CREATE TABLE IF NOT EXISTS sys_user (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    username VARCHAR(64) NOT NULL,
+    password VARCHAR(128) NOT NULL,
+    phone VARCHAR(32),
+    user_type VARCHAR(32) NOT NULL,
+    dept_name VARCHAR(64) NOT NULL,
+    role_name VARCHAR(64) NOT NULL,
+    last_login VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE sys_user IS '系统管理用户表';
+COMMENT ON COLUMN sys_user.id IS '主键编号';
+COMMENT ON COLUMN sys_user.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_user.username IS '用户名称';
+COMMENT ON COLUMN sys_user.password IS '登录密码';
+COMMENT ON COLUMN sys_user.phone IS '联系电话';
+COMMENT ON COLUMN sys_user.user_type IS '用户类型';
+COMMENT ON COLUMN sys_user.dept_name IS '部门名称';
+COMMENT ON COLUMN sys_user.role_name IS '角色名称';
+COMMENT ON COLUMN sys_user.last_login IS '最近登录时间描述';
+COMMENT ON COLUMN sys_user.status IS '账号状态';
+COMMENT ON COLUMN sys_user.create_time IS '创建时间';
+COMMENT ON COLUMN sys_user.update_time IS '更新时间';
+COMMENT ON COLUMN sys_user.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_user.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_user.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS sys_role (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    role_name VARCHAR(64) NOT NULL,
+    role_code VARCHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE sys_role IS '系统管理角色表';
+COMMENT ON COLUMN sys_role.id IS '主键编号';
+COMMENT ON COLUMN sys_role.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_role.role_name IS '角色名称';
+COMMENT ON COLUMN sys_role.role_code IS '角色编码';
+COMMENT ON COLUMN sys_role.status IS '角色状态';
+COMMENT ON COLUMN sys_role.create_time IS '创建时间';
+COMMENT ON COLUMN sys_role.update_time IS '更新时间';
+COMMENT ON COLUMN sys_role.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_role.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_role.deleted IS '逻辑删除标识';
+
+ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS data_scope VARCHAR(64) NOT NULL DEFAULT '本租户数据';
+ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS member_count INT NOT NULL DEFAULT 0;
+COMMENT ON COLUMN sys_role.data_scope IS '数据权限范围';
+COMMENT ON COLUMN sys_role.member_count IS '成员数量';
+
+CREATE TABLE IF NOT EXISTS sys_menu (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    menu_name VARCHAR(64) NOT NULL,
+    permission VARCHAR(128) NOT NULL,
+    route_path VARCHAR(128) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE sys_menu IS '系统管理菜单表';
+COMMENT ON COLUMN sys_menu.id IS '主键编号';
+COMMENT ON COLUMN sys_menu.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_menu.menu_name IS '菜单名称';
+COMMENT ON COLUMN sys_menu.permission IS '权限标识';
+COMMENT ON COLUMN sys_menu.route_path IS '路由路径';
+COMMENT ON COLUMN sys_menu.status IS '菜单状态';
+COMMENT ON COLUMN sys_menu.create_time IS '创建时间';
+COMMENT ON COLUMN sys_menu.update_time IS '更新时间';
+COMMENT ON COLUMN sys_menu.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_menu.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_menu.deleted IS '逻辑删除标识';
+
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS menu_type VARCHAR(32) NOT NULL DEFAULT '菜单';
+COMMENT ON COLUMN sys_menu.menu_type IS '菜单类型';
+
+INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_name, role_name, last_login, status)
+VALUES
+    (1, 100, '门诊运营', '{noop}123456', '13800001111', 'ADMIN', '运营中心', '运营管理员', '今天 08:40', '启用'),
+    (2, 100, '药房主管', '{noop}123456', '13800002222', 'ADMIN', '药房组', '库存专员', '今天 07:58', '启用')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sys_role (id, tenant_id, role_name, role_code, data_scope, member_count, status, update_time)
+VALUES
+    (1, 100, '系统管理员', 'SYSTEM_ADMIN', '全部数据', 3, '启用', '2026-06-10 11:20:00'),
+    (2, 100, '运营管理员', 'OPERATOR_ADMIN', '本租户数据', 11, '启用', '2026-06-09 17:45:00')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO sys_menu (id, tenant_id, menu_name, menu_type, permission, route_path, status)
+VALUES
+    (1, 100, '工作台', '菜单', 'dashboard:view', '/dashboard', '启用'),
+    (2, 100, '医生管理', '菜单', 'doctor:list', '/doctor', '启用')
+ON CONFLICT DO NOTHING;
+
+\connect hospital_auth;
+
+INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, status)
+VALUES
+    (1, 100, 'admin', '{noop}admin123', '13800000001', 'ADMIN', '启用'),
+    (2, 100, 'patient', '{noop}patient123', '13900000001', 'PATIENT', '启用'),
+    (3, 100, '运营主任', '{noop}123456', '13800000002', 'ADMIN', '启用')
+ON CONFLICT DO NOTHING;
+
+\connect hospital_doctor;
+
+ALTER TABLE doc_doctor ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT '接诊中';
+ALTER TABLE doc_doctor ADD COLUMN IF NOT EXISTS schedule_desc VARCHAR(64) NOT NULL DEFAULT '上午门诊';
+ALTER TABLE doc_doctor ADD COLUMN IF NOT EXISTS patient_count INT NOT NULL DEFAULT 0;
+COMMENT ON COLUMN doc_doctor.status IS '医生展示状态';
+COMMENT ON COLUMN doc_doctor.schedule_desc IS '排班描述';
+COMMENT ON COLUMN doc_doctor.patient_count IS '当前接诊患者数';
+
+CREATE TABLE IF NOT EXISTS doc_department (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    department_name VARCHAR(64) NOT NULL,
+    doctor_count INT NOT NULL,
+    queue_desc VARCHAR(64) NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS department_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS doctor_count INT NOT NULL DEFAULT 0;
+ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS queue_desc VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE doc_department ALTER COLUMN name SET DEFAULT '';
+
+COMMENT ON TABLE doc_department IS '科室信息表';
+COMMENT ON COLUMN doc_department.id IS '主键编号';
+COMMENT ON COLUMN doc_department.tenant_id IS '租户编号';
+COMMENT ON COLUMN doc_department.name IS '兼容旧表科室名称';
+COMMENT ON COLUMN doc_department.department_name IS '科室名称';
+COMMENT ON COLUMN doc_department.doctor_count IS '医生数量';
+COMMENT ON COLUMN doc_department.queue_desc IS '排队描述';
+COMMENT ON COLUMN doc_department.create_time IS '创建时间';
+COMMENT ON COLUMN doc_department.update_time IS '更新时间';
+COMMENT ON COLUMN doc_department.create_by IS '创建人编号';
+COMMENT ON COLUMN doc_department.update_by IS '更新人编号';
+COMMENT ON COLUMN doc_department.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS doc_schedule (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    slot VARCHAR(32) NOT NULL,
+    remain_number INT NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE doc_schedule ADD COLUMN IF NOT EXISTS slot VARCHAR(32) NOT NULL DEFAULT '';
+ALTER TABLE doc_schedule ADD COLUMN IF NOT EXISTS schedule_date DATE NOT NULL DEFAULT CURRENT_DATE;
+ALTER TABLE doc_schedule ADD COLUMN IF NOT EXISTS time_slot VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE doc_schedule ADD COLUMN IF NOT EXISTS total_number INT NOT NULL DEFAULT 0;
+ALTER TABLE doc_schedule ALTER COLUMN schedule_date SET DEFAULT CURRENT_DATE;
+ALTER TABLE doc_schedule ALTER COLUMN time_slot SET DEFAULT '';
+
+COMMENT ON TABLE doc_schedule IS '医生排班表';
+COMMENT ON COLUMN doc_schedule.id IS '主键编号';
+COMMENT ON COLUMN doc_schedule.tenant_id IS '租户编号';
+COMMENT ON COLUMN doc_schedule.doctor_id IS '医生编号';
+COMMENT ON COLUMN doc_schedule.slot IS '出诊时段';
+COMMENT ON COLUMN doc_schedule.schedule_date IS '排班日期';
+COMMENT ON COLUMN doc_schedule.time_slot IS '排班时间段';
+COMMENT ON COLUMN doc_schedule.total_number IS '总号源数量';
+COMMENT ON COLUMN doc_schedule.remain_number IS '剩余号源数量';
+COMMENT ON COLUMN doc_schedule.create_time IS '创建时间';
+COMMENT ON COLUMN doc_schedule.update_time IS '更新时间';
+COMMENT ON COLUMN doc_schedule.create_by IS '创建人编号';
+COMMENT ON COLUMN doc_schedule.update_by IS '更新人编号';
+COMMENT ON COLUMN doc_schedule.deleted IS '逻辑删除标识';
+
+INSERT INTO doc_department (id, tenant_id, name, department_name, doctor_count, queue_desc)
+VALUES
+    (10, 100, '心内科', '心内科', 8, '当前等候 6 人'),
+    (20, 100, '儿科', '儿科', 12, '当前等候 8 人'),
+    (30, 100, '皮肤科', '皮肤科', 5, '当前等候 3 人')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
+                               department_name = EXCLUDED.department_name,
+                               doctor_count = EXCLUDED.doctor_count,
+                               queue_desc = EXCLUDED.queue_desc;
+
+INSERT INTO doc_doctor (id, tenant_id, user_id, name, doctor_name, title, department, specialty, consult_fee, consult_status, status, schedule_desc, patient_count)
+VALUES
+    (1, 100, 1, '陈知衡', '陈知衡', '主任医师', '心内科', '冠脉慢病管理', 50.00, 'ONLINE', '接诊中', '上午门诊', 16),
+    (2, 100, 2, '顾清和', '顾清和', '副主任医师', '内分泌科', '糖尿病营养干预', 30.00, 'BUSY', '候诊', '下午门诊', 9)
+ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
+                               name = EXCLUDED.name,
+                               doctor_name = EXCLUDED.doctor_name,
+                               title = EXCLUDED.title,
+                               department = EXCLUDED.department,
+                               specialty = EXCLUDED.specialty,
+                               consult_fee = EXCLUDED.consult_fee,
+                               consult_status = EXCLUDED.consult_status,
+                               status = EXCLUDED.status,
+                               schedule_desc = EXCLUDED.schedule_desc,
+                               patient_count = EXCLUDED.patient_count;
+
+INSERT INTO doc_schedule (id, tenant_id, doctor_id, schedule_date, time_slot, slot, total_number, remain_number)
+VALUES
+    (1, 100, 1, '2026-06-13', '上午', '上午', 20, 6),
+    (2, 100, 2, '2026-06-13', '下午', '下午', 10, 1)
+ON CONFLICT (id) DO UPDATE SET schedule_date = EXCLUDED.schedule_date,
+                               time_slot = EXCLUDED.time_slot,
+                               slot = EXCLUDED.slot,
+                               total_number = EXCLUDED.total_number,
+                               remain_number = EXCLUDED.remain_number;
+
+\connect hospital_patient;
+
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS last_visit DATE;
+COMMENT ON COLUMN pat_patient.last_visit IS '最近就诊日期';
+
+CREATE TABLE IF NOT EXISTS pat_health_record (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    patient_id BIGINT NOT NULL,
+    title VARCHAR(128) NOT NULL,
+    summary VARCHAR(256) NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS title VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS summary VARCHAR(256) NOT NULL DEFAULT '';
+
+COMMENT ON TABLE pat_health_record IS '健康档案表';
+COMMENT ON COLUMN pat_health_record.id IS '主键编号';
+COMMENT ON COLUMN pat_health_record.tenant_id IS '租户编号';
+COMMENT ON COLUMN pat_health_record.patient_id IS '患者编号';
+COMMENT ON COLUMN pat_health_record.title IS '档案标题';
+COMMENT ON COLUMN pat_health_record.summary IS '档案摘要';
+COMMENT ON COLUMN pat_health_record.create_time IS '创建时间';
+COMMENT ON COLUMN pat_health_record.update_time IS '更新时间';
+COMMENT ON COLUMN pat_health_record.create_by IS '创建人编号';
+COMMENT ON COLUMN pat_health_record.update_by IS '更新人编号';
+COMMENT ON COLUMN pat_health_record.deleted IS '逻辑删除标识';
+
+INSERT INTO pat_patient (id, tenant_id, user_id, name, patient_name, gender, age, phone, risk_level, last_visit)
+VALUES
+    (1, 100, 1, '赵晓岚', '赵晓岚', '女', 34, '13900001111', '中风险', '2026-06-11'),
+    (2, 100, 2, '沈博远', '沈博远', '男', 58, '13900002222', '高风险', '2026-06-10')
+ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
+                               name = EXCLUDED.name,
+                               patient_name = EXCLUDED.patient_name,
+                               gender = EXCLUDED.gender,
+                               age = EXCLUDED.age,
+                               phone = EXCLUDED.phone,
+                               risk_level = EXCLUDED.risk_level,
+                               last_visit = EXCLUDED.last_visit;
+
+INSERT INTO pat_health_record (id, tenant_id, patient_id, title, summary)
+VALUES
+    (1, 100, 1, '发热问诊', '儿童发热 12 小时，已线上问诊'),
+    (2, 100, 2, '复诊续方', '慢病用药复诊记录')
+ON CONFLICT DO NOTHING;
+
+\connect hospital_appointment;
+
+CREATE TABLE IF NOT EXISTS apt_number_source (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    schedule_id BIGINT NOT NULL,
+    number_seq INT NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE apt_number_source ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN 'AVAILABLE' ELSE status::text END;
+
+COMMENT ON TABLE apt_number_source IS '预约号源表';
+COMMENT ON COLUMN apt_number_source.id IS '主键编号';
+COMMENT ON COLUMN apt_number_source.tenant_id IS '租户编号';
+COMMENT ON COLUMN apt_number_source.schedule_id IS '排班编号';
+COMMENT ON COLUMN apt_number_source.number_seq IS '号源序号';
+COMMENT ON COLUMN apt_number_source.status IS '号源状态';
+COMMENT ON COLUMN apt_number_source.create_time IS '创建时间';
+COMMENT ON COLUMN apt_number_source.update_time IS '更新时间';
+COMMENT ON COLUMN apt_number_source.create_by IS '创建人编号';
+COMMENT ON COLUMN apt_number_source.update_by IS '更新人编号';
+COMMENT ON COLUMN apt_number_source.deleted IS '逻辑删除标识';
+
+INSERT INTO apt_appointment (id, tenant_id, patient_id, doctor_id, department_id, schedule_id, appointment_type, appointment_no, patient_name, doctor_name, clinic_time, source, status)
+VALUES
+    (1, 100, 1, 1, 10, 1, '普通门诊', 'YY20260612001', '赵晓岚', '陈知衡', '2026-06-13 14:00', '小程序', '待就诊'),
+    (2, 100, 2, 2, 20, 2, '普通门诊', 'YY20260612002', '沈博远', '顾清和', '2026-06-13 15:30', '客服代约', '已签到')
+ON CONFLICT (id) DO UPDATE SET patient_id = EXCLUDED.patient_id,
+                               doctor_id = EXCLUDED.doctor_id,
+                               department_id = EXCLUDED.department_id,
+                               schedule_id = EXCLUDED.schedule_id,
+                               appointment_type = EXCLUDED.appointment_type,
+                               appointment_no = EXCLUDED.appointment_no,
+                               patient_name = EXCLUDED.patient_name,
+                               doctor_name = EXCLUDED.doctor_name,
+                               clinic_time = EXCLUDED.clinic_time,
+                               source = EXCLUDED.source,
+                               status = EXCLUDED.status;
+
+INSERT INTO apt_number_source (id, tenant_id, schedule_id, number_seq, status)
+VALUES
+    (1, 100, 1, 1, 'AVAILABLE'),
+    (2, 100, 1, 2, 'AVAILABLE')
+ON CONFLICT DO NOTHING;
+
+\connect hospital_consult;
+
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS updated_at VARCHAR(64) NOT NULL DEFAULT '10:00';
+COMMENT ON COLUMN con_consult.updated_at IS '前端展示更新时间';
+
+CREATE TABLE IF NOT EXISTS con_message (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    consult_id BIGINT NOT NULL,
+    sender_id BIGINT NOT NULL,
+    sender_type VARCHAR(32) NOT NULL,
+    content VARCHAR(512) NOT NULL,
+    content_type VARCHAR(32) NOT NULL,
+    read_flag BOOLEAN NOT NULL DEFAULT FALSE,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE con_message ADD COLUMN IF NOT EXISTS read_flag BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE con_message ADD COLUMN IF NOT EXISTS is_read SMALLINT NOT NULL DEFAULT 0;
+ALTER TABLE con_message ALTER COLUMN is_read SET DEFAULT 0;
+UPDATE con_message SET read_flag = (is_read <> 0);
+
+COMMENT ON TABLE con_message IS '问诊消息表';
+COMMENT ON COLUMN con_message.id IS '主键编号';
+COMMENT ON COLUMN con_message.tenant_id IS '租户编号';
+COMMENT ON COLUMN con_message.consult_id IS '问诊编号';
+COMMENT ON COLUMN con_message.sender_id IS '发送人编号';
+COMMENT ON COLUMN con_message.sender_type IS '发送人类型';
+COMMENT ON COLUMN con_message.content IS '消息内容';
+COMMENT ON COLUMN con_message.content_type IS '消息内容类型';
+COMMENT ON COLUMN con_message.read_flag IS '已读标识';
+COMMENT ON COLUMN con_message.is_read IS '兼容旧表已读标识';
+COMMENT ON COLUMN con_message.create_time IS '创建时间';
+COMMENT ON COLUMN con_message.update_time IS '更新时间';
+COMMENT ON COLUMN con_message.create_by IS '创建人编号';
+COMMENT ON COLUMN con_message.update_by IS '更新人编号';
+COMMENT ON COLUMN con_message.deleted IS '逻辑删除标识';
+
+INSERT INTO con_consult (id, tenant_id, patient_id, doctor_id, consult_type, consult_no, patient_name, doctor_name, channel, status, updated_at)
+VALUES
+    (1, 100, 1, 1, 'IMAGE_TEXT', 'ZX20260612001', '赵晓岚', '陈知衡', '图文', '待接单', '10:18'),
+    (2, 100, 2, 2, 'VIDEO', 'ZX20260612002', '沈博远', '顾清和', '视频', '咨询中', '10:07')
+ON CONFLICT (id) DO UPDATE SET patient_id = EXCLUDED.patient_id,
+                               doctor_id = EXCLUDED.doctor_id,
+                               consult_type = EXCLUDED.consult_type,
+                               consult_no = EXCLUDED.consult_no,
+                               patient_name = EXCLUDED.patient_name,
+                               doctor_name = EXCLUDED.doctor_name,
+                               channel = EXCLUDED.channel,
+                               status = EXCLUDED.status,
+                               updated_at = EXCLUDED.updated_at;
+
+INSERT INTO con_message (id, tenant_id, consult_id, sender_id, sender_type, content, content_type, read_flag, create_time)
+VALUES
+    (1, 100, 1, 2, 'DOCTOR', '哪里不舒服', 'TEXT', FALSE, '2026-06-13 10:15:00'),
+    (2, 100, 1, 1, 'PATIENT', '孩子从昨晚开始发烧', 'TEXT', FALSE, '2026-06-13 10:16:00')
+ON CONFLICT DO NOTHING;
+
+\connect hospital_prescription;
+
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS issued_at VARCHAR(32) NOT NULL DEFAULT '09:00';
+COMMENT ON COLUMN pre_prescription.issued_at IS '开方时间展示值';
+
+INSERT INTO pre_prescription (id, tenant_id, consult_id, patient_id, doctor_id, prescription_no, patient_name, doctor_name, drug_count, issued_at, status)
+VALUES
+    (1, 100, 1, 1, 1, 'CF20260612001', '赵晓岚', '陈知衡', 3, '09:42', '待审方'),
+    (2, 100, 2, 2, 2, 'CF20260612002', '沈博远', '顾清和', 5, '09:18', '待发药')
+ON CONFLICT (id) DO UPDATE SET consult_id = EXCLUDED.consult_id,
+                               patient_id = EXCLUDED.patient_id,
+                               doctor_id = EXCLUDED.doctor_id,
+                               prescription_no = EXCLUDED.prescription_no,
+                               patient_name = EXCLUDED.patient_name,
+                               doctor_name = EXCLUDED.doctor_name,
+                               drug_count = EXCLUDED.drug_count,
+                               issued_at = EXCLUDED.issued_at,
+                               status = EXCLUDED.status;
+
+\connect hospital_drug;
+
+CREATE TABLE IF NOT EXISTS drug_stock (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    drug_id BIGINT NOT NULL,
+    warehouse_name VARCHAR(64) NOT NULL,
+    inventory INT NOT NULL,
+    warning_status VARCHAR(32) NOT NULL,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE drug_stock ADD COLUMN IF NOT EXISTS warehouse_name VARCHAR(64) NOT NULL DEFAULT '中心药房';
+ALTER TABLE drug_stock ADD COLUMN IF NOT EXISTS inventory INT NOT NULL DEFAULT 0;
+ALTER TABLE drug_stock ADD COLUMN IF NOT EXISTS warning_status VARCHAR(32) NOT NULL DEFAULT '正常';
+
+COMMENT ON TABLE drug_stock IS '药品库存表';
+COMMENT ON COLUMN drug_stock.id IS '主键编号';
+COMMENT ON COLUMN drug_stock.tenant_id IS '租户编号';
+COMMENT ON COLUMN drug_stock.drug_id IS '药品编号';
+COMMENT ON COLUMN drug_stock.warehouse_name IS '仓库名称';
+COMMENT ON COLUMN drug_stock.inventory IS '库存数量';
+COMMENT ON COLUMN drug_stock.warning_status IS '预警状态';
+COMMENT ON COLUMN drug_stock.create_time IS '创建时间';
+COMMENT ON COLUMN drug_stock.update_time IS '更新时间';
+COMMENT ON COLUMN drug_stock.create_by IS '创建人编号';
+COMMENT ON COLUMN drug_stock.update_by IS '更新人编号';
+COMMENT ON COLUMN drug_stock.deleted IS '逻辑删除标识';
+
+INSERT INTO drug_info (id, tenant_id, name, drug_name, spec, inventory, unit, warning_status)
+VALUES
+    (1, 100, '阿托伐他汀钙片', '阿托伐他汀钙片', '20mg*14片', 124, '盒', '正常'),
+    (2, 100, '盐酸二甲双胍缓释片', '盐酸二甲双胍缓释片', '0.5g*30片', 42, '盒', '预警')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
+                               drug_name = EXCLUDED.drug_name,
+                               spec = EXCLUDED.spec,
+                               inventory = EXCLUDED.inventory,
+                               unit = EXCLUDED.unit,
+                               warning_status = EXCLUDED.warning_status;
+
+INSERT INTO drug_stock (id, tenant_id, drug_id, warehouse_name, inventory, warning_status)
+VALUES
+    (1, 100, 1, '中心药房', 124, '正常'),
+    (2, 100, 2, '中心药房', 42, '预警')
+ON CONFLICT DO NOTHING;
+
+\connect hospital_order;
+
+ALTER TABLE ord_order ADD COLUMN IF NOT EXISTS created_at VARCHAR(32) NOT NULL DEFAULT '09:00';
+COMMENT ON COLUMN ord_order.created_at IS '订单创建时间展示值';
+
+INSERT INTO ord_order (id, tenant_id, order_no, biz_type, biz_id, patient_id, business_type, patient_name, amount, pay_status, created_at, status)
+VALUES
+    (1, 100, 'DD20260612001', 'APPOINTMENT', 1, 1, '门诊预约', '赵晓岚', 58.00, '已支付', '09:12', '已支付'),
+    (2, 100, 'DD20260612002', 'CONSULT', 2, 2, '图文咨询', '沈博远', 39.90, '待支付', '09:35', '待支付')
+ON CONFLICT (id) DO UPDATE SET biz_type = EXCLUDED.biz_type,
+                               biz_id = EXCLUDED.biz_id,
+                               patient_id = EXCLUDED.patient_id,
+                               business_type = EXCLUDED.business_type,
+                               patient_name = EXCLUDED.patient_name,
+                               amount = EXCLUDED.amount,
+                               pay_status = EXCLUDED.pay_status,
+                               created_at = EXCLUDED.created_at,
+                               status = EXCLUDED.status;

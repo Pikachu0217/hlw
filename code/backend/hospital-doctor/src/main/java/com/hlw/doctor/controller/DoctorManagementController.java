@@ -1,6 +1,7 @@
 package com.hlw.doctor.controller;
 
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.jdbc.DemoDataQuery;
 import com.hlw.doctor.service.AppointmentFeePolicy;
 import com.hlw.doctor.service.FeeContext;
 import org.slf4j.Logger;
@@ -17,14 +18,22 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.Map.entry;
-
 @RestController
 @RequestMapping("/doctor")
 public class DoctorManagementController {
     private static final Logger log = LoggerFactory.getLogger(DoctorManagementController.class);
 
     private final AppointmentFeePolicy appointmentFeePolicy = new AppointmentFeePolicy();
+    private final DemoDataQuery demoDataQuery;
+
+    /**
+     * 构造医生管理控制器。
+     *
+     * @param demoDataQuery 演示数据查询器
+     */
+    public DoctorManagementController(DemoDataQuery demoDataQuery) {
+        this.demoDataQuery = demoDataQuery;
+    }
 
     /**
      * 查询科室演示列表。
@@ -34,11 +43,15 @@ public class DoctorManagementController {
     @GetMapping("/departments")
     public R<List<Map<String, Object>>> departments() {
         log.info("查询科室列表");
-        return R.ok(List.of(
-            Map.of("id", 10L, "name", "心内科", "doctorCount", 8, "queue", "当前等候 6 人"),
-            Map.of("id", 20L, "name", "儿科", "doctorCount", 12, "queue", "当前等候 8 人"),
-            Map.of("id", 30L, "name", "皮肤科", "doctorCount", 5, "queue", "当前等候 3 人")
-        ));
+        return R.ok(demoDataQuery.list("科室列表", """
+            SELECT id AS id,
+                   department_name AS name,
+                   doctor_count AS "doctorCount",
+                   queue_desc AS queue
+            FROM doc_department
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**
@@ -60,34 +73,7 @@ public class DoctorManagementController {
     @GetMapping("/doctors")
     public R<List<Map<String, Object>>> doctors() {
         log.info("查询医生列表");
-        return R.ok(List.of(
-            Map.ofEntries(
-                entry("id", 1L),
-                entry("key", "1"),
-                entry("name", "陈知衡"),
-                entry("title", "主任医师"),
-                entry("department", "心内科"),
-                entry("specialty", "冠脉慢病管理"),
-                entry("status", "接诊中"),
-                entry("consultStatus", "ONLINE"),
-                entry("schedule", "上午门诊"),
-                entry("patientCount", 16),
-                entry("consultFee", "50.00")
-            ),
-            Map.ofEntries(
-                entry("id", 2L),
-                entry("key", "2"),
-                entry("name", "顾清和"),
-                entry("title", "副主任医师"),
-                entry("department", "内分泌科"),
-                entry("specialty", "糖尿病营养干预"),
-                entry("status", "候诊"),
-                entry("consultStatus", "BUSY"),
-                entry("schedule", "下午门诊"),
-                entry("patientCount", 9),
-                entry("consultFee", "30.00")
-            )
-        ));
+        return R.ok(demoDataQuery.list("医生列表", doctorListSql() + " ORDER BY d.id"));
     }
 
     /**
@@ -99,23 +85,7 @@ public class DoctorManagementController {
     @GetMapping("/doctors/{id}")
     public R<Map<String, Object>> doctorDetail(@PathVariable Long id) {
         log.info("查询医生详情，doctorId={}", id);
-        Map<String, Object> detail = doctors().data().stream()
-            .filter(doctor -> id.equals(doctor.get("id")))
-            .findFirst()
-            .orElse(Map.ofEntries(
-                entry("id", id),
-                entry("key", String.valueOf(id)),
-                entry("name", "陈知衡"),
-                entry("title", "主任医师"),
-                entry("department", "心内科"),
-                entry("specialty", "冠脉慢病管理"),
-                entry("status", "接诊中"),
-                entry("consultStatus", "ONLINE"),
-                entry("schedule", "上午门诊"),
-                entry("patientCount", 16),
-                entry("consultFee", "50.00")
-            ));
-        return R.ok(detail);
+        return R.ok(demoDataQuery.one("医生详情", doctorListSql() + " AND d.id = ?", id));
     }
 
     /**
@@ -160,10 +130,18 @@ public class DoctorManagementController {
      */
     @GetMapping("/schedules")
     public R<List<Map<String, Object>>> schedules() {
-        return R.ok(List.of(
-            Map.of("id", 1L, "doctorId", 1L, "doctorName", "陈知衡", "slot", "上午", "remain", 6),
-            Map.of("id", 2L, "doctorId", 2L, "doctorName", "顾清和", "slot", "下午", "remain", 1)
-        ));
+        log.info("查询排班列表");
+        return R.ok(demoDataQuery.list("排班列表", """
+            SELECT s.id AS id,
+                   s.doctor_id AS "doctorId",
+                   d.doctor_name AS "doctorName",
+                   s.slot AS slot,
+                   s.remain_number AS remain
+            FROM doc_schedule s
+            LEFT JOIN doc_doctor d ON d.id = s.doctor_id AND d.deleted = 0
+            WHERE s.deleted = 0
+            ORDER BY s.id
+            """));
     }
 
     /**
@@ -186,5 +164,28 @@ public class DoctorManagementController {
     @PostMapping("/appointment-fee/resolve")
     public R<BigDecimal> resolveAppointmentFee(@RequestBody FeeContext context) {
         return R.ok(appointmentFeePolicy.resolve(context));
+    }
+
+    /**
+     * 生成医生列表基础 SQL。
+     *
+     * @return 医生列表基础 SQL
+     */
+    private String doctorListSql() {
+        return """
+            SELECT d.id AS id,
+                   d.id::text AS key,
+                   d.doctor_name AS name,
+                   d.title AS title,
+                   d.department AS department,
+                   d.specialty AS specialty,
+                   d.status AS status,
+                   d.consult_status AS "consultStatus",
+                   d.schedule_desc AS schedule,
+                   d.patient_count AS "patientCount",
+                   to_char(d.consult_fee, 'FM999999990.00') AS "consultFee"
+            FROM doc_doctor d
+            WHERE d.deleted = 0
+            """;
     }
 }

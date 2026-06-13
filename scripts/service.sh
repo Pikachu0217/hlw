@@ -98,7 +98,7 @@ start_process() {
   echo "正在启动：${service_name}"
   (
     cd "${work_dir}"
-    nohup bash -lc "exec ${command}" >>"${log_file}" 2>&1 &
+    nohup bash -c "${command}" >>"${log_file}" 2>&1 &
     echo $! >"${pid_file}"
   )
   echo "启动完成：${service_name}，pid=$(cat "${pid_file}")，日志=${log_file}"
@@ -170,7 +170,7 @@ start_backend_module() {
   local module="$1"
 
   if is_backend_module_runnable "${module}"; then
-    start_process "${module}" "${BACKEND_DIR}/${module}" "mvn spring-boot:run -Dspring-boot.run.profiles=${SPRING_PROFILES_ACTIVE}"
+    start_process "${module}" "${BACKEND_DIR}" "exec mvn -f ${module}/pom.xml spring-boot:run -Dspring-boot.run.profiles=${SPRING_PROFILES_ACTIVE}"
   fi
 }
 

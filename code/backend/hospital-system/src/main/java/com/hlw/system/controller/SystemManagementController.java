@@ -1,6 +1,7 @@
 package com.hlw.system.controller;
 
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.jdbc.DemoDataQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,17 @@ import java.util.Map;
 public class SystemManagementController {
     private static final Logger log = LoggerFactory.getLogger(SystemManagementController.class);
 
+    private final DemoDataQuery demoDataQuery;
+
+    /**
+     * 构造系统管理控制器。
+     *
+     * @param demoDataQuery 演示数据查询器
+     */
+    public SystemManagementController(DemoDataQuery demoDataQuery) {
+        this.demoDataQuery = demoDataQuery;
+    }
+
     /**
      * 查询租户列表。
      *
@@ -24,10 +36,17 @@ public class SystemManagementController {
     @GetMapping("/tenants")
     public R<List<Map<String, Object>>> tenants() {
         log.info("查询租户列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "tenantName", "海岚门诊", "packageName", "标准医疗版", "adminName", "刘院长", "expireAt", "2026-12-31", "status", "正常"),
-            Map.of("key", "2", "tenantName", "青禾互联网医院", "packageName", "集团旗舰版", "adminName", "姜主任", "expireAt", "2026-08-16", "status", "续费跟进")
-        ));
+        return R.ok(demoDataQuery.list("租户列表", """
+            SELECT id::text AS key,
+                   tenant_name AS "tenantName",
+                   package_name AS "packageName",
+                   admin_name AS "adminName",
+                   to_char(expire_at, 'YYYY-MM-DD') AS "expireAt",
+                   status AS status
+            FROM sys_tenant
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**
@@ -48,10 +67,18 @@ public class SystemManagementController {
     @GetMapping("/users")
     public R<List<Map<String, Object>>> users() {
         log.info("查询后台用户列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "username", "门诊运营", "deptName", "运营中心", "roleName", "运营管理员", "phone", "13800001111", "lastLogin", "今天 08:40", "status", "启用"),
-            Map.of("key", "2", "username", "药房主管", "deptName", "药房组", "roleName", "库存专员", "phone", "13800002222", "lastLogin", "今天 07:58", "status", "启用")
-        ));
+        return R.ok(demoDataQuery.list("后台用户列表", """
+            SELECT id::text AS key,
+                   username AS username,
+                   dept_name AS "deptName",
+                   role_name AS "roleName",
+                   phone AS phone,
+                   last_login AS "lastLogin",
+                   status AS status
+            FROM sys_user
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**
@@ -62,10 +89,17 @@ public class SystemManagementController {
     @GetMapping("/roles")
     public R<List<Map<String, Object>>> roles() {
         log.info("查询角色列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "roleName", "系统管理员", "dataScope", "全部数据", "memberCount", 3, "updatedAt", "2026-06-10 11:20", "status", "启用"),
-            Map.of("key", "2", "roleName", "运营管理员", "dataScope", "本租户数据", "memberCount", 11, "updatedAt", "2026-06-09 17:45", "status", "启用")
-        ));
+        return R.ok(demoDataQuery.list("角色列表", """
+            SELECT id::text AS key,
+                   role_name AS "roleName",
+                   data_scope AS "dataScope",
+                   member_count AS "memberCount",
+                   to_char(update_time, 'YYYY-MM-DD HH24:MI') AS "updatedAt",
+                   status AS status
+            FROM sys_role
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 
     /**
@@ -76,9 +110,16 @@ public class SystemManagementController {
     @GetMapping("/menus")
     public R<List<Map<String, Object>>> menus() {
         log.info("查询菜单列表");
-        return R.ok(List.of(
-            Map.of("key", "1", "menuName", "工作台", "menuType", "菜单", "permission", "dashboard:view", "routePath", "/dashboard", "status", "启用"),
-            Map.of("key", "2", "menuName", "医生管理", "menuType", "菜单", "permission", "doctor:list", "routePath", "/doctor", "status", "启用")
-        ));
+        return R.ok(demoDataQuery.list("菜单列表", """
+            SELECT id::text AS key,
+                   menu_name AS "menuName",
+                   menu_type AS "menuType",
+                   permission AS permission,
+                   route_path AS "routePath",
+                   status AS status
+            FROM sys_menu
+            WHERE deleted = 0
+            ORDER BY id
+            """));
     }
 }
