@@ -2,8 +2,7 @@ package com.hlw.prescription.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.jdbc.DemoDataQuery;
-import com.hlw.prescription.service.Prescription;
-import com.hlw.prescription.service.PrescriptionAuditService;
+import com.hlw.prescription.service.PrescriptionWorkflowService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,17 +23,17 @@ import java.util.List;
 public class PrescriptionController {
     private static final Logger log = LoggerFactory.getLogger(PrescriptionController.class);
 
-    private final PrescriptionAuditService prescriptionAuditService;
+    private final PrescriptionWorkflowService prescriptionWorkflowService;
     private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造处方控制器。
      *
-     * @param prescriptionAuditService 处方审核服务
+     * @param prescriptionWorkflowService 处方工作流服务
      * @param demoDataQuery 演示数据查询器
      */
-    public PrescriptionController(PrescriptionAuditService prescriptionAuditService, DemoDataQuery demoDataQuery) {
-        this.prescriptionAuditService = prescriptionAuditService;
+    public PrescriptionController(PrescriptionWorkflowService prescriptionWorkflowService, DemoDataQuery demoDataQuery) {
+        this.prescriptionWorkflowService = prescriptionWorkflowService;
         this.demoDataQuery = demoDataQuery;
     }
 
@@ -68,7 +67,7 @@ public class PrescriptionController {
      */
     @PostMapping("/prescriptions")
     public R<Map<String, Object>> create(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(prescriptionWorkflowService.create(command));
     }
 
     /**
@@ -79,7 +78,7 @@ public class PrescriptionController {
      */
     @PostMapping("/prescriptions/{id}/submit")
     public R<Map<String, Object>> submit(@PathVariable Long id) {
-        return R.ok(Map.of("id", id, "status", "SUBMITTED"));
+        return R.ok(prescriptionWorkflowService.submit(id));
     }
 
     /**
@@ -90,10 +89,10 @@ public class PrescriptionController {
      * @return 审核后的处方
      */
     @PostMapping("/prescriptions/{id}/approve")
-    public R<Prescription> approve(@PathVariable Long id, @RequestBody Map<String, Object> command) {
+    public R<Map<String, Object>> approve(@PathVariable Long id, @RequestBody Map<String, Object> command) {
         Long pharmacistId = Long.valueOf(String.valueOf(command.getOrDefault("pharmacistId", 0L)));
         String remark = String.valueOf(command.getOrDefault("remark", ""));
-        return R.ok(prescriptionAuditService.approve(id, pharmacistId, remark));
+        return R.ok(prescriptionWorkflowService.approve(id, pharmacistId, remark));
     }
 
     /**
@@ -105,6 +104,7 @@ public class PrescriptionController {
      */
     @PostMapping("/prescriptions/{id}/reject")
     public R<Map<String, Object>> reject(@PathVariable Long id, @RequestBody Map<String, Object> command) {
-        return R.ok(Map.of("id", id, "status", "REJECTED", "remark", command.get("remark")));
+        String remark = String.valueOf(command.getOrDefault("remark", ""));
+        return R.ok(prescriptionWorkflowService.reject(id, remark));
     }
 }

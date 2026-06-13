@@ -1291,6 +1291,67 @@ CREATE TABLE IF NOT EXISTS pre_prescription_item (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS prescription_no VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS doctor_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS drug_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pre_prescription ADD COLUMN IF NOT EXISTS issued_at VARCHAR(32) NOT NULL DEFAULT '09:00';
+ALTER TABLE pre_prescription ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '草稿' WHEN status::text = '1' THEN '待审方' WHEN status::text = '2' THEN '待发药' WHEN status::text = '3' THEN '已驳回' WHEN status::text = '4' THEN '已发药' WHEN status::text = 'DRAFT' THEN '草稿' WHEN status::text = 'SUBMITTED' THEN '待审方' WHEN status::text = 'AUDITED' THEN '待发药' WHEN status::text = 'REJECTED' THEN '已驳回' ELSE status::text END;
+
+COMMENT ON TABLE pre_prescription IS '处方表';
+COMMENT ON COLUMN pre_prescription.id IS '主键编号';
+COMMENT ON COLUMN pre_prescription.tenant_id IS '租户编号';
+COMMENT ON COLUMN pre_prescription.consult_id IS '问诊编号';
+COMMENT ON COLUMN pre_prescription.patient_id IS '患者编号';
+COMMENT ON COLUMN pre_prescription.doctor_id IS '医生编号';
+COMMENT ON COLUMN pre_prescription.pharmacist_id IS '审核药师编号';
+COMMENT ON COLUMN pre_prescription.prescription_no IS '处方编号';
+COMMENT ON COLUMN pre_prescription.patient_name IS '患者姓名';
+COMMENT ON COLUMN pre_prescription.doctor_name IS '医生姓名';
+COMMENT ON COLUMN pre_prescription.drug_count IS '药品数量';
+COMMENT ON COLUMN pre_prescription.issued_at IS '开方时间展示值';
+COMMENT ON COLUMN pre_prescription.status IS '处方状态';
+COMMENT ON COLUMN pre_prescription.audit_remark IS '审核备注';
+COMMENT ON COLUMN pre_prescription.submit_time IS '提交时间';
+COMMENT ON COLUMN pre_prescription.audit_time IS '审核时间';
+COMMENT ON COLUMN pre_prescription.create_time IS '创建时间';
+COMMENT ON COLUMN pre_prescription.update_time IS '更新时间';
+COMMENT ON COLUMN pre_prescription.create_by IS '创建人编号';
+COMMENT ON COLUMN pre_prescription.update_by IS '更新人编号';
+COMMENT ON COLUMN pre_prescription.deleted IS '逻辑删除标识';
+
+COMMENT ON TABLE pre_prescription_item IS '处方药品明细表';
+COMMENT ON COLUMN pre_prescription_item.id IS '主键编号';
+COMMENT ON COLUMN pre_prescription_item.tenant_id IS '租户编号';
+COMMENT ON COLUMN pre_prescription_item.prescription_id IS '处方编号';
+COMMENT ON COLUMN pre_prescription_item.drug_id IS '药品编号';
+COMMENT ON COLUMN pre_prescription_item.drug_name IS '药品名称';
+COMMENT ON COLUMN pre_prescription_item.dosage IS '剂量';
+COMMENT ON COLUMN pre_prescription_item.frequency IS '频次';
+COMMENT ON COLUMN pre_prescription_item.quantity IS '数量';
+COMMENT ON COLUMN pre_prescription_item.usage_note IS '用药备注';
+COMMENT ON COLUMN pre_prescription_item.create_time IS '创建时间';
+COMMENT ON COLUMN pre_prescription_item.update_time IS '更新时间';
+COMMENT ON COLUMN pre_prescription_item.create_by IS '创建人编号';
+COMMENT ON COLUMN pre_prescription_item.update_by IS '更新人编号';
+COMMENT ON COLUMN pre_prescription_item.deleted IS '逻辑删除标识';
+
+INSERT INTO pre_prescription (id, tenant_id, consult_id, patient_id, doctor_id, prescription_no, patient_name, doctor_name, drug_count, issued_at, status)
+VALUES
+    (1, 100, 1, 1, 1, 'CF20260612001', '赵晓岚', '陈知衡', 3, '09:42', '待审方'),
+    (2, 100, 2, 2, 2, 'CF20260612002', '沈博远', '顾清和', 5, '09:18', '待发药'),
+    (3, 100, 3, 3, 1, 'CF20260612003', '接口驳回患者', '陈知衡', 1, '09:50', '待审方')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO pre_prescription_item (id, tenant_id, prescription_id, drug_id, drug_name, dosage, frequency, quantity, usage_note)
+VALUES
+    (1, 100, 1, 1, '阿托伐他汀钙片', '20mg', '每日一次', 1, '饭后服用'),
+    (2, 100, 1, 2, '盐酸二甲双胍缓释片', '0.5g', '每日两次', 1, '随餐服用')
+ON CONFLICT DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('pre_prescription', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM pre_prescription), 1), true);
+SELECT setval(pg_get_serial_sequence('pre_prescription_item', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM pre_prescription_item), 1), true);
+
 CREATE TABLE IF NOT EXISTS local_message (
     id BIGSERIAL PRIMARY KEY,
     topic VARCHAR(128) NOT NULL,

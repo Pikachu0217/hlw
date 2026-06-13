@@ -82,6 +82,26 @@ export interface AcceptConsultPayload {
   doctorId?: number;
 }
 
+export interface CreatePrescriptionPayload {
+  consultId?: number;
+  patientId?: number;
+  doctorId?: number;
+  patientName?: string;
+  doctorName?: string;
+  drugIds?: number[];
+  drugCount?: number;
+  issuedAt?: string;
+}
+
+export interface ApprovePrescriptionPayload {
+  pharmacistId?: number;
+  remark?: string;
+}
+
+export interface RejectPrescriptionPayload {
+  remark?: string;
+}
+
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
 async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
   console.info(`[admin-module] 查询${moduleName}列表`, url);
@@ -234,6 +254,34 @@ export async function createReleaseConfig(payload: CreateReleaseConfigPayload): 
 // 查询处方列表。
 export function fetchPrescriptions(): Promise<PrescriptionRecord[]> {
   return fetchModuleRecords<PrescriptionRecord>('/prescription/prescriptions', '处方');
+}
+
+// 创建处方草稿。
+export async function createPrescription(payload: CreatePrescriptionPayload): Promise<PrescriptionRecord> {
+  console.info('[admin-module] 创建处方草稿', payload);
+  const response = await apiClient.post<ApiResult<PrescriptionRecord>>('/prescription/prescriptions', payload);
+  return response.data.data;
+}
+
+// 提交处方。
+export async function submitPrescription(id: string): Promise<PrescriptionRecord> {
+  console.info('[admin-module] 提交处方', id);
+  const response = await apiClient.post<ApiResult<PrescriptionRecord>>(`/prescription/prescriptions/${id}/submit`);
+  return response.data.data;
+}
+
+// 审核通过处方。
+export async function approvePrescription(id: string, payload: ApprovePrescriptionPayload): Promise<PrescriptionRecord> {
+  console.info('[admin-module] 审核通过处方', id, payload);
+  const response = await apiClient.post<ApiResult<PrescriptionRecord>>(`/prescription/prescriptions/${id}/approve`, payload);
+  return response.data.data;
+}
+
+// 驳回处方。
+export async function rejectPrescription(id: string, payload: RejectPrescriptionPayload): Promise<PrescriptionRecord> {
+  console.info('[admin-module] 驳回处方', id, payload);
+  const response = await apiClient.post<ApiResult<PrescriptionRecord>>(`/prescription/prescriptions/${id}/reject`, payload);
+  return response.data.data;
 }
 
 // 查询药品列表。

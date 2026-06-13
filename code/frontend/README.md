@@ -148,3 +148,5 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 预约管理页面已接入预约单创建、预约支付、预约签到、便民门诊抢单、号源锁定和放号配置弹窗；预约列表与号源池均来自真实接口，页面样式统一收口在 `src/styles/global.css`。
 
 问诊管理页面已接入问诊单创建、医生接单、服务延长和完成归档操作；接口业务失败沿用 `apiClient` 的统一错误提示，弹窗样式继续收口在 `src/styles/global.css`。
+
+处方管理页面已接入处方草稿创建、提交审方、审核通过和驳回操作；列表和动作接口均来自后端处方服务，弹窗样式继续收口在 `src/styles/global.css`。

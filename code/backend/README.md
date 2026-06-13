@@ -510,6 +510,8 @@ POST /order/orders/{id}/pay
 GET /order/orders
 ```
 
+处方管理已接入 `pre_prescription` 和 `pre_prescription_item` 表，创建处方会写入草稿和药品明细，提交、审核通过、驳回均改为数据库状态变更并保留审核备注。
+
 Task 9 事件 topic 约定：
 
 ```text

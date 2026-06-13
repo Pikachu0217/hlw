@@ -555,7 +555,7 @@ run_all_cases() {
   run_case "创建处方草稿" "POST" "/prescription/prescriptions" "{\"patientId\":1,\"doctorId\":1,\"drugIds\":[1]}"
   run_case "提交处方" "POST" "/prescription/prescriptions/1/submit"
   run_case "审核通过处方" "POST" "/prescription/prescriptions/1/approve" "{\"pharmacistId\":1,\"remark\":\"接口测试通过\"}"
-  run_case "驳回处方" "POST" "/prescription/prescriptions/1/reject" "{\"remark\":\"接口测试驳回\"}"
+  run_case "驳回处方" "POST" "/prescription/prescriptions/3/reject" "{\"remark\":\"接口测试驳回\"}"
 
   # 药品库存接口。
   run_case "查询药品列表" "GET" "/drug/drugs"
