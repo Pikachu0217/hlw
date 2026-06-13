@@ -1,94 +1,127 @@
 package com.hlw.drug.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
+import com.hlw.common.core.tenant.TenantContext;
 import com.hlw.common.mq.core.MqProducer;
 import com.hlw.common.mq.model.MqMessage;
+import com.hlw.drug.dto.CreateDrugRequest;
+import com.hlw.drug.dto.CreateStockRequest;
+import com.hlw.drug.entity.DrugDeliveryEntity;
+import com.hlw.drug.entity.DrugInfoEntity;
+import com.hlw.drug.entity.DrugStockEntity;
+import com.hlw.drug.mapper.DrugDeliveryMapper;
+import com.hlw.drug.mapper.DrugInfoMapper;
+import com.hlw.drug.mapper.DrugStockMapper;
+import com.hlw.drug.vo.DeliveryShipVO;
+import com.hlw.drug.vo.DrugVO;
+import com.hlw.drug.vo.StockVO;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * 药品目录和库存服务，负责药品资料、库存记录和配送发货落库。
  */
 @Service
+@RequiredArgsConstructor
 public class DrugCatalogService {
     private static final Logger log = LoggerFactory.getLogger(DrugCatalogService.class);
-    private static final long DEFAULT_TENANT_ID = 100L;
+    private static final String DEFAULT_UNIT = "盒";
+    private static final String DEFAULT_WAREHOUSE_NAME = "中心药房";
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_SHIPPED = "SHIPPED";
 
-    private final JdbcOperations jdbcOperations;
+    /** 药品信息数据访问组件。 */
+    private final DrugInfoMapper drugInfoMapper;
+    /** 药品库存数据访问组件。 */
+    private final DrugStockMapper drugStockMapper;
+    /** 药品配送数据访问组件。 */
+    private final DrugDeliveryMapper drugDeliveryMapper;
+    /** 消息生产者。 */
     private final MqProducer mqProducer;
 
     /**
-     * 构造药品目录和库存服务。
+     * 查询药品列表。
      *
-     * @param jdbcOperations JDBC 操作组件
-     * @param mqProducer 消息生产者
+     * @return 药品展示列表
      */
-    public DrugCatalogService(JdbcOperations jdbcOperations, MqProducer mqProducer) {
-        this.jdbcOperations = jdbcOperations;
-        this.mqProducer = mqProducer;
+    public List<DrugVO> listDrugs() {
+        log.info("查询药品列表");
+        return drugInfoMapper.selectList(activeDrugWrapper())
+            .stream()
+            .sorted(Comparator.comparing(DrugInfoEntity::getId))
+            .map(this::toDrugVO)
+            .toList();
+    }
+
+    /**
+     * 查询库存列表。
+     *
+     * @return 库存展示列表
+     */
+    public List<StockVO> listStocks() {
+        log.info("查询药品库存列表");
+        return drugStockMapper.selectList(activeStockWrapper())
+            .stream()
+            .sorted(Comparator.comparing(DrugStockEntity::getId))
+            .map(this::toStockVO)
+            .toList();
     }
 
     /**
      * 创建药品资料。
      *
-     * @param command 药品创建命令
+     * @param request 药品创建请求
      * @return 创建后的药品资料
      */
     @Transactional
-    public Map<String, Object> createDrug(Map<String, Object> command) {
-        String drugName = requiredString(command, "drugName", "药品名称不能为空");
-        String spec = requiredString(command, "spec", "药品规格不能为空");
-        int inventory = intValue(command, "inventory", 0);
-        String unit = stringValue(command, "unit", "盒");
+    public DrugVO createDrug(CreateDrugRequest request) {
+        ensureBusinessTenantContext("药品模块操作缺少有效租户上下文");
+        int inventory = defaultInt(request.getInventory(), 0);
+        String unit = defaultIfBlank(request.getUnit(), DEFAULT_UNIT);
         String warningStatus = warningStatus(inventory);
-        log.info("创建药品资料，drugName={}，inventory={}", drugName, inventory);
-        Long id = insertDrugInfo(drugName, spec, inventory, unit, warningStatus);
+        log.info("创建药品资料，drugName={}，inventory={}", request.getDrugName(), inventory);
+
+        DrugInfoEntity entity = new DrugInfoEntity();
+        entity.setName(request.getDrugName());
+        entity.setDrugName(request.getDrugName());
+        entity.setSpec(request.getSpec());
+        entity.setInventory(inventory);
+        entity.setUnit(unit);
+        entity.setWarningStatus(warningStatus);
+        entity.setDeleted(0);
+        drugInfoMapper.insert(entity);
         if (inventory > 0) {
-            insertDrugStock(id, "中心药房", inventory, warningStatus);
+            createStockEntity(entity.getId(), DEFAULT_WAREHOUSE_NAME, inventory, warningStatus);
         }
-        return row(
-            "key", String.valueOf(id),
-            "drugName", drugName,
-            "spec", spec,
-            "inventory", inventory,
-            "unit", unit,
-            "warningStatus", warningStatus
-        );
+        return toDrugVO(entity);
     }
 
     /**
      * 创建库存记录。
      *
-     * @param command 库存创建命令
+     * @param request 库存创建请求
      * @return 创建后的库存记录
      */
     @Transactional
-    public Map<String, Object> createStock(Map<String, Object> command) {
-        Long drugId = requiredLong(command, "drugId", "药品编号不能为空");
-        String warehouseName = requiredString(command, "warehouseName", "仓库名称不能为空");
-        int inventory = intValue(command, "inventory", 0);
+    public StockVO createStock(CreateStockRequest request) {
+        ensureBusinessTenantContext("药品模块操作缺少有效租户上下文");
+        int inventory = defaultInt(request.getInventory(), 0);
         String warningStatus = warningStatus(inventory);
-        log.info("创建库存记录，drugId={}，warehouseName={}，inventory={}", drugId, warehouseName, inventory);
-        String drugName = queryDrugName(drugId);
-        Long id = insertDrugStock(drugId, warehouseName, inventory, warningStatus);
-        refreshDrugInventory(drugId);
-        return row(
-            "key", String.valueOf(id),
-            "drugName", drugName,
-            "warehouseName", warehouseName,
-            "inventory", inventory,
-            "warningStatus", warningStatus
-        );
+        log.info("创建库存记录，drugId={}，warehouseName={}，inventory={}",
+            request.getDrugId(), request.getWarehouseName(), inventory);
+        requireActiveDrug(request.getDrugId());
+        DrugStockEntity stock = createStockEntity(request.getDrugId(), request.getWarehouseName(), inventory, warningStatus);
+        refreshDrugInventory(request.getDrugId());
+        return toStockVO(stock);
     }
 
     /**
@@ -98,127 +131,44 @@ public class DrugCatalogService {
      * @return 发货结果
      */
     @Transactional
-    public Map<String, Object> shipDelivery(Long deliveryId) {
+    public DeliveryShipVO shipDelivery(Long deliveryId) {
+        ensureBusinessTenantContext("药品模块操作缺少有效租户上下文");
         log.info("药品配送发货，deliveryId={}", deliveryId);
-        int updated = jdbcOperations.update("""
-            UPDATE drug_delivery
-            SET status = 'SHIPPED',
-                ship_time = CURRENT_TIMESTAMP,
-                update_time = CURRENT_TIMESTAMP
-            WHERE id = ? AND status = 'PENDING' AND deleted = 0
-            """, deliveryId);
-        if (updated == 0) {
-            assertDeliveryCanShip(deliveryId);
+        DrugDeliveryEntity delivery = requireActiveDelivery(deliveryId);
+        if (STATUS_SHIPPED.equals(delivery.getStatus())) {
             log.info("药品配送单已发货，跳过重复事件，deliveryId={}", deliveryId);
-            return row("id", deliveryId, "status", "SHIPPED");
+            return toDeliveryShipVO(delivery);
         }
+        if (!STATUS_PENDING.equals(delivery.getStatus())) {
+            throw new BizException(400, "当前配送状态不允许发货");
+        }
+        delivery.setStatus(STATUS_SHIPPED);
+        delivery.setShipTime(LocalDateTime.now());
+        drugDeliveryMapper.updateById(delivery);
         mqProducer.publish(new MqMessage("drug.shipped", "{\"deliveryId\":" + deliveryId + "}", 0, 0, 3));
         log.info("药品配送事件已发布，deliveryId={}", deliveryId);
-        return row("id", deliveryId, "status", "SHIPPED");
+        return toDeliveryShipVO(delivery);
     }
 
     /**
-     * 插入药品主表并返回数据库生成的主键。
-     *
-     * @param drugName 药品名称
-     * @param spec 药品规格
-     * @param inventory 初始库存
-     * @param unit 库存单位
-     * @param warningStatus 预警状态
-     * @return 药品编号
-     */
-    private Long insertDrugInfo(String drugName, String spec, int inventory, String unit, String warningStatus) {
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        PreparedStatementCreator creator = connection -> {
-            var statement = connection.prepareStatement("""
-                INSERT INTO drug_info (tenant_id, name, drug_name, spec, inventory, unit, warning_status)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, new String[] {"id"});
-            statement.setLong(1, DEFAULT_TENANT_ID);
-            statement.setString(2, drugName);
-            statement.setString(3, drugName);
-            statement.setString(4, spec);
-            statement.setInt(5, inventory);
-            statement.setString(6, unit);
-            statement.setString(7, warningStatus);
-            return statement;
-        };
-        jdbcOperations.update(creator, keyHolder);
-        Number key = keyHolder.getKey();
-        if (key == null) {
-            throw new BizException(500, "药品主键生成失败");
-        }
-        return key.longValue();
-    }
-
-    /**
-     * 插入库存记录并返回数据库生成的主键。
+     * 创建库存实体。
      *
      * @param drugId 药品编号
      * @param warehouseName 仓库名称
      * @param inventory 库存数量
      * @param warningStatus 预警状态
-     * @return 库存编号
+     * @return 库存实体
      */
-    private Long insertDrugStock(Long drugId, String warehouseName, int inventory, String warningStatus) {
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        PreparedStatementCreator creator = connection -> {
-            var statement = connection.prepareStatement("""
-                INSERT INTO drug_stock (tenant_id, drug_id, warehouse_name, inventory, warning_status, stock_qty)
-                VALUES (?, ?, ?, ?, ?, ?)
-                """, new String[] {"id"});
-            statement.setLong(1, DEFAULT_TENANT_ID);
-            statement.setLong(2, drugId);
-            statement.setString(3, warehouseName);
-            statement.setInt(4, inventory);
-            statement.setString(5, warningStatus);
-            statement.setBigDecimal(6, java.math.BigDecimal.valueOf(inventory));
-            return statement;
-        };
-        jdbcOperations.update(creator, keyHolder);
-        Number key = keyHolder.getKey();
-        if (key == null) {
-            throw new BizException(500, "库存主键生成失败");
-        }
-        return key.longValue();
-    }
-
-    /**
-     * 校验配送单当前状态是否允许重复发货。
-     *
-     * @param deliveryId 配送单编号
-     */
-    private void assertDeliveryCanShip(Long deliveryId) {
-        String status = jdbcOperations.query("""
-            SELECT status
-            FROM drug_delivery
-            WHERE id = ? AND deleted = 0
-            """, rs -> rs.next() ? rs.getString("status") : null, deliveryId);
-        if (status == null) {
-            throw new BizException(404, "配送单不存在");
-        }
-        if (!"SHIPPED".equals(status)) {
-            throw new BizException(400, "当前配送状态不允许发货");
-        }
-    }
-
-    /**
-     * 查询药品名称并校验药品存在。
-     *
-     * @param drugId 药品编号
-     * @return 药品名称
-     */
-    private String queryDrugName(Long drugId) {
-        return jdbcOperations.query("""
-            SELECT drug_name
-            FROM drug_info
-            WHERE id = ? AND deleted = 0
-            """, rs -> {
-            if (!rs.next()) {
-                throw new BizException(404, "药品不存在");
-            }
-            return rs.getString("drug_name");
-        }, drugId);
+    private DrugStockEntity createStockEntity(Long drugId, String warehouseName, int inventory, String warningStatus) {
+        DrugStockEntity stock = new DrugStockEntity();
+        stock.setDrugId(drugId);
+        stock.setWarehouseName(warehouseName);
+        stock.setInventory(inventory);
+        stock.setWarningStatus(warningStatus);
+        stock.setStockQty(BigDecimal.valueOf(inventory));
+        stock.setDeleted(0);
+        drugStockMapper.insert(stock);
+        return stock;
     }
 
     /**
@@ -227,24 +177,128 @@ public class DrugCatalogService {
      * @param drugId 药品编号
      */
     private void refreshDrugInventory(Long drugId) {
-        jdbcOperations.update("""
-            UPDATE drug_info
-            SET inventory = (
-                    SELECT COALESCE(SUM(inventory), 0)
-                    FROM drug_stock
-                    WHERE drug_id = ? AND deleted = 0
-                ),
-                warning_status = CASE
-                    WHEN (
-                        SELECT COALESCE(SUM(inventory), 0)
-                        FROM drug_stock
-                        WHERE drug_id = ? AND deleted = 0
-                    ) < 50 THEN '预警'
-                    ELSE '正常'
-                END,
-                update_time = CURRENT_TIMESTAMP
-            WHERE id = ? AND deleted = 0
-            """, drugId, drugId, drugId);
+        DrugInfoEntity drug = requireActiveDrug(drugId);
+        int totalInventory = drugStockMapper.selectList(new LambdaQueryWrapper<DrugStockEntity>()
+                .eq(DrugStockEntity::getDeleted, 0)
+                .eq(DrugStockEntity::getDrugId, drugId))
+            .stream()
+            .map(DrugStockEntity::getInventory)
+            .reduce(0, Integer::sum);
+        drug.setInventory(totalInventory);
+        drug.setWarningStatus(warningStatus(totalInventory));
+        drugInfoMapper.updateById(drug);
+    }
+
+    /**
+     * 构造激活药品查询条件。
+     *
+     * @return 查询条件
+     */
+    private LambdaQueryWrapper<DrugInfoEntity> activeDrugWrapper() {
+        return new LambdaQueryWrapper<DrugInfoEntity>().eq(DrugInfoEntity::getDeleted, 0);
+    }
+
+    /**
+     * 构造激活库存查询条件。
+     *
+     * @return 查询条件
+     */
+    private LambdaQueryWrapper<DrugStockEntity> activeStockWrapper() {
+        return new LambdaQueryWrapper<DrugStockEntity>().eq(DrugStockEntity::getDeleted, 0);
+    }
+
+    /**
+     * 校验当前请求处于有效业务租户上下文。
+     *
+     * @param message 不满足条件时的错误消息
+     */
+    private void ensureBusinessTenantContext(String message) {
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId <= 0L || TenantContext.isPlatformRequest()) {
+            throw new BizException(403, message);
+        }
+    }
+
+    /**
+     * 查询药品并校验存在。
+     *
+     * @param drugId 药品编号
+     * @return 药品实体
+     */
+    private DrugInfoEntity requireActiveDrug(Long drugId) {
+        DrugInfoEntity entity = drugInfoMapper.selectOne(new LambdaQueryWrapper<DrugInfoEntity>()
+            .eq(DrugInfoEntity::getDeleted, 0)
+            .eq(DrugInfoEntity::getId, drugId)
+            .last("limit 1"));
+        if (entity == null) {
+            throw new BizException(404, "药品不存在");
+        }
+        return entity;
+    }
+
+    /**
+     * 查询配送单并校验存在。
+     *
+     * @param deliveryId 配送单编号
+     * @return 配送单实体
+     */
+    private DrugDeliveryEntity requireActiveDelivery(Long deliveryId) {
+        DrugDeliveryEntity entity = drugDeliveryMapper.selectOne(new LambdaQueryWrapper<DrugDeliveryEntity>()
+            .eq(DrugDeliveryEntity::getDeleted, 0)
+            .eq(DrugDeliveryEntity::getId, deliveryId)
+            .last("limit 1"));
+        if (entity == null) {
+            throw new BizException(404, "配送单不存在");
+        }
+        return entity;
+    }
+
+    /**
+     * 转换药品展示对象。
+     *
+     * @param entity 药品实体
+     * @return 药品展示对象
+     */
+    private DrugVO toDrugVO(DrugInfoEntity entity) {
+        DrugVO vo = new DrugVO();
+        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
+        vo.setDrugName(defaultIfBlank(entity.getDrugName(), entity.getName()));
+        vo.setSpec(defaultIfBlank(entity.getSpec(), ""));
+        vo.setInventory(defaultInt(entity.getInventory(), 0));
+        vo.setUnit(defaultIfBlank(entity.getUnit(), DEFAULT_UNIT));
+        vo.setWarningStatus(defaultIfBlank(entity.getWarningStatus(), warningStatus(vo.getInventory())));
+        return vo;
+    }
+
+    /**
+     * 转换库存展示对象。
+     *
+     * @param entity 库存实体
+     * @return 库存展示对象
+     */
+    private StockVO toStockVO(DrugStockEntity entity) {
+        StockVO vo = new StockVO();
+        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
+        vo.setDrugName(requireActiveDrug(entity.getDrugId()).getDrugName());
+        vo.setWarehouseName(defaultIfBlank(entity.getWarehouseName(), DEFAULT_WAREHOUSE_NAME));
+        vo.setInventory(defaultInt(entity.getInventory(), 0));
+        vo.setWarningStatus(defaultIfBlank(entity.getWarningStatus(), warningStatus(vo.getInventory())));
+        return vo;
+    }
+
+    /**
+     * 转换配送发货展示对象。
+     *
+     * @param entity 配送实体
+     * @return 发货展示对象
+     */
+    private DeliveryShipVO toDeliveryShipVO(DrugDeliveryEntity entity) {
+        DeliveryShipVO vo = new DeliveryShipVO();
+        vo.setId(entity.getId());
+        vo.setStatus(entity.getStatus());
+        return vo;
     }
 
     /**
@@ -258,88 +312,24 @@ public class DrugCatalogService {
     }
 
     /**
-     * 读取必填字符串。
+     * 设置默认字符串。
      *
-     * @param command 请求命令
-     * @param key 字段名
-     * @param message 错误消息
-     * @return 字段值
-     */
-    private String requiredString(Map<String, Object> command, String key, String message) {
-        String value = stringValue(command, key, "");
-        if (value.isBlank()) {
-            throw new BizException(400, message);
-        }
-        return value;
-    }
-
-    /**
-     * 读取可选字符串。
-     *
-     * @param command 请求命令
-     * @param key 字段名
+     * @param value 原始值
      * @param defaultValue 默认值
-     * @return 字段值
+     * @return 处理后的字符串
      */
-    private String stringValue(Map<String, Object> command, String key, String defaultValue) {
-        Object value = command.get(key);
-        if (value == null) {
-            return defaultValue;
-        }
-        return Objects.toString(value).trim();
+    private String defaultIfBlank(String value, String defaultValue) {
+        return value == null || value.isBlank() ? defaultValue : value.trim();
     }
 
     /**
-     * 读取必填长整型。
+     * 设置默认整型。
      *
-     * @param command 请求命令
-     * @param key 字段名
-     * @param message 错误消息
-     * @return 字段值
-     */
-    private Long requiredLong(Map<String, Object> command, String key, String message) {
-        Object value = command.get(key);
-        if (value == null || Objects.toString(value).isBlank()) {
-            throw new BizException(400, message);
-        }
-        try {
-            return Long.parseLong(Objects.toString(value));
-        } catch (NumberFormatException ex) {
-            throw new BizException(400, message);
-        }
-    }
-
-    /**
-     * 读取整型字段。
-     *
-     * @param command 请求命令
-     * @param key 字段名
+     * @param value 原始值
      * @param defaultValue 默认值
-     * @return 字段值
+     * @return 处理后的整型
      */
-    private int intValue(Map<String, Object> command, String key, int defaultValue) {
-        Object value = command.get(key);
-        if (value == null || Objects.toString(value).isBlank()) {
-            return defaultValue;
-        }
-        try {
-            return Integer.parseInt(Objects.toString(value));
-        } catch (NumberFormatException ex) {
-            throw new BizException(400, key + "必须是数字");
-        }
-    }
-
-    /**
-     * 构造有序返回行。
-     *
-     * @param values 成对键值
-     * @return 有序 Map
-     */
-    private Map<String, Object> row(Object... values) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        for (int i = 0; i < values.length; i += 2) {
-            row.put(Objects.toString(values[i]), values[i + 1]);
-        }
-        return row;
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
     }
 }

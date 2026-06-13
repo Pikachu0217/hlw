@@ -1,15 +1,12 @@
 package com.hlw.drug;
 
-import com.hlw.common.mq.config.LocalMqConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.Import;
 
 /**
  * 药品服务启动入口。
  */
-@SpringBootApplication
-@Import(LocalMqConfig.class)
+@SpringBootApplication(scanBasePackages = "com.hlw")
 public class DrugApplication {
     /**
      * 启动药品服务。

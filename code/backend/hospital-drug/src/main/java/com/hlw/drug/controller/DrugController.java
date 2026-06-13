@@ -1,8 +1,13 @@
 package com.hlw.drug.controller;
 
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.jdbc.DemoDataQuery;
+import com.hlw.drug.dto.CreateDrugRequest;
+import com.hlw.drug.dto.CreateStockRequest;
 import com.hlw.drug.service.DrugCatalogService;
+import com.hlw.drug.vo.DeliveryShipVO;
+import com.hlw.drug.vo.DrugVO;
+import com.hlw.drug.vo.StockVO;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 药品与库存管理控制器。
@@ -24,17 +28,14 @@ public class DrugController {
     private static final Logger log = LoggerFactory.getLogger(DrugController.class);
 
     private final DrugCatalogService drugCatalogService;
-    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造药品控制器。
      *
      * @param drugCatalogService 药品目录和库存服务
-     * @param demoDataQuery 演示数据查询器
      */
-    public DrugController(DrugCatalogService drugCatalogService, DemoDataQuery demoDataQuery) {
+    public DrugController(DrugCatalogService drugCatalogService) {
         this.drugCatalogService = drugCatalogService;
-        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -43,30 +44,20 @@ public class DrugController {
      * @return 药品列表
      */
     @GetMapping("/drugs")
-    public R<List<Map<String, Object>>> drugs() {
+    public R<List<DrugVO>> drugs() {
         log.info("查询药品列表");
-        return R.ok(demoDataQuery.list("药品列表", """
-            SELECT id::text AS key,
-                   drug_name AS "drugName",
-                   spec AS spec,
-                   inventory AS inventory,
-                   unit AS unit,
-                   warning_status AS "warningStatus"
-            FROM drug_info
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+        return R.ok(drugCatalogService.listDrugs());
     }
 
     /**
      * 创建药品资料。
      *
-     * @param command 药品创建命令
+     * @param request 药品创建请求
      * @return 创建结果
      */
     @PostMapping("/drugs")
-    public R<Map<String, Object>> createDrug(@RequestBody Map<String, Object> command) {
-        return R.ok(drugCatalogService.createDrug(command));
+    public R<DrugVO> createDrug(@Valid @RequestBody CreateDrugRequest request) {
+        return R.ok(drugCatalogService.createDrug(request));
     }
 
     /**
@@ -75,30 +66,20 @@ public class DrugController {
      * @return 库存列表
      */
     @GetMapping("/stocks")
-    public R<List<Map<String, Object>>> stocks() {
+    public R<List<StockVO>> stocks() {
         log.info("查询库存列表");
-        return R.ok(demoDataQuery.list("库存列表", """
-            SELECT s.id::text AS key,
-                   d.drug_name AS "drugName",
-                   s.warehouse_name AS "warehouseName",
-                   s.inventory AS inventory,
-                   s.warning_status AS "warningStatus"
-            FROM drug_stock s
-            LEFT JOIN drug_info d ON d.id = s.drug_id AND d.deleted = 0
-            WHERE s.deleted = 0
-            ORDER BY s.id
-            """));
+        return R.ok(drugCatalogService.listStocks());
     }
 
     /**
      * 创建库存记录。
      *
-     * @param command 库存创建命令
+     * @param request 库存创建请求
      * @return 创建结果
      */
     @PostMapping("/stocks")
-    public R<Map<String, Object>> createStock(@RequestBody Map<String, Object> command) {
-        return R.ok(drugCatalogService.createStock(command));
+    public R<StockVO> createStock(@Valid @RequestBody CreateStockRequest request) {
+        return R.ok(drugCatalogService.createStock(request));
     }
 
     /**
@@ -108,7 +89,7 @@ public class DrugController {
      * @return 发货结果
      */
     @PostMapping("/deliveries/{id}/ship")
-    public R<Map<String, Object>> ship(@PathVariable Long id) {
+    public R<DeliveryShipVO> ship(@PathVariable Long id) {
         return R.ok(drugCatalogService.shipDelivery(id));
     }
 }

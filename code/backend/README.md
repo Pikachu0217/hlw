@@ -23,7 +23,7 @@
 - `hospital-appointment`：预约单创建、支付、签到、便民门诊抢单、号源锁定和放号配置已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-consult`：在线问诊生命周期、消息处理、WebSocket 端点和超时调度骨架。
 - `hospital-prescription`：处方创建、提交、审核和驳回接口骨架。
-- `hospital-drug`：药品、库存、发货接口骨架。
+- `hospital-drug`：药品目录、库存记录和配送发货已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-order`：统一订单创建、模拟支付、支付事件发布已改造为 MyBatis Plus + DTO/VO 分层实现。
 
 ## 环境要求
@@ -479,6 +479,13 @@ GET /order/orders
 处方管理已接入 `pre_prescription` 和 `pre_prescription_item` 表，创建处方会写入草稿和药品明细，提交、审核通过、驳回均改为数据库状态变更并保留审核备注。
 
 药品库存管理已接入 `drug_info`、`drug_stock`、`drug_delivery` 表，`POST /drug/drugs` 会创建药品资料，`POST /drug/stocks` 会校验药品并写入库存记录，`POST /drug/deliveries/{id}/ship` 会更新配送单状态并发送发货事件。
+
+`hospital-drug` 当前约定补充如下：
+
+- 控制器统一仅接收药品 DTO、调用 Service 并返回药品、库存或配送 VO。
+- Service 统一负责药品库存预警计算、库存冗余字段刷新、配送状态流转、租户上下文校验、发货事件发布和 VO 转换。
+- Mapper 统一基于 MyBatis Plus `BaseMapper` 承担药品、库存和配送数据读写，不再保留 `DemoDataQuery` 和 `JdbcOperations` 直查实现。
+- 写操作统一要求有效业务租户上下文；无有效租户、隔离租户或平台上下文都不能写入药品、库存和配送数据。
 
 订单管理已接入 `ord_order` 表，创建订单会写入待支付订单，支付接口会更新支付状态、支付方式和支付时间，并发布 `order.paid` 事件。
 
