@@ -1092,9 +1092,12 @@ CREATE TABLE IF NOT EXISTS drug_info (
     id BIGSERIAL PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     name VARCHAR(128) NOT NULL,
+    drug_name VARCHAR(128) NOT NULL DEFAULT '',
     spec VARCHAR(128),
     manufacturer VARCHAR(128),
     unit VARCHAR(32),
+    inventory INTEGER NOT NULL DEFAULT 0,
+    warning_status VARCHAR(32) NOT NULL DEFAULT '正常',
     price DECIMAL(10, 2) NOT NULL DEFAULT 0,
     -- status: 0 disabled, 1 enabled
     status SMALLINT NOT NULL DEFAULT 1,
@@ -1109,6 +1112,9 @@ CREATE TABLE IF NOT EXISTS drug_stock (
     id BIGSERIAL PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     drug_id BIGINT NOT NULL,
+    warehouse_name VARCHAR(64) NOT NULL DEFAULT '中心药房',
+    inventory INTEGER NOT NULL DEFAULT 0,
+    warning_status VARCHAR(32) NOT NULL DEFAULT '正常',
     stock_qty DECIMAL(10, 2) NOT NULL DEFAULT 0,
     locked_qty DECIMAL(10, 2) NOT NULL DEFAULT 0,
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1123,8 +1129,7 @@ CREATE TABLE IF NOT EXISTS drug_delivery (
     tenant_id BIGINT NOT NULL,
     order_id BIGINT NOT NULL,
     prescription_id BIGINT NOT NULL,
-    -- status: 0 pending, 1 shipped, 2 delivered, 3 cancelled
-    status SMALLINT NOT NULL DEFAULT 0,
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
     receiver_name VARCHAR(64) NOT NULL,
     receiver_phone VARCHAR(32) NOT NULL,
     receiver_address VARCHAR(512) NOT NULL,
@@ -1136,6 +1141,85 @@ CREATE TABLE IF NOT EXISTS drug_delivery (
     update_by BIGINT,
     deleted SMALLINT NOT NULL DEFAULT 0
 );
+
+ALTER TABLE drug_info ADD COLUMN IF NOT EXISTS drug_name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE drug_info ADD COLUMN IF NOT EXISTS inventory INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE drug_info ADD COLUMN IF NOT EXISTS warning_status VARCHAR(32) NOT NULL DEFAULT '正常';
+UPDATE drug_info SET drug_name = name WHERE drug_name = '' AND name <> '';
+ALTER TABLE drug_stock ADD COLUMN IF NOT EXISTS warehouse_name VARCHAR(64) NOT NULL DEFAULT '中心药房';
+ALTER TABLE drug_stock ADD COLUMN IF NOT EXISTS inventory INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE drug_stock ADD COLUMN IF NOT EXISTS warning_status VARCHAR(32) NOT NULL DEFAULT '正常';
+ALTER TABLE drug_delivery ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN 'PENDING' WHEN status::text = '1' THEN 'SHIPPED' WHEN status::text = '2' THEN 'DELIVERED' WHEN status::text = '3' THEN 'CANCELLED' ELSE status::text END;
+ALTER TABLE drug_delivery ALTER COLUMN status SET DEFAULT 'PENDING';
+
+COMMENT ON TABLE drug_info IS '药品信息表';
+COMMENT ON COLUMN drug_info.id IS '主键编号';
+COMMENT ON COLUMN drug_info.tenant_id IS '租户编号';
+COMMENT ON COLUMN drug_info.name IS '兼容旧表药品名称';
+COMMENT ON COLUMN drug_info.drug_name IS '药品名称';
+COMMENT ON COLUMN drug_info.spec IS '药品规格';
+COMMENT ON COLUMN drug_info.manufacturer IS '生产厂家';
+COMMENT ON COLUMN drug_info.unit IS '库存单位';
+COMMENT ON COLUMN drug_info.inventory IS '库存数量';
+COMMENT ON COLUMN drug_info.warning_status IS '预警状态';
+COMMENT ON COLUMN drug_info.price IS '药品价格';
+COMMENT ON COLUMN drug_info.status IS '药品状态';
+COMMENT ON COLUMN drug_info.create_time IS '创建时间';
+COMMENT ON COLUMN drug_info.update_time IS '更新时间';
+COMMENT ON COLUMN drug_info.create_by IS '创建人编号';
+COMMENT ON COLUMN drug_info.update_by IS '更新人编号';
+COMMENT ON COLUMN drug_info.deleted IS '逻辑删除标识';
+COMMENT ON TABLE drug_stock IS '药品库存表';
+COMMENT ON COLUMN drug_stock.id IS '主键编号';
+COMMENT ON COLUMN drug_stock.tenant_id IS '租户编号';
+COMMENT ON COLUMN drug_stock.drug_id IS '药品编号';
+COMMENT ON COLUMN drug_stock.warehouse_name IS '仓库名称';
+COMMENT ON COLUMN drug_stock.inventory IS '库存数量';
+COMMENT ON COLUMN drug_stock.warning_status IS '预警状态';
+COMMENT ON COLUMN drug_stock.stock_qty IS '库存数量兼容字段';
+COMMENT ON COLUMN drug_stock.locked_qty IS '锁定库存数量';
+COMMENT ON COLUMN drug_stock.create_time IS '创建时间';
+COMMENT ON COLUMN drug_stock.update_time IS '更新时间';
+COMMENT ON COLUMN drug_stock.create_by IS '创建人编号';
+COMMENT ON COLUMN drug_stock.update_by IS '更新人编号';
+COMMENT ON COLUMN drug_stock.deleted IS '逻辑删除标识';
+COMMENT ON TABLE drug_delivery IS '药品配送表';
+COMMENT ON COLUMN drug_delivery.id IS '主键编号';
+COMMENT ON COLUMN drug_delivery.tenant_id IS '租户编号';
+COMMENT ON COLUMN drug_delivery.order_id IS '订单编号';
+COMMENT ON COLUMN drug_delivery.prescription_id IS '处方编号';
+COMMENT ON COLUMN drug_delivery.status IS '配送状态';
+COMMENT ON COLUMN drug_delivery.receiver_name IS '收货人姓名';
+COMMENT ON COLUMN drug_delivery.receiver_phone IS '收货人电话';
+COMMENT ON COLUMN drug_delivery.receiver_address IS '收货地址';
+COMMENT ON COLUMN drug_delivery.tracking_no IS '物流单号';
+COMMENT ON COLUMN drug_delivery.ship_time IS '发货时间';
+COMMENT ON COLUMN drug_delivery.create_time IS '创建时间';
+COMMENT ON COLUMN drug_delivery.update_time IS '更新时间';
+COMMENT ON COLUMN drug_delivery.create_by IS '创建人编号';
+COMMENT ON COLUMN drug_delivery.update_by IS '更新人编号';
+COMMENT ON COLUMN drug_delivery.deleted IS '逻辑删除标识';
+
+INSERT INTO drug_info (id, tenant_id, name, drug_name, spec, inventory, unit, warning_status, price, status)
+VALUES
+    (1, 100, '阿托伐他汀钙片', '阿托伐他汀钙片', '20mg*14片', 124, '盒', '正常', 23.80, 1),
+    (2, 100, '盐酸二甲双胍缓释片', '盐酸二甲双胍缓释片', '0.5g*30片', 42, '盒', '预警', 18.60, 1)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO drug_stock (id, tenant_id, drug_id, warehouse_name, inventory, warning_status, stock_qty)
+VALUES
+    (1, 100, 1, '中心药房', 124, '正常', 124),
+    (2, 100, 2, '中心药房', 42, '预警', 42)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO drug_delivery (id, tenant_id, order_id, prescription_id, status, receiver_name, receiver_phone, receiver_address, tracking_no)
+VALUES
+    (1, 100, 1, 1, 'PENDING', '赵晓岚', '13800000009', '杭州市西湖区互联网医院体验点', '')
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('drug_info', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM drug_info), 1), true);
+SELECT setval(pg_get_serial_sequence('drug_stock', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM drug_stock), 1), true);
+SELECT setval(pg_get_serial_sequence('drug_delivery', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM drug_delivery), 1), true);
 
 CREATE TABLE IF NOT EXISTS local_message (
     id BIGSERIAL PRIMARY KEY,

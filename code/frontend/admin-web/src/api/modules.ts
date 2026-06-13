@@ -29,6 +29,13 @@ export interface CreateDepartmentPayload {
   description?: string;
 }
 
+export interface CreateDrugPayload {
+  drugName: string;
+  spec: string;
+  inventory?: number;
+  unit?: string;
+}
+
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
 async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
   console.info(`[admin-module] 查询${moduleName}列表`, url);
@@ -111,6 +118,13 @@ export function fetchPrescriptions(): Promise<PrescriptionRecord[]> {
 // 查询药品列表。
 export function fetchDrugs(): Promise<DrugRecord[]> {
   return fetchModuleRecords<DrugRecord>('/drug/drugs', '药品');
+}
+
+// 创建药品资料。
+export async function createDrug(payload: CreateDrugPayload): Promise<DrugRecord> {
+  console.info('[admin-module] 创建药品', payload);
+  const response = await apiClient.post<ApiResult<DrugRecord>>('/drug/drugs', payload);
+  return response.data.data;
 }
 
 // 查询订单列表。

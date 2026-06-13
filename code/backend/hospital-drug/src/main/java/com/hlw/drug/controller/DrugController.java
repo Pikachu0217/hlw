@@ -2,7 +2,7 @@ package com.hlw.drug.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.jdbc.DemoDataQuery;
-import com.hlw.drug.service.DrugDeliveryService;
+import com.hlw.drug.service.DrugCatalogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,17 +23,17 @@ import java.util.Map;
 public class DrugController {
     private static final Logger log = LoggerFactory.getLogger(DrugController.class);
 
-    private final DrugDeliveryService drugDeliveryService;
+    private final DrugCatalogService drugCatalogService;
     private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造药品控制器。
      *
-     * @param drugDeliveryService 药品配送服务
+     * @param drugCatalogService 药品目录和库存服务
      * @param demoDataQuery 演示数据查询器
      */
-    public DrugController(DrugDeliveryService drugDeliveryService, DemoDataQuery demoDataQuery) {
-        this.drugDeliveryService = drugDeliveryService;
+    public DrugController(DrugCatalogService drugCatalogService, DemoDataQuery demoDataQuery) {
+        this.drugCatalogService = drugCatalogService;
         this.demoDataQuery = demoDataQuery;
     }
 
@@ -66,7 +66,7 @@ public class DrugController {
      */
     @PostMapping("/drugs")
     public R<Map<String, Object>> createDrug(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(drugCatalogService.createDrug(command));
     }
 
     /**
@@ -98,7 +98,7 @@ public class DrugController {
      */
     @PostMapping("/stocks")
     public R<Map<String, Object>> createStock(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(drugCatalogService.createStock(command));
     }
 
     /**
@@ -109,7 +109,6 @@ public class DrugController {
      */
     @PostMapping("/deliveries/{id}/ship")
     public R<Map<String, Object>> ship(@PathVariable Long id) {
-        drugDeliveryService.ship(id);
-        return R.ok(Map.of("id", id, "status", "SHIPPED"));
+        return R.ok(drugCatalogService.shipDelivery(id));
     }
 }

@@ -428,6 +428,8 @@ POST /order/orders/{id}/pay
 GET /order/orders
 ```
 
+药品库存管理已接入 `drug_info`、`drug_stock`、`drug_delivery` 表，`POST /drug/drugs` 会创建药品资料，`POST /drug/stocks` 会校验药品并写入库存记录，`POST /drug/deliveries/{id}/ship` 会更新配送单状态并发送发货事件。
+
 Task 8 引入以下接口路径：
 
 ```http
