@@ -72,6 +72,23 @@ export interface CreatePermissionPayload {
   status?: string;
 }
 
+export interface CreateDictPayload {
+  dictType: string;
+  dictLabel: string;
+  dictValue: string;
+  sort?: number;
+  status?: string;
+  remark?: string;
+}
+
+export interface CreatePostPayload {
+  postName: string;
+  postCode: string;
+  sort?: number;
+  status?: string;
+  remark?: string;
+}
+
 export interface CreateDoctorPayload {
   name: string;
   title: string;
@@ -238,6 +255,13 @@ export function fetchDicts(): Promise<DictRecord[]> {
   return fetchModuleRecords<DictRecord>('/system/dicts', '字典');
 }
 
+// 创建字典项。
+export async function createDict(payload: CreateDictPayload): Promise<DictRecord> {
+  console.info('[admin-module] 创建字典项', payload);
+  const response = await apiClient.post<ApiResult<DictRecord>>('/system/dicts', payload);
+  return response.data.data;
+}
+
 // 查询系统参数配置列表。
 export function fetchConfigs(): Promise<ConfigRecord[]> {
   return fetchModuleRecords<ConfigRecord>('/system/configs', '参数配置');
@@ -246,6 +270,13 @@ export function fetchConfigs(): Promise<ConfigRecord[]> {
 // 查询岗位列表。
 export function fetchPosts(): Promise<PostRecord[]> {
   return fetchModuleRecords<PostRecord>('/system/posts', '岗位');
+}
+
+// 创建岗位。
+export async function createPost(payload: CreatePostPayload): Promise<PostRecord> {
+  console.info('[admin-module] 创建岗位', payload);
+  const response = await apiClient.post<ApiResult<PostRecord>>('/system/posts', payload);
+  return response.data.data;
 }
 
 // 查询权限码列表。
