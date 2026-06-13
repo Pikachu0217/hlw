@@ -1,267 +1,205 @@
 package com.hlw.order.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
+import com.hlw.common.core.tenant.TenantContext;
 import com.hlw.common.mq.core.MqProducer;
 import com.hlw.common.mq.model.MqMessage;
+import com.hlw.order.dto.CreateOrderRequest;
+import com.hlw.order.dto.PayOrderRequest;
+import com.hlw.order.entity.OrdOrderEntity;
+import com.hlw.order.mapper.OrdOrderMapper;
+import com.hlw.order.vo.OrderVO;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.sql.PreparedStatement;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * 订单工作流服务，负责订单创建、支付状态变更和支付事件发布。
  */
 @Service
+@RequiredArgsConstructor
 public class OrderWorkflowService {
     private static final Logger log = LoggerFactory.getLogger(OrderWorkflowService.class);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-    private static final long DEFAULT_TENANT_ID = 100L;
+    private static final DateTimeFormatter ORDER_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final long DEFAULT_PATIENT_ID = 1L;
+    private static final String DEFAULT_BIZ_TYPE = "APPOINTMENT";
+    private static final String DEFAULT_PATIENT_NAME = "张小满";
+    private static final String DEFAULT_PAY_METHOD = "MOCK_PAY";
+    private static final String STATUS_PENDING_PAY = "待支付";
+    private static final String STATUS_PAID = "已支付";
 
-    private final JdbcOperations jdbcOperations;
+    /** 订单数据访问组件。 */
+    private final OrdOrderMapper ordOrderMapper;
+    /** 消息生产者。 */
     private final MqProducer mqProducer;
 
     /**
-     * 构造订单工作流服务。
+     * 查询订单列表。
      *
-     * @param jdbcOperations JDBC 操作组件
-     * @param mqProducer 消息生产者
+     * @return 订单展示列表
      */
-    public OrderWorkflowService(JdbcOperations jdbcOperations, MqProducer mqProducer) {
-        this.jdbcOperations = jdbcOperations;
-        this.mqProducer = mqProducer;
+    public List<OrderVO> listOrders() {
+        log.info("查询订单列表");
+        return ordOrderMapper.selectList(activeOrderWrapper())
+            .stream()
+            .sorted(Comparator.comparing(OrdOrderEntity::getId))
+            .map(this::toOrderVO)
+            .toList();
     }
 
     /**
      * 创建待支付订单。
      *
-     * @param command 订单创建命令
+     * @param request 订单创建请求
      * @return 创建后的订单
      */
     @Transactional
-    public Map<String, Object> create(Map<String, Object> command) {
-        String bizType = stringValue(command, "bizType", stringValue(command, "businessType", "APPOINTMENT"));
+    public OrderVO create(CreateOrderRequest request) {
+        ensureBusinessTenantContext("订单模块操作缺少有效租户上下文");
+        String bizType = defaultIfBlank(request.getBizType(), defaultIfBlank(request.getBusinessType(), DEFAULT_BIZ_TYPE));
         String businessType = businessTypeName(bizType);
-        Long bizId = longValue(command, "bizId", 0L);
-        Long patientId = longValue(command, "patientId", DEFAULT_PATIENT_ID);
-        String patientName = stringValue(command, "patientName", "张小满");
-        BigDecimal amount = decimalValue(command, "amount", new BigDecimal("25.00"));
-        String createdAt = stringValue(command, "createdAt", currentDisplayTime());
+        Long bizId = defaultLong(request.getBizId(), 0L);
+        Long patientId = defaultLong(request.getPatientId(), DEFAULT_PATIENT_ID);
+        String patientName = defaultIfBlank(request.getPatientName(), DEFAULT_PATIENT_NAME);
+        BigDecimal amount = defaultDecimal(request.getAmount(), new BigDecimal("25.00"));
+        String createdAt = defaultIfBlank(request.getCreatedAt(), currentDisplayTime());
         log.info("创建订单，bizType={}，bizId={}，patientId={}，amount={}", bizType, bizId, patientId, amount);
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        PreparedStatementCreator creator = connection -> {
-            PreparedStatement statement = connection.prepareStatement(
-                """
-                    INSERT INTO ord_order (
-                        tenant_id, order_no, biz_type, biz_id, patient_id, business_type,
-                        patient_name, amount, pay_status, created_at, status
-                    )
-                    VALUES (?, '', ?, ?, ?, ?, ?, ?, '待支付', ?, '待支付')
-                    """,
-                new String[]{"id"}
-            );
-            statement.setLong(1, DEFAULT_TENANT_ID);
-            statement.setString(2, bizType);
-            statement.setLong(3, bizId);
-            statement.setLong(4, patientId);
-            statement.setString(5, businessType);
-            statement.setString(6, patientName);
-            statement.setBigDecimal(7, amount);
-            statement.setString(8, createdAt);
-            return statement;
-        };
-        jdbcOperations.update(creator, keyHolder);
-        Number key = keyHolder.getKey();
-        if (key == null) {
-            throw new BizException(500, "订单创建后未返回主键");
-        }
-        long orderId = key.longValue();
-        String orderNo = "DD20260613" + String.format("%04d", orderId);
-        jdbcOperations.update(
-            "UPDATE ord_order SET order_no = ?, update_time = CURRENT_TIMESTAMP WHERE id = ?",
-            orderNo,
-            orderId
-        );
-        return orderRow(orderId, orderNo, businessType, patientName, amount, "待支付", createdAt);
+        OrdOrderEntity entity = new OrdOrderEntity();
+        entity.setOrderNo("");
+        entity.setBizType(bizType);
+        entity.setBizId(bizId);
+        entity.setPatientId(patientId);
+        entity.setBusinessType(businessType);
+        entity.setPatientName(patientName);
+        entity.setAmount(amount);
+        entity.setPayStatus(STATUS_PENDING_PAY);
+        entity.setStatus(STATUS_PENDING_PAY);
+        entity.setCreatedAt(createdAt);
+        entity.setDeleted(0);
+        ordOrderMapper.insert(entity);
+        entity.setOrderNo(resolveOrderNo(entity.getId()));
+        ordOrderMapper.updateById(entity);
+        return toOrderVO(entity);
     }
 
     /**
      * 支付订单。
      *
      * @param id 订单编号
-     * @param payMethod 支付方式
+     * @param request 支付请求
      * @return 支付后的订单
      */
     @Transactional
-    public Map<String, Object> pay(Long id, String payMethod) {
+    public OrderVO pay(Long id, PayOrderRequest request) {
+        ensureBusinessTenantContext("订单模块操作缺少有效租户上下文");
+        String payMethod = request == null ? DEFAULT_PAY_METHOD : defaultIfBlank(request.getPayMethod(), DEFAULT_PAY_METHOD);
         log.info("订单支付，orderId={}，payMethod={}", id, payMethod);
-        Map<String, Object> order = queryOrder(id);
-        String payStatus = Objects.toString(order.get("pay_status"));
-        if ("已支付".equals(payStatus)) {
+        OrdOrderEntity order = requireActiveOrder(id);
+        if (STATUS_PAID.equals(order.getPayStatus())) {
             log.info("订单无需重复支付，orderId={}", id);
-            return orderRow(order, "已支付");
+            return toOrderVO(order);
         }
-        if (!"待支付".equals(payStatus)) {
+        if (!STATUS_PENDING_PAY.equals(order.getPayStatus())) {
             throw new BizException(409, "订单当前状态不允许支付");
         }
-        jdbcOperations.update(
-            """
-                UPDATE ord_order
-                SET pay_status = '已支付',
-                    status = '已支付',
-                    pay_method = ?,
-                    pay_time = CURRENT_TIMESTAMP,
-                    update_time = CURRENT_TIMESTAMP
-                WHERE id = ? AND deleted = 0
-                """,
-            payMethod,
-            id
-        );
+        order.setPayStatus(STATUS_PAID);
+        order.setStatus(STATUS_PAID);
+        order.setPayMethod(payMethod);
+        order.setPayTime(LocalDateTime.now());
+        ordOrderMapper.updateById(order);
         mqProducer.publish(new MqMessage("order.paid", "{\"orderId\":" + id + "}", 0, 0, 3));
-        return orderRow(order, "已支付");
+        return toOrderVO(order);
     }
 
     /**
-     * 查询订单。
+     * 构造激活订单查询条件。
+     *
+     * @return 查询条件
+     */
+    private LambdaQueryWrapper<OrdOrderEntity> activeOrderWrapper() {
+        return new LambdaQueryWrapper<OrdOrderEntity>().eq(OrdOrderEntity::getDeleted, 0);
+    }
+
+    /**
+     * 校验当前请求处于有效业务租户上下文。
+     *
+     * @param message 不满足条件时的错误消息
+     */
+    private void ensureBusinessTenantContext(String message) {
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId <= 0L || TenantContext.isPlatformRequest()) {
+            throw new BizException(403, message);
+        }
+    }
+
+    /**
+     * 查询订单并校验存在。
      *
      * @param id 订单编号
-     * @return 订单数据库行
+     * @return 订单实体
      */
-    private Map<String, Object> queryOrder(Long id) {
-        List<Map<String, Object>> rows = jdbcOperations.queryForList(
-            """
-                SELECT id, order_no, business_type, patient_name, amount, pay_status, created_at
-                FROM ord_order
-                WHERE id = ? AND deleted = 0
-                """,
-            id
-        );
-        if (rows.isEmpty()) {
+    private OrdOrderEntity requireActiveOrder(Long id) {
+        OrdOrderEntity entity = ordOrderMapper.selectOne(new LambdaQueryWrapper<OrdOrderEntity>()
+            .eq(OrdOrderEntity::getDeleted, 0)
+            .eq(OrdOrderEntity::getId, id)
+            .last("limit 1"));
+        if (entity == null) {
             throw new BizException(404, "订单不存在");
         }
-        return rows.get(0);
+        return entity;
     }
 
     /**
-     * 构造订单返回行。
+     * 转换订单展示对象。
      *
-     * @param row 数据库行
-     * @param payStatus 支付状态
-     * @return 订单返回行
+     * @param entity 订单实体
+     * @return 订单展示对象
      */
-    private Map<String, Object> orderRow(Map<String, Object> row, String payStatus) {
-        return orderRow(
-            ((Number) row.get("id")).longValue(),
-            Objects.toString(row.get("order_no")),
-            Objects.toString(row.get("business_type")),
-            Objects.toString(row.get("patient_name")),
-            (BigDecimal) row.get("amount"),
-            payStatus,
-            Objects.toString(row.get("created_at"))
-        );
+    private OrderVO toOrderVO(OrdOrderEntity entity) {
+        OrderVO vo = new OrderVO();
+        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
+        vo.setOrderNo(defaultIfBlank(entity.getOrderNo(), resolveOrderNo(entity.getId())));
+        vo.setBusinessType(defaultIfBlank(entity.getBusinessType(), businessTypeName(entity.getBizType())));
+        vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));
+        vo.setAmount(formatAmount(defaultDecimal(entity.getAmount(), BigDecimal.ZERO)));
+        vo.setPayStatus(defaultIfBlank(entity.getPayStatus(), STATUS_PENDING_PAY));
+        vo.setCreatedAt(defaultIfBlank(entity.getCreatedAt(), ""));
+        return vo;
     }
 
     /**
-     * 构造订单返回行。
+     * 生成订单号。
      *
      * @param id 订单编号
-     * @param orderNo 订单号
-     * @param businessType 业务类型
-     * @param patientName 患者姓名
+     * @return 订单号
+     */
+    private String resolveOrderNo(Long id) {
+        return "DD" + LocalDate.now().format(ORDER_DATE_FORMATTER) + String.format("%04d", id);
+    }
+
+    /**
+     * 格式化订单金额。
+     *
      * @param amount 订单金额
-     * @param payStatus 支付状态
-     * @param createdAt 创建展示时间
-     * @return 订单返回行
+     * @return 展示金额
      */
-    private Map<String, Object> orderRow(
-        Long id,
-        String orderNo,
-        String businessType,
-        String patientName,
-        BigDecimal amount,
-        String payStatus,
-        String createdAt
-    ) {
-        return row(
-            "key", String.valueOf(id),
-            "id", id,
-            "orderNo", orderNo,
-            "businessType", businessType,
-            "patientName", patientName,
-            "amount", "¥" + amount.setScale(2),
-            "payStatus", payStatus,
-            "createdAt", createdAt
-        );
-    }
-
-    /**
-     * 读取可选字符串字段。
-     *
-     * @param command 请求命令
-     * @param key 字段名
-     * @param defaultValue 默认值
-     * @return 字段值
-     */
-    private String stringValue(Map<String, Object> command, String key, String defaultValue) {
-        Object value = command.get(key);
-        if (value == null) {
-            return defaultValue;
-        }
-        return Objects.toString(value).trim();
-    }
-
-    /**
-     * 读取长整型字段。
-     *
-     * @param command 请求命令
-     * @param key 字段名
-     * @param defaultValue 默认值
-     * @return 字段值
-     */
-    private Long longValue(Map<String, Object> command, String key, Long defaultValue) {
-        Object value = command.get(key);
-        if (value == null || Objects.toString(value).isBlank()) {
-            return defaultValue;
-        }
-        try {
-            return Long.parseLong(Objects.toString(value));
-        } catch (NumberFormatException ex) {
-            throw new BizException(400, key + "必须是数字");
-        }
-    }
-
-    /**
-     * 读取金额字段。
-     *
-     * @param command 请求命令
-     * @param key 字段名
-     * @param defaultValue 默认值
-     * @return 字段值
-     */
-    private BigDecimal decimalValue(Map<String, Object> command, String key, BigDecimal defaultValue) {
-        Object value = command.get(key);
-        if (value == null || Objects.toString(value).isBlank()) {
-            return defaultValue;
-        }
-        try {
-            return new BigDecimal(Objects.toString(value));
-        } catch (NumberFormatException ex) {
-            throw new BizException(400, key + "必须是数字");
-        }
+    private String formatAmount(BigDecimal amount) {
+        return "¥" + amount.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
     /**
@@ -271,7 +209,7 @@ public class OrderWorkflowService {
      * @return 展示名称
      */
     private String businessTypeName(String bizType) {
-        return switch (bizType.toUpperCase()) {
+        return switch (defaultIfBlank(bizType, DEFAULT_BIZ_TYPE).toUpperCase()) {
             case "CONSULT" -> "图文咨询";
             case "PRESCRIPTION" -> "处方购药";
             case "DRUG" -> "药品配送";
@@ -289,16 +227,35 @@ public class OrderWorkflowService {
     }
 
     /**
-     * 构造有序返回行。
+     * 设置默认字符串。
      *
-     * @param values 成对键值
-     * @return 有序 Map
+     * @param value 原始值
+     * @param defaultValue 默认值
+     * @return 处理后的字符串
      */
-    private Map<String, Object> row(Object... values) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        for (int index = 0; index < values.length; index += 2) {
-            row.put(Objects.toString(values[index]), values[index + 1]);
-        }
-        return row;
+    private String defaultIfBlank(String value, String defaultValue) {
+        return value == null || value.isBlank() ? defaultValue : value.trim();
+    }
+
+    /**
+     * 设置默认长整型。
+     *
+     * @param value 原始值
+     * @param defaultValue 默认值
+     * @return 处理后的长整型
+     */
+    private Long defaultLong(Long value, Long defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    /**
+     * 设置默认金额。
+     *
+     * @param value 原始金额
+     * @param defaultValue 默认金额
+     * @return 处理后的金额
+     */
+    private BigDecimal defaultDecimal(BigDecimal value, BigDecimal defaultValue) {
+        return value == null ? defaultValue : value;
     }
 }

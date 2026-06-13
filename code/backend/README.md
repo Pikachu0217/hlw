@@ -24,7 +24,7 @@
 - `hospital-consult`：在线问诊生命周期、消息处理、WebSocket 端点和超时调度骨架。
 - `hospital-prescription`：处方创建、提交、审核和驳回接口骨架。
 - `hospital-drug`：药品、库存、发货接口骨架。
-- `hospital-order`：统一订单、模拟支付和支付事件骨架。
+- `hospital-order`：统一订单创建、模拟支付、支付事件发布已改造为 MyBatis Plus + DTO/VO 分层实现。
 
 ## 环境要求
 
@@ -481,6 +481,13 @@ GET /order/orders
 药品库存管理已接入 `drug_info`、`drug_stock`、`drug_delivery` 表，`POST /drug/drugs` 会创建药品资料，`POST /drug/stocks` 会校验药品并写入库存记录，`POST /drug/deliveries/{id}/ship` 会更新配送单状态并发送发货事件。
 
 订单管理已接入 `ord_order` 表，创建订单会写入待支付订单，支付接口会更新支付状态、支付方式和支付时间，并发布 `order.paid` 事件。
+
+`hospital-order` 当前约定补充如下：
+
+- 控制器统一仅接收订单 DTO、调用 Service 并返回 `R<OrderVO>` 或 `R<List<OrderVO>>`。
+- Service 统一负责订单业务类型转换、订单号生成、支付状态流转、租户上下文校验、支付事件发布和 VO 转换。
+- Mapper 统一基于 MyBatis Plus `BaseMapper` 承担订单数据读写，不再保留 `DemoDataQuery`、`JdbcOperations` 和内存订单仓储实现。
+- 写操作统一要求有效业务租户上下文；无有效租户、隔离租户或平台上下文都不能写入订单或支付数据。
 
 本地消息与事件 topic 约定：
 

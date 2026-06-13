@@ -573,7 +573,7 @@ run_all_cases() {
 
   # 订单接口。
   run_case "查询订单列表" "GET" "/order/orders"
-  run_case "创建订单" "POST" "/order/orders" "{\"businessType\":\"APPOINTMENT\",\"patientName\":\"张小满\",\"amount\":25}"
+  run_case "创建订单" "POST" "/order/orders" "{\"bizType\":\"APPOINTMENT\",\"bizId\":1,\"patientId\":1,\"patientName\":\"张小满\",\"amount\":25}"
   run_case "模拟支付订单" "POST" "/order/orders/1/pay" "{\"payMethod\":\"MOCK_PAY\"}"
 }
 

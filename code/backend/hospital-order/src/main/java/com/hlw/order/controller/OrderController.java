@@ -1,8 +1,11 @@
 package com.hlw.order.controller;
 
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.jdbc.DemoDataQuery;
+import com.hlw.order.dto.CreateOrderRequest;
+import com.hlw.order.dto.PayOrderRequest;
 import com.hlw.order.service.OrderWorkflowService;
+import com.hlw.order.vo.OrderVO;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 订单控制器，提供创建、支付和查询接口。
@@ -24,40 +26,37 @@ public class OrderController {
     private static final Logger log = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderWorkflowService orderWorkflowService;
-    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造订单控制器。
      *
      * @param orderWorkflowService 订单工作流服务
-     * @param demoDataQuery 演示数据查询器
      */
-    public OrderController(OrderWorkflowService orderWorkflowService, DemoDataQuery demoDataQuery) {
+    public OrderController(OrderWorkflowService orderWorkflowService) {
         this.orderWorkflowService = orderWorkflowService;
-        this.demoDataQuery = demoDataQuery;
     }
 
     /**
      * 创建订单。
      *
-     * @param command 订单创建命令
+     * @param request 订单创建请求
      * @return 创建结果
      */
     @PostMapping("/orders")
-    public R<Map<String, Object>> create(@RequestBody Map<String, Object> command) {
-        return R.ok(orderWorkflowService.create(command));
+    public R<OrderVO> create(@Valid @RequestBody CreateOrderRequest request) {
+        return R.ok(orderWorkflowService.create(request));
     }
 
     /**
      * 执行模拟支付。
      *
      * @param id 订单编号
-     * @param command 支付命令
+     * @param request 支付请求
      * @return 支付后的订单
      */
     @PostMapping("/orders/{id}/pay")
-    public R<Map<String, Object>> pay(@PathVariable Long id, @RequestBody Map<String, String> command) {
-        return R.ok(orderWorkflowService.pay(id, command.getOrDefault("payMethod", "MOCK_PAY")));
+    public R<OrderVO> pay(@PathVariable Long id, @RequestBody PayOrderRequest request) {
+        return R.ok(orderWorkflowService.pay(id, request));
     }
 
     /**
@@ -66,19 +65,8 @@ public class OrderController {
      * @return 订单列表
      */
     @GetMapping("/orders")
-    public R<List<Map<String, Object>>> orders() {
+    public R<List<OrderVO>> orders() {
         log.info("查询订单列表");
-        return R.ok(demoDataQuery.list("订单列表", """
-            SELECT id::text AS key,
-                   order_no AS "orderNo",
-                   business_type AS "businessType",
-                   patient_name AS "patientName",
-                   '¥' || to_char(amount, 'FM999999990.00') AS amount,
-                   pay_status AS "payStatus",
-                   created_at AS "createdAt"
-            FROM ord_order
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+        return R.ok(orderWorkflowService.listOrders());
     }
 }
