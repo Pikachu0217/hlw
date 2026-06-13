@@ -543,10 +543,10 @@ run_all_cases() {
 
   # 问诊接口。
   run_case "查询问诊单列表" "GET" "/consult/consults"
-  run_case "创建图文问诊" "POST" "/consult/consults" "{\"type\":\"IMAGE_TEXT\",\"chiefComplaint\":\"接口测试问诊\"}"
-  run_case "接单问诊" "POST" "/consult/consults/1/accept" "{\"tenantId\":100}"
-  run_case "完成问诊" "POST" "/consult/consults/1/complete"
+  run_case "创建图文问诊" "POST" "/consult/consults" "{\"type\":\"IMAGE_TEXT\",\"patientName\":\"接口测试患者\",\"doctorName\":\"接口测试医生\",\"chiefComplaint\":\"接口测试问诊\"}"
+  run_case "接单问诊" "POST" "/consult/consults/1/accept" "{\"doctorId\":1}"
   run_case "延长问诊" "POST" "/consult/consults/1/extend"
+  run_case "完成问诊" "POST" "/consult/consults/1/complete"
   run_case "查询问诊消息" "GET" "/consult/consults/1/messages"
   record_skip_case "问诊 WebSocket 通道" "WS" "/ws/consult/{consultId}" "{\"consultId\":\"占位示例\"}" "WebSocket 长连接不适合用 curl 在本脚本中断言，建议使用专用 ws 客户端补充验证"
 

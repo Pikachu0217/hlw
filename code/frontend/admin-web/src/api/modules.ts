@@ -67,6 +67,21 @@ export interface NumberSourceRecord {
   status: string;
 }
 
+export interface CreateConsultPayload {
+  patientId?: number;
+  doctorId?: number;
+  type?: string;
+  patientName?: string;
+  doctorName?: string;
+  channel?: string;
+  chiefComplaint?: string;
+  feeAmount?: number;
+}
+
+export interface AcceptConsultPayload {
+  doctorId?: number;
+}
+
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
 async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
   console.info(`[admin-module] 查询${moduleName}列表`, url);
@@ -134,6 +149,34 @@ export function fetchPatients(): Promise<PatientRecord[]> {
 // 查询问诊单列表。
 export function fetchConsults(): Promise<ConsultRecord[]> {
   return fetchModuleRecords<ConsultRecord>('/consult/consults', '问诊单');
+}
+
+// 创建问诊单。
+export async function createConsult(payload: CreateConsultPayload): Promise<ConsultRecord> {
+  console.info('[admin-module] 创建问诊单', payload);
+  const response = await apiClient.post<ApiResult<ConsultRecord>>('/consult/consults', payload);
+  return response.data.data;
+}
+
+// 接单问诊。
+export async function acceptConsult(id: string, payload: AcceptConsultPayload): Promise<ConsultRecord> {
+  console.info('[admin-module] 接单问诊', id, payload);
+  const response = await apiClient.post<ApiResult<ConsultRecord>>(`/consult/consults/${id}/accept`, payload);
+  return response.data.data;
+}
+
+// 完成问诊。
+export async function completeConsult(id: string): Promise<ConsultRecord> {
+  console.info('[admin-module] 完成问诊', id);
+  const response = await apiClient.post<ApiResult<ConsultRecord>>(`/consult/consults/${id}/complete`);
+  return response.data.data;
+}
+
+// 延长问诊。
+export async function extendConsult(id: string): Promise<ConsultRecord> {
+  console.info('[admin-module] 延长问诊', id);
+  const response = await apiClient.post<ApiResult<ConsultRecord>>(`/consult/consults/${id}/extend`);
+  return response.data.data;
 }
 
 // 查询预约单列表。

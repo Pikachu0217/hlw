@@ -334,10 +334,15 @@ ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS channel VARCHAR(32) NOT NULL DE
 ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS patient_id BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS doctor_id BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS consult_type VARCHAR(32) NOT NULL DEFAULT 'IMAGE_TEXT';
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS fee_amount DECIMAL(10, 2) NOT NULL DEFAULT 0;
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS duration_limit INT NOT NULL DEFAULT 0;
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS remaining_seconds INT NOT NULL DEFAULT 0;
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS start_time TIMESTAMP;
+ALTER TABLE con_consult ADD COLUMN IF NOT EXISTS end_time TIMESTAMP;
 ALTER TABLE con_consult ALTER COLUMN patient_id SET DEFAULT 0;
 ALTER TABLE con_consult ALTER COLUMN doctor_id SET DEFAULT 0;
 ALTER TABLE con_consult ALTER COLUMN consult_type SET DEFAULT 'IMAGE_TEXT';
-ALTER TABLE con_consult ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待接单' ELSE status::text END;
+ALTER TABLE con_consult ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待接单' WHEN status::text = '1' THEN '待接单' WHEN status::text = '2' THEN '咨询中' WHEN status::text = '3' THEN '已完成' WHEN status::text = '4' THEN '已取消' WHEN status::text = '5' THEN '已超时' WHEN status::text = 'WAITING' THEN '待接单' WHEN status::text = 'IN_PROGRESS' THEN '咨询中' WHEN status::text = 'FINISHED' THEN '已完成' WHEN status::text = 'CANCELLED' THEN '已取消' WHEN status::text = 'TIMEOUT' THEN '已超时' ELSE status::text END;
 
 COMMENT ON TABLE con_consult IS '问诊单表';
 COMMENT ON COLUMN con_consult.id IS '主键编号';
@@ -350,6 +355,11 @@ COMMENT ON COLUMN con_consult.patient_name IS '患者姓名';
 COMMENT ON COLUMN con_consult.doctor_name IS '医生姓名';
 COMMENT ON COLUMN con_consult.channel IS '问诊渠道';
 COMMENT ON COLUMN con_consult.status IS '问诊状态';
+COMMENT ON COLUMN con_consult.fee_amount IS '问诊费用';
+COMMENT ON COLUMN con_consult.duration_limit IS '问诊时长上限分钟';
+COMMENT ON COLUMN con_consult.remaining_seconds IS '剩余问诊秒数';
+COMMENT ON COLUMN con_consult.start_time IS '接单开始时间';
+COMMENT ON COLUMN con_consult.end_time IS '问诊结束时间';
 COMMENT ON COLUMN con_consult.create_time IS '创建时间';
 COMMENT ON COLUMN con_consult.update_time IS '更新时间';
 COMMENT ON COLUMN con_consult.create_by IS '创建人编号';
@@ -1303,21 +1313,16 @@ INSERT INTO con_consult (id, tenant_id, patient_id, doctor_id, consult_type, con
 VALUES
     (1, 100, 1, 1, 'IMAGE_TEXT', 'ZX20260612001', '赵晓岚', '陈知衡', '图文', '待接单', '10:18'),
     (2, 100, 2, 2, 'VIDEO', 'ZX20260612002', '沈博远', '顾清和', '视频', '咨询中', '10:07')
-ON CONFLICT (id) DO UPDATE SET patient_id = EXCLUDED.patient_id,
-                               doctor_id = EXCLUDED.doctor_id,
-                               consult_type = EXCLUDED.consult_type,
-                               consult_no = EXCLUDED.consult_no,
-                               patient_name = EXCLUDED.patient_name,
-                               doctor_name = EXCLUDED.doctor_name,
-                               channel = EXCLUDED.channel,
-                               status = EXCLUDED.status,
-                               updated_at = EXCLUDED.updated_at;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO con_message (id, tenant_id, consult_id, sender_id, sender_type, content, content_type, read_flag, create_time)
 VALUES
     (1, 100, 1, 2, 'DOCTOR', '哪里不舒服', 'TEXT', FALSE, '2026-06-13 10:15:00'),
     (2, 100, 1, 1, 'PATIENT', '孩子从昨晚开始发烧', 'TEXT', FALSE, '2026-06-13 10:16:00')
 ON CONFLICT DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('con_consult', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM con_consult), 1), true);
+SELECT setval(pg_get_serial_sequence('con_message', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM con_message), 1), true);
 
 \connect hospital_prescription;
 

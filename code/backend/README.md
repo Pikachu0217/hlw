@@ -478,6 +478,8 @@ POST /consult/consults/{id}/extend
 GET /consult/consults/{id}/messages
 ```
 
+问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。
+
 问诊 WebSocket 地址约定：
 
 ```text

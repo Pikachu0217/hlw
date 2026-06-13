@@ -2,8 +2,7 @@ package com.hlw.consult.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.jdbc.DemoDataQuery;
-import com.hlw.consult.service.Consult;
-import com.hlw.consult.service.ConsultLifecycleService;
+import com.hlw.consult.service.ConsultWorkflowService;
 import com.hlw.consult.ws.ConsultMessage;
 import com.hlw.consult.ws.ConsultMessageRepository;
 import org.slf4j.Logger;
@@ -25,23 +24,23 @@ import java.util.Map;
 public class ConsultController {
     private static final Logger log = LoggerFactory.getLogger(ConsultController.class);
 
-    private final ConsultLifecycleService consultLifecycleService;
+    private final ConsultWorkflowService consultWorkflowService;
     private final ConsultMessageRepository consultMessageRepository;
     private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造问诊控制器。
      *
-     * @param consultLifecycleService 问诊生命周期服务
+     * @param consultWorkflowService 问诊工作流服务
      * @param consultMessageRepository 问诊消息仓储
      * @param demoDataQuery 演示数据查询器
      */
     public ConsultController(
-        ConsultLifecycleService consultLifecycleService,
+        ConsultWorkflowService consultWorkflowService,
         ConsultMessageRepository consultMessageRepository,
         DemoDataQuery demoDataQuery
     ) {
-        this.consultLifecycleService = consultLifecycleService;
+        this.consultWorkflowService = consultWorkflowService;
         this.consultMessageRepository = consultMessageRepository;
         this.demoDataQuery = demoDataQuery;
     }
@@ -76,12 +75,7 @@ public class ConsultController {
      */
     @PostMapping("/consults")
     public R<Map<String, Object>> createConsult(@RequestBody Map<String, Object> command) {
-        return R.ok(Map.of(
-            "id", 1L,
-            "status", "WAITING",
-            "type", command.getOrDefault("type", "IMAGE_TEXT"),
-            "chiefComplaint", command.getOrDefault("chiefComplaint", "")
-        ));
+        return R.ok(consultWorkflowService.createConsult(command));
     }
 
     /**
@@ -89,11 +83,11 @@ public class ConsultController {
      *
      * @param id 问诊编号
      * @param command 接单命令
-     * @return 问诊对象
+     * @return 接单结果
      */
     @PostMapping("/consults/{id}/accept")
-    public R<Consult> accept(@PathVariable Long id, @RequestBody Map<String, Long> command) {
-        return R.ok(consultLifecycleService.accept(id, command.get("tenantId")));
+    public R<Map<String, Object>> accept(@PathVariable Long id, @RequestBody Map<String, Long> command) {
+        return R.ok(consultWorkflowService.accept(id, command));
     }
 
     /**
@@ -104,7 +98,7 @@ public class ConsultController {
      */
     @PostMapping("/consults/{id}/complete")
     public R<Map<String, Object>> complete(@PathVariable Long id) {
-        return R.ok(Map.of("id", id, "status", "COMPLETED"));
+        return R.ok(consultWorkflowService.complete(id));
     }
 
     /**
@@ -115,7 +109,7 @@ public class ConsultController {
      */
     @PostMapping("/consults/{id}/extend")
     public R<Map<String, Object>> extend(@PathVariable Long id) {
-        return R.ok(Map.of("id", id, "status", "EXTENDED"));
+        return R.ok(consultWorkflowService.extend(id));
     }
 
     /**
