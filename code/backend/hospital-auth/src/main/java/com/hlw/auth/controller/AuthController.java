@@ -3,6 +3,7 @@ package com.hlw.auth.controller;
 import com.hlw.auth.service.AuthService;
 import com.hlw.auth.service.LoginCommand;
 import com.hlw.auth.service.LoginResult;
+import com.hlw.auth.vo.UserProfileVO;
 import com.hlw.common.core.domain.R;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,8 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
 
 /**
  * 认证控制器，提供登录、资料和退出登录接口。
@@ -48,7 +47,7 @@ public class AuthController {
      * @return 登录用户资料
      */
     @GetMapping("/profile")
-    public R<Map<String, Object>> profile(@RequestHeader(value = "satoken", required = false) String token) {
+    public R<UserProfileVO> profile(@RequestHeader(value = "satoken", required = false) String token) {
         return R.ok(authService.profile(token));
     }
 

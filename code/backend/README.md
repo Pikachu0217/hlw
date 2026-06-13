@@ -16,7 +16,7 @@
 本阶段新增：
 
 - `hospital-gateway`：网关租户请求头透传过滤器。
-- `hospital-auth`：登录服务与认证接口骨架。
+- `hospital-auth`：登录服务与认证资料接口已改造为 MyBatis Plus + VO 分层实现。
 - `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-doctor`：医生、科室、医生科室绑定、排班和挂号费规则已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-patient`：患者档案、健康档案、风险等级、身份证与就诊信息已改造为 MyBatis Plus + DTO/VO 分层实现。
@@ -387,6 +387,12 @@ POST /system/role-menus
 ```
 
 认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_role`、`sys_menu`、`sys_dict`、`sys_config`、`sys_post`、`sys_permission`、`sys_user_role` 和 `sys_role_menu` 表；租户、用户、角色、菜单、字典、岗位、权限码新增接口均会进行基础参数校验后落库，用户角色和角色菜单绑定接口会校验关联数据并写入授权关系。
+
+`hospital-auth` 当前约定补充如下：
+
+- 控制器统一接收登录命令并返回登录结果或 `UserProfileVO`，不再返回 `Map`。
+- Service 负责账号密码校验、令牌解析、登录资料读取和业务异常转换。
+- 用户仓储统一基于 MyBatis Plus `BaseMapper` 查询认证库 `sys_user`，不再保留 `JdbcOperations` 直查实现。
 
 医生、科室与排班接口：
 

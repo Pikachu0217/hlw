@@ -1,6 +1,6 @@
 package com.hlw.auth.service;
 
-import java.util.Map;
+import com.hlw.auth.vo.UserProfileVO;
 
 /**
  * 用户仓储接口，封装认证模块需要的用户查询能力。
@@ -19,7 +19,7 @@ public interface UserRepository {
      *
      * @param id 用户编号
      * @param tenantId 租户编号
-     * @return 用户资料，不存在返回空 Map
+     * @return 用户资料，不存在返回 null
      */
-    Map<String, Object> findProfileById(Long id, Long tenantId);
+    UserProfileVO findProfileById(Long id, Long tenantId);
 }

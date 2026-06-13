@@ -1,5 +1,7 @@
 package com.hlw.auth.service;
 
+import com.hlw.auth.vo.UserProfileVO;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -16,16 +18,29 @@ class FakeUserRepository implements UserRepository {
     }
 
     @Override
-    public Map<String, Object> findProfileById(Long id, Long tenantId) {
+    public UserProfileVO findProfileById(Long id, Long tenantId) {
         return users.values().stream()
             .filter(user -> user.id().equals(id) && user.tenantId().equals(tenantId))
             .findFirst()
-            .map(user -> Map.<String, Object>of(
-                "userId", user.id(),
-                "tenantId", user.tenantId(),
-                "username", user.username(),
-                "userType", user.userType()
-            ))
-            .orElse(Map.of());
+            .map(this::toProfile)
+            .orElse(null);
+    }
+
+    /**
+     * 转换登录用户资料。
+     *
+     * @param user 登录用户
+     * @return 用户资料
+     */
+    private UserProfileVO toProfile(LoginUser user) {
+        UserProfileVO vo = new UserProfileVO();
+        vo.setKey(String.valueOf(user.id()));
+        vo.setUserId(user.id());
+        vo.setTenantId(user.tenantId());
+        vo.setUsername(user.username());
+        vo.setUserType(user.userType());
+        vo.setRoleName(user.userType());
+        vo.setStatus("启用");
+        return vo;
     }
 }

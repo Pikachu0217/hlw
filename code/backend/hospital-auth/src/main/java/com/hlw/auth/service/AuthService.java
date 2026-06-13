@@ -1,14 +1,15 @@
 package com.hlw.auth.service;
 
+import com.hlw.auth.vo.UserProfileVO;
 import com.hlw.common.core.exception.BizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
+import org.springframework.stereotype.Service;
 
 /**
  * 认证业务服务，负责账号登录和登录用户资料读取。
  */
+@Service
 public class AuthService {
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
@@ -50,11 +51,11 @@ public class AuthService {
      * @param token 登录令牌
      * @return 登录用户资料
      */
-    public Map<String, Object> profile(String token) {
+    public UserProfileVO profile(String token) {
         TokenPrincipal principal = parseToken(token);
         log.info("查询登录用户资料，userId={}，tenantId={}", principal.userId(), principal.tenantId());
-        Map<String, Object> profile = userRepository.findProfileById(principal.userId(), principal.tenantId());
-        if (profile.isEmpty()) {
+        UserProfileVO profile = userRepository.findProfileById(principal.userId(), principal.tenantId());
+        if (profile == null) {
             throw new BizException(404, "登录用户不存在");
         }
         return profile;
