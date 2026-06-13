@@ -1,8 +1,12 @@
 package com.hlw.prescription.controller;
 
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.jdbc.DemoDataQuery;
+import com.hlw.prescription.dto.ApprovePrescriptionRequest;
+import com.hlw.prescription.dto.CreatePrescriptionRequest;
+import com.hlw.prescription.dto.RejectPrescriptionRequest;
 import com.hlw.prescription.service.PrescriptionWorkflowService;
+import com.hlw.prescription.vo.PrescriptionVO;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,7 +16,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
 import java.util.List;
 
 /**
@@ -24,17 +27,14 @@ public class PrescriptionController {
     private static final Logger log = LoggerFactory.getLogger(PrescriptionController.class);
 
     private final PrescriptionWorkflowService prescriptionWorkflowService;
-    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造处方控制器。
      *
      * @param prescriptionWorkflowService 处方工作流服务
-     * @param demoDataQuery 演示数据查询器
      */
-    public PrescriptionController(PrescriptionWorkflowService prescriptionWorkflowService, DemoDataQuery demoDataQuery) {
+    public PrescriptionController(PrescriptionWorkflowService prescriptionWorkflowService) {
         this.prescriptionWorkflowService = prescriptionWorkflowService;
-        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -43,31 +43,20 @@ public class PrescriptionController {
      * @return 处方列表
      */
     @GetMapping("/prescriptions")
-    public R<List<Map<String, Object>>> prescriptions() {
+    public R<List<PrescriptionVO>> prescriptions() {
         log.info("查询处方列表");
-        return R.ok(demoDataQuery.list("处方列表", """
-            SELECT id::text AS key,
-                   prescription_no AS "prescriptionNo",
-                   patient_name AS "patientName",
-                   doctor_name AS "doctorName",
-                   drug_count AS "drugCount",
-                   issued_at AS "issuedAt",
-                   status AS status
-            FROM pre_prescription
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+        return R.ok(prescriptionWorkflowService.listPrescriptions());
     }
 
     /**
      * 创建处方草稿。
      *
-     * @param command 创建命令
+     * @param request 创建请求
      * @return 创建结果
      */
     @PostMapping("/prescriptions")
-    public R<Map<String, Object>> create(@RequestBody Map<String, Object> command) {
-        return R.ok(prescriptionWorkflowService.create(command));
+    public R<PrescriptionVO> create(@Valid @RequestBody CreatePrescriptionRequest request) {
+        return R.ok(prescriptionWorkflowService.create(request));
     }
 
     /**
@@ -77,7 +66,7 @@ public class PrescriptionController {
      * @return 提交结果
      */
     @PostMapping("/prescriptions/{id}/submit")
-    public R<Map<String, Object>> submit(@PathVariable Long id) {
+    public R<PrescriptionVO> submit(@PathVariable Long id) {
         return R.ok(prescriptionWorkflowService.submit(id));
     }
 
@@ -85,26 +74,23 @@ public class PrescriptionController {
      * 审核通过处方。
      *
      * @param id 处方编号
-     * @param command 审核命令
+     * @param request 审核请求
      * @return 审核后的处方
      */
     @PostMapping("/prescriptions/{id}/approve")
-    public R<Map<String, Object>> approve(@PathVariable Long id, @RequestBody Map<String, Object> command) {
-        Long pharmacistId = Long.valueOf(String.valueOf(command.getOrDefault("pharmacistId", 0L)));
-        String remark = String.valueOf(command.getOrDefault("remark", ""));
-        return R.ok(prescriptionWorkflowService.approve(id, pharmacistId, remark));
+    public R<PrescriptionVO> approve(@PathVariable Long id, @RequestBody ApprovePrescriptionRequest request) {
+        return R.ok(prescriptionWorkflowService.approve(id, request));
     }
 
     /**
      * 驳回处方并返回驳回结果。
      *
      * @param id 处方编号
-     * @param command 驳回命令
+     * @param request 驳回请求
      * @return 驳回结果
      */
     @PostMapping("/prescriptions/{id}/reject")
-    public R<Map<String, Object>> reject(@PathVariable Long id, @RequestBody Map<String, Object> command) {
-        String remark = String.valueOf(command.getOrDefault("remark", ""));
-        return R.ok(prescriptionWorkflowService.reject(id, remark));
+    public R<PrescriptionVO> reject(@PathVariable Long id, @RequestBody RejectPrescriptionRequest request) {
+        return R.ok(prescriptionWorkflowService.reject(id, request));
     }
 }
