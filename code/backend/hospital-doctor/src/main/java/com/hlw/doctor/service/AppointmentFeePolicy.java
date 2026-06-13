@@ -11,6 +11,12 @@ public class AppointmentFeePolicy {
         "住院医师", new BigDecimal("10.00")
     );
 
+    /**
+     * 根据科室、医生和职称优先级计算挂号费。
+     *
+     * @param context 挂号费上下文
+     * @return 挂号费
+     */
     public BigDecimal resolve(FeeContext context) {
         if (context.departmentFee() != null) {
             return context.departmentFee();

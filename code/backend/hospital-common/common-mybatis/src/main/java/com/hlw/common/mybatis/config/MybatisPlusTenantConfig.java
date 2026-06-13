@@ -11,6 +11,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class MybatisPlusTenantConfig {
     @Bean
+    /**
+     * 创建 MyBatis Plus 租户拦截器。
+     *
+     * @return MyBatis Plus 拦截器
+     */
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(new HlwTenantLineHandler()));
@@ -19,12 +24,23 @@ public class MybatisPlusTenantConfig {
 
     private static final class HlwTenantLineHandler implements com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler {
         @Override
+        /**
+         * 获取当前租户表达式。
+         *
+         * @return 租户表达式
+         */
         public Expression getTenantId() {
             Long tenantId = TenantContext.getTenantId();
             return new LongValue(tenantId == null ? 0L : tenantId);
         }
 
         @Override
+        /**
+         * 判断表是否忽略租户过滤。
+         *
+         * @param tableName 表名
+         * @return 是否忽略
+         */
         public boolean ignoreTable(String tableName) {
             return "local_message".equalsIgnoreCase(tableName);
         }

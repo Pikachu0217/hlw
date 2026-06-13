@@ -21,6 +21,12 @@ public class ConsultWebSocketEndpoint extends TextWebSocketHandler {
     }
 
     @Override
+    /**
+     * 处理 WebSocket 连接关闭事件。
+     *
+     * @param session WebSocket 会话
+     * @param status 关闭状态
+     */
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
     }
 }

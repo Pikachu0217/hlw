@@ -11,6 +11,9 @@ public class ConsultTimeoutScheduler {
         this.warningPublisher = warningPublisher;
     }
 
+    /**
+     * 扫描咨询中问诊并处理超时或五分钟提醒。
+     */
     public void scanTimeouts() {
         List<Consult> consults = consultRepository.findInProgress();
         for (Consult consult : consults) {

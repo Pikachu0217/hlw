@@ -9,6 +9,13 @@ public class GrabAppointmentService {
         this.distributedLock = distributedLock;
     }
 
+    /**
+     * 抢占便民门诊预约单。
+     *
+     * @param appointmentId 预约编号
+     * @param doctorId 医生编号
+     * @return 是否抢单成功
+     */
     public boolean grab(Long appointmentId, Long doctorId) {
         String grabLockKey = "hlw:grab:appointment:" + appointmentId;
         if (!distributedLock.tryLock(grabLockKey)) {

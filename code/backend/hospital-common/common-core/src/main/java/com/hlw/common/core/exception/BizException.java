@@ -12,6 +12,11 @@ public class BizException extends RuntimeException {
         this.code = code;
     }
 
+    /**
+     * 获取业务错误码。
+     *
+     * @return 业务错误码
+     */
     public int getCode() {
         return code;
     }

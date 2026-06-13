@@ -7,6 +7,12 @@ public class InMemoryDistributedLock implements DistributedLock {
     private final Set<String> lockedKeys = new HashSet<>();
 
     @Override
+    /**
+     * 尝试获取内存锁。
+     *
+     * @param key 锁键
+     * @return 是否获取成功
+     */
     public boolean tryLock(String key) {
         return lockedKeys.add(key);
     }

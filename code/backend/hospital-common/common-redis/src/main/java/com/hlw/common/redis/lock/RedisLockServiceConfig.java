@@ -7,6 +7,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RedisLockServiceConfig {
     @Bean
+    /**
+     * 创建 Redis 锁服务。
+     *
+     * @param redissonClient Redisson 客户端
+     * @return Redis 锁服务
+     */
     public RedisLockService redisLockService(RedissonClient redissonClient) {
         return new RedisLockService(redissonClient);
     }

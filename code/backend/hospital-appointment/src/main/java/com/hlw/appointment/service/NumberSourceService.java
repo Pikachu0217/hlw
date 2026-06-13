@@ -11,6 +11,12 @@ public class NumberSourceService {
         this.distributedLock = distributedLock;
     }
 
+    /**
+     * 锁定指定排班下的首个可用号源。
+     *
+     * @param scheduleId 排班编号
+     * @return 已锁定号源
+     */
     public NumberSource lockOne(Long scheduleId) {
         String numberLockKey = "hlw:lock:number:" + scheduleId;
         if (!distributedLock.tryLock(numberLockKey)) {
@@ -25,6 +31,12 @@ public class NumberSourceService {
         return locked;
     }
 
+    /**
+     * 判断号源是否仍可被再次锁定。
+     *
+     * @param numberSourceId 号源编号
+     * @return 是否仍处于可用状态
+     */
     public boolean tryLockSameNumberAgain(Long numberSourceId) {
         NumberSource source = numberSourceRepository.findById(numberSourceId);
         return source != null && source.status() == NumberSourceStatus.AVAILABLE;

@@ -9,6 +9,14 @@ public class ConsultMessageHandler {
         this.messageRepository = messageRepository;
     }
 
+    /**
+     * 处理 WebSocket 消息并写入问诊消息仓储。
+     *
+     * @param consultId 问诊编号
+     * @param senderId 发送人编号
+     * @param json 原始消息 JSON
+     * @return 待广播消息
+     */
     public String handle(Long consultId, Long senderId, String json) {
         String content = extractJsonValue(json, "content");
         String contentType = extractJsonValue(json, "contentType");
