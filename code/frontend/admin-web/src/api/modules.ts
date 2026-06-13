@@ -29,6 +29,34 @@ export interface CreateDepartmentPayload {
   description?: string;
 }
 
+export interface CreateTenantPayload {
+  tenantName: string;
+  packageName: string;
+  adminName: string;
+  expireAt: string;
+  status?: string;
+}
+
+export interface CreateDoctorPayload {
+  name: string;
+  title: string;
+  department: string;
+  specialty?: string;
+  consultFee?: number;
+  consultStatus?: string;
+  status?: string;
+  schedule?: string;
+}
+
+export interface CreateSchedulePayload {
+  doctorId: number;
+  slot: string;
+  scheduleDate?: string;
+  timeSlot?: string;
+  totalNumber?: number;
+  remainNumber?: number;
+}
+
 export interface CreateDrugPayload {
   drugName: string;
   spec: string;
@@ -127,6 +155,13 @@ export function fetchTenants(): Promise<TenantRecord[]> {
   return fetchModuleRecords<TenantRecord>('/system/tenants', '租户');
 }
 
+// 创建租户。
+export async function createTenant(payload: CreateTenantPayload): Promise<TenantRecord> {
+  console.info('[admin-module] 创建租户', payload);
+  const response = await apiClient.post<ApiResult<TenantRecord>>('/system/tenants', payload);
+  return response.data.data;
+}
+
 // 查询后台用户列表。
 export function fetchUsers(): Promise<UserRecord[]> {
   return fetchModuleRecords<UserRecord>('/system/users', '用户');
@@ -171,6 +206,27 @@ export function fetchDepartments(): Promise<DepartmentRecord[]> {
 export async function createDepartment(payload: CreateDepartmentPayload): Promise<DepartmentRecord> {
   console.info('[admin-module] 创建科室', payload);
   const response = await apiClient.post<ApiResult<DepartmentRecord>>('/doctor/departments', payload);
+  return response.data.data;
+}
+
+// 创建医生。
+export async function createDoctor(payload: CreateDoctorPayload): Promise<unknown> {
+  console.info('[admin-module] 创建医生', payload);
+  const response = await apiClient.post<ApiResult<unknown>>('/doctor/doctors', payload);
+  return response.data.data;
+}
+
+// 更新医生状态。
+export async function updateDoctorStatus(id: string, status: string): Promise<unknown> {
+  console.info('[admin-module] 更新医生状态', id, status);
+  const response = await apiClient.put<ApiResult<unknown>>(`/doctor/doctors/${id}/status`, { status });
+  return response.data.data;
+}
+
+// 创建医生排班。
+export async function createDoctorSchedule(payload: CreateSchedulePayload): Promise<unknown> {
+  console.info('[admin-module] 创建医生排班', payload);
+  const response = await apiClient.post<ApiResult<unknown>>('/doctor/schedules', payload);
   return response.data.data;
 }
 
