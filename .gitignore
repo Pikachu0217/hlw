@@ -26,10 +26,14 @@ vite.config.d.ts
 
 # Logs
 *.log
+code/backend/log/
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# 一键启停脚本运行状态
+.runtime/
 
 # Superpowers 本地运行状态
 .superpowers/

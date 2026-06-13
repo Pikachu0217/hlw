@@ -70,6 +70,51 @@ pnpm build
 pnpm test
 ```
 
+仓库根目录提供一键启停脚本，可同时管理前端和后端服务：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw
+./scripts/service.sh
+./scripts/service.sh start
+./scripts/service.sh stop
+./scripts/service.sh restart
+./scripts/service.sh status
+./scripts/service.sh logs
+```
+
+直接执行 `./scripts/service.sh` 会进入交互式菜单：
+
+```text
+1 前端
+2 后端
+3 退出
+```
+
+选择前端后，可继续选择启动服务、停止服务、返回上一级或退出。前端启动和停止菜单支持选择 `admin-web`、`patient-h5`、返回上一级或退出。
+
+如需只启动前端应用：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw
+SKIP_BACKEND=1 ./scripts/service.sh start
+```
+
+如需只启动指定前端应用：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw
+FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./scripts/service.sh start
+```
+
+脚本默认启动：
+
+| 应用 | 启动命令 | 本地端口 |
+| --- | --- | ---: |
+| `admin-web` | `pnpm dev:admin` | 3200 |
+| `patient-h5` | `pnpm dev:patient` | 3300 |
+
+脚本运行时会在仓库根目录生成 `.runtime/pids` 和 `.runtime/logs`，分别保存进程 pid 与服务日志。
+
 ## 后续维护要求
 
 - 新增页面时同步更新对应应用的页面说明。

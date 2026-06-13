@@ -182,7 +182,96 @@ mvn -pl hospital-prescription,hospital-drug,hospital-order -am test
 
 ## 服务启动
 
-当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 以及各业务服务模块已具备接口骨架，但尚未全部补齐完整 Spring Boot 启动类、配置文件、Nacos 注册配置和数据库连接配置。后续模块完成到可运行状态时，需要在本节补充实际启动命令。
+仓库根目录提供一键启停脚本，用于统一管理后端 Spring Boot 模块和前端 Vite 应用：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw
+./scripts/service.sh
+./scripts/service.sh start
+./scripts/service.sh stop
+./scripts/service.sh restart
+./scripts/service.sh status
+./scripts/service.sh logs
+```
+
+直接执行 `./scripts/service.sh` 会进入交互式菜单：
+
+```text
+1 前端
+2 后端
+3 退出
+```
+
+选择后端后，可继续选择：
+
+```text
+1 启动服务
+2 停止服务
+3 日志输出
+4 返回上一级
+5 退出
+```
+
+后端启动、停止、日志输出都会进入服务选择菜单，可选择单个 `hospital-*` 服务、`ALL`、返回上一级或退出。后端菜单中的 `ALL` 只处理后端服务。
+
+脚本默认启动全部后端业务模块，并使用 `local` profile：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend/<模块名>
+mvn spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+如需只启动指定后端模块，可通过环境变量覆盖：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw
+BACKEND_MODULES="hospital-gateway hospital-auth" SKIP_FRONTEND=1 ./scripts/service.sh start
+```
+
+如需指定 Spring Profile：
+
+```bash
+cd /Users/pakachuzy/Desktop/zzz/project/hlw
+SPRING_PROFILES_ACTIVE=prod SKIP_FRONTEND=1 ./scripts/service.sh start
+```
+
+脚本运行时会在仓库根目录生成 `.runtime/pids` 和 `.runtime/logs`，分别保存进程 pid 与服务日志。脚本只负责项目进程启停，不会自动启动 PostgreSQL、Redis、Nacos、RabbitMQ、MinIO 等本地中间件。
+
+当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 以及各业务服务模块已具备接口骨架，但尚未全部补齐完整联调能力。后续模块启动方式、端口、依赖或环境变量发生变化时，需要同步更新本文档和 `scripts/service.sh`。
+
+## 日志配置
+
+各后端业务模块统一使用 `logback-spring.xml`，并从 `application.yml` 的 `hlw.log` 读取日志配置。默认日志根目录为：
+
+```text
+/Users/pakachuzy/Desktop/zzz/project/hlw/code/backend/log
+```
+
+默认目录结构：
+
+```text
+code/backend/log/
+├── hospital-auth/
+│   ├── info/
+│   ├── error/
+│   └── debug/
+└── hospital-appointment/
+    ├── info/
+    ├── error/
+    └── debug/
+```
+
+每个级别日志按天拆分，单个文件超过 `10MB` 后继续按序号拆分。可通过以下环境变量覆盖：
+
+```bash
+HLW_LOG_PATH=/data/hospital/log
+HLW_LOG_MAX_FILE_SIZE=10MB
+HLW_LOG_MAX_HISTORY=30
+HLW_LOG_TOTAL_SIZE_CAP=2GB
+HLW_LOG_ROOT_LEVEL=INFO
+```
+
+如需写入 `debug` 日志，需要将 `HLW_LOG_ROOT_LEVEL` 或对应包日志级别调整为 `DEBUG`。
 
 本轮已为以下模块补充基础配置文件目录：
 

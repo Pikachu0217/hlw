@@ -44,6 +44,12 @@ logging:
     com.hlw.patient: INFO
 
 hlw:
+  log:
+    path: ${HLW_LOG_PATH:${user.dir}/../log}
+    max-file-size: ${HLW_LOG_MAX_FILE_SIZE:10MB}
+    max-history: ${HLW_LOG_MAX_HISTORY:30}
+    total-size-cap: ${HLW_LOG_TOTAL_SIZE_CAP:2GB}
+    root-level: ${HLW_LOG_ROOT_LEVEL:INFO}
   nacos:
     server-addr: ${HLW_NACOS_SERVER_ADDR}
     namespace: ${HLW_NACOS_NAMESPACE:public}
