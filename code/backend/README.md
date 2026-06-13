@@ -389,9 +389,12 @@ Task 6 引入以下接口路径：
 ```http
 GET /patient/profile
 PUT /patient/profile
+GET /patient/patients
 GET /patient/health-records
 POST /patient/health-records
 ```
+
+患者基础档案已接入 `pat_patient` 表，`GET /patient/profile` 和 `PUT /patient/profile` 均读取或更新首位患者示例档案，并保持手机号脱敏返回。
 
 患者健康档案管理已接入 `pat_health_record` 表，`POST /patient/health-records` 会校验患者存在并落库档案标题与摘要，接口脚本默认写入首位患者示例数据。
 
@@ -482,7 +485,7 @@ POST /consult/consults/{id}/extend
 GET /consult/consults/{id}/messages
 ```
 
-问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。
+问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。WebSocket 收到的新消息也会写入 `con_message`，`GET /consult/consults/{id}/messages` 统一从数据库读取消息记录。
 
 问诊 WebSocket 地址约定：
 

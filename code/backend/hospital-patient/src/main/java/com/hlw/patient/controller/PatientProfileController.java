@@ -52,25 +52,7 @@ public class PatientProfileController {
     @GetMapping("/profile")
     public R<PatientProfile> profile() {
         log.info("查询当前患者档案");
-        Map<String, Object> profile = demoDataQuery.one("当前患者档案", """
-            SELECT id,
-                   patient_name AS name,
-                   phone,
-                   gender
-            FROM pat_patient
-            WHERE deleted = 0
-            ORDER BY id
-            LIMIT 1
-            """);
-        if (profile.isEmpty()) {
-            throw new IllegalStateException("当前患者档案示例数据未初始化");
-        }
-        return R.ok(new PatientProfile(
-            ((Number) profile.get("id")).longValue(),
-            String.valueOf(profile.get("name")),
-            patientProfileService.maskPhone(String.valueOf(profile.get("phone"))),
-            String.valueOf(profile.get("gender"))
-        ));
+        return R.ok(patientProfileService.findProfile(1L));
     }
 
     /**

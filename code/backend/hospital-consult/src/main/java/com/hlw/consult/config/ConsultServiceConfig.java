@@ -9,11 +9,12 @@ import com.hlw.consult.service.InMemoryConsultRepository;
 import com.hlw.consult.ws.ConsultMessageHandler;
 import com.hlw.consult.ws.ConsultMessageRepository;
 import com.hlw.consult.ws.ConsultWebSocketEndpoint;
-import com.hlw.consult.ws.InMemoryConsultMessageRepository;
+import com.hlw.consult.ws.JdbcConsultMessageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcOperations;
 
 /**
  * 问诊模块本地启动默认配置。
@@ -105,12 +106,13 @@ public class ConsultServiceConfig {
     }
 
     /**
-     * 创建内存问诊消息仓储。
+     * 创建 JDBC 问诊消息仓储。
      *
+     * @param jdbcOperations JDBC 操作组件
      * @return 问诊消息仓储
      */
     @Bean
-    public ConsultMessageRepository consultMessageRepository() {
-        return new InMemoryConsultMessageRepository();
+    public ConsultMessageRepository consultMessageRepository(JdbcOperations jdbcOperations) {
+        return new JdbcConsultMessageRepository(jdbcOperations);
     }
 }

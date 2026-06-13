@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -121,49 +119,6 @@ public class ConsultController {
     @GetMapping("/consults/{id}/messages")
     public R<List<ConsultMessage>> messages(@PathVariable Long id) {
         log.info("查询问诊消息，consultId={}", id);
-        List<ConsultMessage> messages = consultMessageRepository.findByConsultId(id);
-        if (messages.isEmpty()) {
-            List<ConsultMessage> demoMessages = demoDataQuery.list("问诊消息列表", """
-                    SELECT consult_id AS "consultId",
-                           sender_id AS "senderId",
-                           sender_type AS "senderType",
-                           content AS content,
-                           content_type AS "contentType",
-                           read_flag AS read,
-                           create_time AS "createTime"
-                    FROM con_message
-                    WHERE deleted = 0 AND consult_id = ?
-                    ORDER BY id
-                    """, id)
-                .stream()
-                .map(row -> new ConsultMessage(
-                    ((Number) row.get("consultId")).longValue(),
-                    ((Number) row.get("senderId")).longValue(),
-                    String.valueOf(row.get("senderType")),
-                    String.valueOf(row.get("content")),
-                    String.valueOf(row.get("contentType")),
-                    Boolean.TRUE.equals(row.get("read")),
-                    toLocalDateTime(row.get("createTime"))
-                ))
-                .toList();
-            return R.ok(demoMessages);
-        }
-        return R.ok(messages);
-    }
-
-    /**
-     * 转换数据库时间字段。
-     *
-     * @param value 数据库时间值
-     * @return 本地日期时间
-     */
-    private LocalDateTime toLocalDateTime(Object value) {
-        if (value instanceof LocalDateTime localDateTime) {
-            return localDateTime;
-        }
-        if (value instanceof Timestamp timestamp) {
-            return timestamp.toLocalDateTime();
-        }
-        return null;
+        return R.ok(consultMessageRepository.findByConsultId(id));
     }
 }
