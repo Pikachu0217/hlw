@@ -28,7 +28,8 @@ public class SystemCatalogService {
         "sys_role_menu",
         "sys_user",
         "sys_role",
-        "sys_menu"
+        "sys_menu",
+        "sys_permission"
     );
     private static final Set<String> RELATION_COLUMNS = Set.of("user_id", "role_id", "menu_id");
 
@@ -260,6 +261,111 @@ public class SystemCatalogService {
     }
 
     /**
+     * 创建后台用户。
+     *
+     * @param command 用户创建命令
+     * @return 创建后的用户数据
+     */
+    @Transactional
+    public Map<String, Object> createUser(Map<String, Object> command) {
+        String username = requiredString(command, "username", "用户账号不能为空");
+        String phone = stringValue(command, "phone", "");
+        String userType = stringValue(command, "userType", "ADMIN");
+        String deptName = stringValue(command, "deptName", "运营部");
+        String roleName = stringValue(command, "roleName", "系统管理员");
+        String status = stringValue(command, "status", "启用");
+        String password = stringValue(command, "password", "{noop}123456");
+        log.info("创建后台用户，username={}，deptName={}，roleName={}", username, deptName, roleName);
+        Long id = nextId("sys_user");
+        jdbcOperations.update("""
+            INSERT INTO sys_user (
+                id, tenant_id, username, password, phone, user_type, dept_name, role_name, last_login, status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, '-', ?)
+            """, id, DEFAULT_TENANT_ID, username, password, phone, userType, deptName, roleName, status);
+        return row("key", String.valueOf(id), "username", username, "deptName", deptName, "roleName", roleName,
+            "postName", "-", "phone", phone, "lastLogin", "-", "status", status);
+    }
+
+    /**
+     * 创建角色。
+     *
+     * @param command 角色创建命令
+     * @return 创建后的角色数据
+     */
+    @Transactional
+    public Map<String, Object> createRole(Map<String, Object> command) {
+        String roleName = requiredString(command, "roleName", "角色名称不能为空");
+        String roleCode = requiredString(command, "roleCode", "角色编码不能为空");
+        String dataScope = stringValue(command, "dataScope", "本租户数据");
+        String status = stringValue(command, "status", "启用");
+        log.info("创建角色，roleName={}，roleCode={}", roleName, roleCode);
+        Long id = nextId("sys_role");
+        jdbcOperations.update("""
+            INSERT INTO sys_role (id, tenant_id, role_name, role_code, data_scope, status)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """, id, DEFAULT_TENANT_ID, roleName, roleCode, dataScope, status);
+        return row("key", String.valueOf(id), "roleName", roleName, "roleCode", roleCode,
+            "dataScope", dataScope, "memberCount", 0, "updatedAt", "-", "status", status);
+    }
+
+    /**
+     * 创建菜单。
+     *
+     * @param command 菜单创建命令
+     * @return 创建后的菜单数据
+     */
+    @Transactional
+    public Map<String, Object> createMenu(Map<String, Object> command) {
+        String menuName = requiredString(command, "menuName", "菜单名称不能为空");
+        String permission = requiredString(command, "permission", "权限标识不能为空");
+        String routePath = requiredString(command, "routePath", "路由路径不能为空");
+        String menuType = stringValue(command, "menuType", "菜单");
+        String status = stringValue(command, "status", "启用");
+        Long parentId = longValue(command, "parentId", 0L);
+        int sort = intValue(command, "sort", 0);
+        log.info("创建菜单，menuName={}，permission={}，routePath={}", menuName, permission, routePath);
+        Long id = nextId("sys_menu");
+        jdbcOperations.update("""
+            INSERT INTO sys_menu (
+                id, tenant_id, parent_id, menu_name, menu_type, permission, route_path, sort, status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, id, DEFAULT_TENANT_ID, parentId, menuName, menuType, permission, routePath, sort, status);
+        return row("key", String.valueOf(id), "parentId", String.valueOf(parentId), "menuName", menuName,
+            "menuType", menuType, "permission", permission, "routePath", routePath, "sort", sort, "status", status);
+    }
+
+    /**
+     * 创建权限码。
+     *
+     * @param command 权限创建命令
+     * @return 创建后的权限数据
+     */
+    @Transactional
+    public Map<String, Object> createPermission(Map<String, Object> command) {
+        String permissionName = requiredString(command, "permissionName", "权限名称不能为空");
+        String permissionCode = requiredString(command, "permissionCode", "权限编码不能为空");
+        String resourceType = stringValue(command, "resourceType", "按钮");
+        String status = stringValue(command, "status", "启用");
+        Long menuId = longValue(command, "menuId", null);
+        if (menuId != null) {
+            assertExists("sys_menu", menuId, "菜单不存在");
+        }
+        log.info("创建权限码，permissionName={}，permissionCode={}，resourceType={}", permissionName, permissionCode, resourceType);
+        Long id = nextId("sys_permission");
+        jdbcOperations.update("""
+            INSERT INTO sys_permission (
+                id, tenant_id, permission_name, permission_code, resource_type, menu_id, status
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, id, DEFAULT_TENANT_ID, permissionName, permissionCode, resourceType, menuId, status);
+        String menuName = menuId == null ? "-" : menuName(menuId);
+        return row("key", String.valueOf(id), "permissionName", permissionName, "permissionCode", permissionCode,
+            "resourceType", resourceType, "menuName", menuName, "status", status);
+    }
+
+    /**
      * 创建字典项。
      *
      * @param command 字典创建命令
@@ -447,6 +553,20 @@ public class SystemCatalogService {
             secondValue
         );
         return rows.isEmpty() ? Map.of() : rows.get(0);
+    }
+
+    /**
+     * 查询菜单名称。
+     *
+     * @param menuId 菜单编号
+     * @return 菜单名称
+     */
+    private String menuName(Long menuId) {
+        List<Map<String, Object>> rows = jdbcOperations.queryForList(
+            "SELECT menu_name FROM sys_menu WHERE id = ? AND deleted = 0 ORDER BY id LIMIT 1",
+            menuId
+        );
+        return rows.isEmpty() ? "-" : Objects.toString(rows.get(0).get("menu_name"));
     }
 
     /**

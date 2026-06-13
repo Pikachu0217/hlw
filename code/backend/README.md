@@ -344,11 +344,15 @@ GET /auth/profile
 POST /auth/logout
 GET /system/tenants
 POST /system/tenants
+GET /system/users
+POST /system/users
 GET /system/roles
+POST /system/roles
 GET /system/menus
+POST /system/menus
 ```
 
-认证资料接口已从登录令牌解析用户编号和租户编号，并回查 `sys_user` 返回登录用户资料；租户创建接口已接入 `sys_tenant`，会校验租户名称、套餐名称、管理员和到期日期后写入租户表。
+认证资料接口已从登录令牌解析用户编号和租户编号，并回查 `sys_user` 返回登录用户资料；租户创建接口已接入 `sys_tenant`，会校验租户名称、套餐名称、管理员和到期日期后写入租户表。用户、角色和菜单新增接口已接入 `sys_user`、`sys_role`、`sys_menu`，用于支撑基础账号和菜单配置闭环。
 
 系统基础管理补齐引入以下接口路径：
 
@@ -360,11 +364,14 @@ PUT /system/configs/{id}
 GET /system/posts
 POST /system/posts
 GET /system/permissions
+POST /system/permissions
 GET /system/user-roles
 POST /system/user-roles
 GET /system/role-menus
 POST /system/role-menus
 ```
+
+权限码新增接口已接入 `sys_permission`，会校验关联菜单存在；用户角色和角色菜单绑定接口继续写入 `sys_user_role`、`sys_role_menu`。
 
 Task 5 引入以下接口路径：
 

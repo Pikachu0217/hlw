@@ -77,6 +77,17 @@ public class SystemManagementController {
     }
 
     /**
+     * 创建后台用户。
+     *
+     * @param command 用户创建命令
+     * @return 创建后的用户
+     */
+    @PostMapping("/users")
+    public R<Map<String, Object>> createUser(@RequestBody Map<String, Object> command) {
+        return R.ok(systemCatalogService.createUser(command));
+    }
+
+    /**
      * 查询角色列表。
      *
      * @return 角色列表
@@ -87,6 +98,17 @@ public class SystemManagementController {
     }
 
     /**
+     * 创建角色。
+     *
+     * @param command 角色创建命令
+     * @return 创建后的角色
+     */
+    @PostMapping("/roles")
+    public R<Map<String, Object>> createRole(@RequestBody Map<String, Object> command) {
+        return R.ok(systemCatalogService.createRole(command));
+    }
+
+    /**
      * 查询菜单列表。
      *
      * @return 菜单列表
@@ -94,6 +116,17 @@ public class SystemManagementController {
     @GetMapping("/menus")
     public R<List<Map<String, Object>>> menus() {
         return R.ok(systemCatalogService.listMenus());
+    }
+
+    /**
+     * 创建菜单。
+     *
+     * @param command 菜单创建命令
+     * @return 创建后的菜单
+     */
+    @PostMapping("/menus")
+    public R<Map<String, Object>> createMenu(@RequestBody Map<String, Object> command) {
+        return R.ok(systemCatalogService.createMenu(command));
     }
 
     /**
@@ -168,6 +201,17 @@ public class SystemManagementController {
     @GetMapping("/permissions")
     public R<List<Map<String, Object>>> permissions() {
         return R.ok(systemCatalogService.listPermissions());
+    }
+
+    /**
+     * 创建权限码。
+     *
+     * @param command 权限创建命令
+     * @return 创建后的权限码
+     */
+    @PostMapping("/permissions")
+    public R<Map<String, Object>> createPermission(@RequestBody Map<String, Object> command) {
+        return R.ok(systemCatalogService.createPermission(command));
     }
 
     /**

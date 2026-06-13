@@ -37,6 +37,41 @@ export interface CreateTenantPayload {
   status?: string;
 }
 
+export interface CreateUserPayload {
+  username: string;
+  phone?: string;
+  userType?: string;
+  deptName?: string;
+  roleName?: string;
+  status?: string;
+  password?: string;
+}
+
+export interface CreateRolePayload {
+  roleName: string;
+  roleCode: string;
+  dataScope?: string;
+  status?: string;
+}
+
+export interface CreateMenuPayload {
+  menuName: string;
+  permission: string;
+  routePath: string;
+  menuType?: string;
+  parentId?: number;
+  sort?: number;
+  status?: string;
+}
+
+export interface CreatePermissionPayload {
+  permissionName: string;
+  permissionCode: string;
+  resourceType?: string;
+  menuId?: number;
+  status?: string;
+}
+
 export interface CreateDoctorPayload {
   name: string;
   title: string;
@@ -167,14 +202,35 @@ export function fetchUsers(): Promise<UserRecord[]> {
   return fetchModuleRecords<UserRecord>('/system/users', '用户');
 }
 
+// 创建后台用户。
+export async function createUser(payload: CreateUserPayload): Promise<UserRecord> {
+  console.info('[admin-module] 创建用户', payload);
+  const response = await apiClient.post<ApiResult<UserRecord>>('/system/users', payload);
+  return response.data.data;
+}
+
 // 查询角色列表。
 export function fetchRoles(): Promise<RoleRecord[]> {
   return fetchModuleRecords<RoleRecord>('/system/roles', '角色');
 }
 
+// 创建角色。
+export async function createRole(payload: CreateRolePayload): Promise<RoleRecord> {
+  console.info('[admin-module] 创建角色', payload);
+  const response = await apiClient.post<ApiResult<RoleRecord>>('/system/roles', payload);
+  return response.data.data;
+}
+
 // 查询菜单列表。
 export function fetchMenus(): Promise<MenuRecord[]> {
   return fetchModuleRecords<MenuRecord>('/system/menus', '菜单');
+}
+
+// 创建菜单。
+export async function createMenu(payload: CreateMenuPayload): Promise<MenuRecord> {
+  console.info('[admin-module] 创建菜单', payload);
+  const response = await apiClient.post<ApiResult<MenuRecord>>('/system/menus', payload);
+  return response.data.data;
 }
 
 // 查询字典列表。
@@ -195,6 +251,13 @@ export function fetchPosts(): Promise<PostRecord[]> {
 // 查询权限码列表。
 export function fetchPermissions(): Promise<PermissionRecord[]> {
   return fetchModuleRecords<PermissionRecord>('/system/permissions', '权限码');
+}
+
+// 创建权限码。
+export async function createPermission(payload: CreatePermissionPayload): Promise<PermissionRecord> {
+  console.info('[admin-module] 创建权限码', payload);
+  const response = await apiClient.post<ApiResult<PermissionRecord>>('/system/permissions', payload);
+  return response.data.data;
 }
 
 // 查询科室列表。
