@@ -19,7 +19,7 @@
 - `hospital-auth`：登录服务与认证接口骨架。
 - `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-doctor`：医生、科室、医生科室绑定、排班和挂号费规则已改造为 MyBatis Plus + DTO/VO 分层实现。
-- `hospital-patient`：患者资料、手机号脱敏和健康记录接口骨架。
+- `hospital-patient`：患者档案、健康档案、风险等级、身份证与就诊信息已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-appointment`：预约、号源锁定、放号配置和便民门诊抢单骨架。
 - `hospital-consult`：在线问诊生命周期、消息处理、WebSocket 端点和超时调度骨架。
 - `hospital-prescription`：处方创建、提交、审核和驳回接口骨架。
@@ -181,6 +181,13 @@ mvn -pl hospital-doctor -am test
 cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
 mvn -pl hospital-patient -am test
 ```
+
+`hospital-patient` 当前约定补充如下：
+
+- 控制器统一仅接收 DTO、执行参数校验、调用 Service 并返回 `R`。
+- Service 统一负责患者档案、健康档案、风险字段与日期字段的业务编排、租户上下文校验和 VO 转换。
+- Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再保留 `JdbcOperations` 和内存仓储实现。
+- `pat_patient` 与 `pat_health_record` 已在 `code/backend/sql/init.sql` 与 `resources/sql/init.sql` 中同步补齐字段和列注释，后续新增字段仍需两处同时维护。
 
 执行预约模块号源锁定与抢单测试：
 

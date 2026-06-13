@@ -4,7 +4,6 @@ import type { ConsultRecord } from '@/pages/consult';
 import type { DrugRecord } from '@/pages/drug';
 import type { DepartmentRecord } from '@/pages/doctor/departments';
 import type { OrderRecord } from '@/pages/order';
-import type { PatientRecord } from '@/pages/patient';
 import type { PrescriptionRecord } from '@/pages/prescription';
 import type { ConfigRecord } from '@/pages/system/configs';
 import type { DictRecord } from '@/pages/system/dicts';
@@ -322,11 +321,6 @@ export async function createDoctorSchedule(payload: CreateSchedulePayload): Prom
   console.info('[admin-module] 创建医生排班', payload);
   const response = await apiClient.post<ApiResult<unknown>>('/doctor/schedules', payload);
   return response.data.data;
-}
-
-// 查询患者列表。
-export function fetchPatients(): Promise<PatientRecord[]> {
-  return fetchModuleRecords<PatientRecord>('/patient/patients', '患者');
 }
 
 // 查询问诊单列表。

@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 /**
  * 患者服务启动入口。
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.hlw")
 public class PatientApplication {
     /**
      * 启动患者服务。

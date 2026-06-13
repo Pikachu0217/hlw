@@ -689,12 +689,15 @@ CREATE TABLE IF NOT EXISTS pat_patient (
     tenant_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     name VARCHAR(64) NOT NULL,
+    patient_name VARCHAR(64) NOT NULL DEFAULT '',
     phone VARCHAR(32),
-    -- gender: 0 unknown, 1 male, 2 female
-    gender SMALLINT NOT NULL DEFAULT 0,
+    gender VARCHAR(16) NOT NULL DEFAULT '',
+    age INT NOT NULL DEFAULT 0,
+    risk_level VARCHAR(32) NOT NULL DEFAULT '低风险',
     id_card VARCHAR(32),
     birthday DATE,
     address VARCHAR(512),
+    last_visit DATE,
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -719,23 +722,36 @@ CREATE TABLE IF NOT EXISTS pat_health_record (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS age INT NOT NULL DEFAULT 0;
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS risk_level VARCHAR(32) NOT NULL DEFAULT '低风险';
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS last_visit DATE;
+ALTER TABLE pat_patient ALTER COLUMN gender TYPE VARCHAR(16) USING CASE WHEN gender::text = '1' THEN '男' WHEN gender::text = '2' THEN '女' ELSE gender::text END;
 ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS title VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS summary VARCHAR(256) NOT NULL DEFAULT '';
 UPDATE pat_health_record
 SET title = COALESCE(NULLIF(title, ''), '历史健康档案'),
     summary = COALESCE(NULLIF(summary, ''), COALESCE(NULLIF(diagnosis, ''), NULLIF(history, ''), NULLIF(remark, ''), '历史健康档案'))
 WHERE title = '' OR summary = '';
+UPDATE pat_patient
+SET patient_name = COALESCE(NULLIF(patient_name, ''), name),
+    age = COALESCE(age, 0),
+    risk_level = COALESCE(NULLIF(risk_level, ''), '低风险');
 
 COMMENT ON TABLE pat_patient IS '患者档案表';
 COMMENT ON COLUMN pat_patient.id IS '主键编号';
 COMMENT ON COLUMN pat_patient.tenant_id IS '租户编号';
 COMMENT ON COLUMN pat_patient.user_id IS '关联用户编号';
-COMMENT ON COLUMN pat_patient.name IS '患者姓名';
+COMMENT ON COLUMN pat_patient.name IS '兼容旧表患者姓名';
+COMMENT ON COLUMN pat_patient.patient_name IS '患者姓名';
 COMMENT ON COLUMN pat_patient.phone IS '联系电话';
 COMMENT ON COLUMN pat_patient.gender IS '患者性别';
+COMMENT ON COLUMN pat_patient.age IS '患者年龄';
+COMMENT ON COLUMN pat_patient.risk_level IS '风险等级';
 COMMENT ON COLUMN pat_patient.id_card IS '身份证号';
 COMMENT ON COLUMN pat_patient.birthday IS '出生日期';
 COMMENT ON COLUMN pat_patient.address IS '联系地址';
+COMMENT ON COLUMN pat_patient.last_visit IS '最近就诊日期';
 COMMENT ON COLUMN pat_patient.create_time IS '创建时间';
 COMMENT ON COLUMN pat_patient.update_time IS '更新时间';
 COMMENT ON COLUMN pat_patient.create_by IS '创建人编号';
@@ -757,10 +773,10 @@ COMMENT ON COLUMN pat_health_record.create_by IS '创建人编号';
 COMMENT ON COLUMN pat_health_record.update_by IS '更新人编号';
 COMMENT ON COLUMN pat_health_record.deleted IS '逻辑删除标识';
 
-INSERT INTO pat_patient (id, tenant_id, user_id, name, phone, gender, id_card, birthday, address)
+INSERT INTO pat_patient (id, tenant_id, user_id, name, patient_name, phone, gender, age, risk_level, id_card, birthday, address, last_visit)
 VALUES
-    (1, 100, 1, '赵晓岚', '13900001111', 2, '110101199201010011', '1992-01-01', '杭州市西湖区'),
-    (2, 100, 2, '沈博远', '13900002222', 1, '110101196801010022', '1968-01-01', '杭州市滨江区')
+    (1, 100, 1, '赵晓岚', '赵晓岚', '13900001111', '女', 34, '中风险', '110101199201010011', '1992-01-01', '杭州市西湖区', '2026-06-11'),
+    (2, 100, 2, '沈博远', '沈博远', '13900002222', '男', 58, '高风险', '110101196801010022', '1968-01-01', '杭州市滨江区', '2026-06-10')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO pat_health_record (id, tenant_id, patient_id, title, summary, history, diagnosis, remark)

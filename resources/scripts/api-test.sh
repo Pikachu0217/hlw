@@ -512,10 +512,13 @@ run_all_cases() {
 
   # 患者端首页与档案接口。
   run_case "查询当前患者档案" "GET" "/patient/profile"
-  run_case "更新当前患者档案" "PUT" "/patient/profile" "{\"name\":\"张小满\",\"phone\":\"13800000009\",\"gender\":\"女\"}"
+  run_case "更新当前患者档案" "PUT" "/patient/profile" "{\"patientName\":\"张小满\",\"phone\":\"13800000009\",\"gender\":\"女\",\"age\":28,\"riskLevel\":\"中风险\",\"idCard\":\"330101199801010011\",\"birthday\":\"1998-01-01\",\"address\":\"杭州市上城区\",\"lastVisit\":\"2026-06-13\"}"
   run_case "查询患者列表" "GET" "/patient/patients"
-  run_case "查询健康档案列表" "GET" "/patient/health-records"
-  run_case "创建健康档案" "POST" "/patient/health-records" "{\"title\":\"接口测试档案\",\"summary\":\"脚本自动创建\"}"
+  run_case "查询患者详情" "GET" "/patient/patients/1"
+  run_case "创建患者档案" "POST" "/patient/patients" "{\"patientName\":\"接口测试患者\",\"phone\":\"13800001234\",\"gender\":\"男\",\"age\":36,\"riskLevel\":\"低风险\",\"idCard\":\"330101198801010012\",\"birthday\":\"1988-01-01\",\"address\":\"杭州市余杭区\",\"lastVisit\":\"2026-06-12\"}"
+  run_case "更新患者档案" "PUT" "/patient/patients/1" "{\"patientName\":\"赵晓岚\",\"phone\":\"13900001111\",\"gender\":\"女\",\"age\":35,\"riskLevel\":\"中风险\",\"idCard\":\"110101199201010011\",\"birthday\":\"1992-01-01\",\"address\":\"杭州市西湖区\",\"lastVisit\":\"2026-06-12\"}"
+  run_case "查询健康档案列表" "GET" "/patient/health-records?patientId=1"
+  run_case "创建健康档案" "POST" "/patient/health-records" "{\"patientId\":1,\"title\":\"接口测试档案\",\"summary\":\"脚本自动创建\",\"allergies\":\"无\",\"history\":\"随访记录\",\"diagnosis\":\"血压稳定\",\"remark\":\"自动化脚本写入\"}"
 
   # 医生与排班接口。
   run_case "查询科室列表" "GET" "/doctor/departments"

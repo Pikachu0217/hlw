@@ -227,6 +227,9 @@ ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS age INT NOT NULL DEFAULT 0;
 ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS risk_level VARCHAR(32) NOT NULL DEFAULT '低风险';
 ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS user_id BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS id_card VARCHAR(32) NOT NULL DEFAULT '';
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS birthday DATE;
+ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS address VARCHAR(512) NOT NULL DEFAULT '';
 ALTER TABLE pat_patient ALTER COLUMN user_id SET DEFAULT 0;
 ALTER TABLE pat_patient ALTER COLUMN name SET DEFAULT '';
 ALTER TABLE pat_patient ALTER COLUMN gender TYPE VARCHAR(16) USING CASE WHEN gender::text = '1' THEN '男' WHEN gender::text = '2' THEN '女' ELSE gender::text END;
@@ -241,6 +244,9 @@ COMMENT ON COLUMN pat_patient.gender IS '患者性别';
 COMMENT ON COLUMN pat_patient.age IS '患者年龄';
 COMMENT ON COLUMN pat_patient.phone IS '联系电话';
 COMMENT ON COLUMN pat_patient.risk_level IS '风险等级';
+COMMENT ON COLUMN pat_patient.id_card IS '身份证号';
+COMMENT ON COLUMN pat_patient.birthday IS '出生日期';
+COMMENT ON COLUMN pat_patient.address IS '联系地址';
 COMMENT ON COLUMN pat_patient.create_time IS '创建时间';
 COMMENT ON COLUMN pat_patient.update_time IS '更新时间';
 COMMENT ON COLUMN pat_patient.create_by IS '创建人编号';
@@ -1196,6 +1202,10 @@ CREATE TABLE IF NOT EXISTS pat_health_record (
 
 ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS title VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS summary VARCHAR(256) NOT NULL DEFAULT '';
+ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS allergies TEXT;
+ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS history TEXT;
+ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS diagnosis TEXT;
+ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS remark VARCHAR(512) NOT NULL DEFAULT '';
 
 COMMENT ON TABLE pat_health_record IS '健康档案表';
 COMMENT ON COLUMN pat_health_record.id IS '主键编号';
@@ -1203,16 +1213,20 @@ COMMENT ON COLUMN pat_health_record.tenant_id IS '租户编号';
 COMMENT ON COLUMN pat_health_record.patient_id IS '患者编号';
 COMMENT ON COLUMN pat_health_record.title IS '档案标题';
 COMMENT ON COLUMN pat_health_record.summary IS '档案摘要';
+COMMENT ON COLUMN pat_health_record.allergies IS '过敏史';
+COMMENT ON COLUMN pat_health_record.history IS '既往病史';
+COMMENT ON COLUMN pat_health_record.diagnosis IS '诊断信息';
+COMMENT ON COLUMN pat_health_record.remark IS '备注';
 COMMENT ON COLUMN pat_health_record.create_time IS '创建时间';
 COMMENT ON COLUMN pat_health_record.update_time IS '更新时间';
 COMMENT ON COLUMN pat_health_record.create_by IS '创建人编号';
 COMMENT ON COLUMN pat_health_record.update_by IS '更新人编号';
 COMMENT ON COLUMN pat_health_record.deleted IS '逻辑删除标识';
 
-INSERT INTO pat_patient (id, tenant_id, user_id, name, patient_name, gender, age, phone, risk_level, last_visit)
+INSERT INTO pat_patient (id, tenant_id, user_id, name, patient_name, gender, age, phone, risk_level, id_card, birthday, address, last_visit)
 VALUES
-    (1, 100, 1, '赵晓岚', '赵晓岚', '女', 34, '13900001111', '中风险', '2026-06-11'),
-    (2, 100, 2, '沈博远', '沈博远', '男', 58, '13900002222', '高风险', '2026-06-10')
+    (1, 100, 1, '赵晓岚', '赵晓岚', '女', 34, '13900001111', '中风险', '110101199201010011', '1992-01-01', '杭州市西湖区', '2026-06-11'),
+    (2, 100, 2, '沈博远', '沈博远', '男', 58, '13900002222', '高风险', '110101196801010022', '1968-01-01', '杭州市滨江区', '2026-06-10')
 ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
                                name = EXCLUDED.name,
                                patient_name = EXCLUDED.patient_name,
@@ -1220,12 +1234,15 @@ ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
                                age = EXCLUDED.age,
                                phone = EXCLUDED.phone,
                                risk_level = EXCLUDED.risk_level,
+                               id_card = EXCLUDED.id_card,
+                               birthday = EXCLUDED.birthday,
+                               address = EXCLUDED.address,
                                last_visit = EXCLUDED.last_visit;
 
-INSERT INTO pat_health_record (id, tenant_id, patient_id, title, summary)
+INSERT INTO pat_health_record (id, tenant_id, patient_id, title, summary, allergies, history, diagnosis, remark)
 VALUES
-    (1, 100, 1, '发热问诊', '儿童发热 12 小时，已线上问诊'),
-    (2, 100, 2, '复诊续方', '慢病用药复诊记录')
+    (1, 100, 1, '发热问诊', '儿童发热 12 小时，已线上问诊', '青霉素过敏', '无特殊既往史', '上呼吸道感染待观察', '演示健康档案'),
+    (2, 100, 2, '复诊续方', '慢病用药复诊记录', '无', '高血压慢病管理', '血压控制稳定', '演示健康档案')
 ON CONFLICT DO NOTHING;
 
 SELECT setval(pg_get_serial_sequence('pat_health_record', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM pat_health_record), 1), true);

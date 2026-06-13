@@ -1,47 +1,43 @@
 package com.hlw.patient.controller;
 
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.jdbc.DemoDataQuery;
-import com.hlw.patient.service.PatientHealthRecordService;
-import com.hlw.patient.service.PatientProfile;
-import com.hlw.patient.service.PatientProfileService;
-import com.hlw.patient.service.UpdatePatientProfileCommand;
+import com.hlw.patient.dto.CreateHealthRecordRequest;
+import com.hlw.patient.dto.CreatePatientRequest;
+import com.hlw.patient.dto.UpdatePatientProfileRequest;
+import com.hlw.patient.service.PatientTenantContextService;
+import com.hlw.patient.vo.HealthRecordVO;
+import com.hlw.patient.vo.PatientProfileVO;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
+/**
+ * 患者档案控制器。
+ */
 @RestController
 @RequestMapping("/patient")
 public class PatientProfileController {
     private static final Logger log = LoggerFactory.getLogger(PatientProfileController.class);
 
-    private final PatientProfileService patientProfileService;
-    private final PatientHealthRecordService patientHealthRecordService;
-    private final DemoDataQuery demoDataQuery;
+    private final PatientTenantContextService patientTenantContextService;
 
     /**
      * 构造患者档案控制器。
      *
-     * @param patientProfileService 患者档案服务
-     * @param patientHealthRecordService 患者健康档案服务
-     * @param demoDataQuery 演示数据查询器
+     * @param patientTenantContextService 患者管理服务
      */
-    public PatientProfileController(
-        PatientProfileService patientProfileService,
-        PatientHealthRecordService patientHealthRecordService,
-        DemoDataQuery demoDataQuery
-    ) {
-        this.patientProfileService = patientProfileService;
-        this.patientHealthRecordService = patientHealthRecordService;
-        this.demoDataQuery = demoDataQuery;
+    public PatientProfileController(PatientTenantContextService patientTenantContextService) {
+        this.patientTenantContextService = patientTenantContextService;
     }
 
     /**
@@ -50,9 +46,9 @@ public class PatientProfileController {
      * @return 患者档案
      */
     @GetMapping("/profile")
-    public R<PatientProfile> profile() {
+    public R<PatientProfileVO> profile() {
         log.info("查询当前患者档案");
-        return R.ok(patientProfileService.findProfile(1L));
+        return R.ok(patientTenantContextService.getCurrentProfile());
     }
 
     /**
@@ -61,59 +57,74 @@ public class PatientProfileController {
      * @return 患者列表
      */
     @GetMapping("/patients")
-    public R<List<Map<String, Object>>> patients() {
-        log.info("查询患者列表");
-        return R.ok(demoDataQuery.list("患者列表", """
-            SELECT id::text AS key,
-                   patient_name AS "patientName",
-                   gender AS gender,
-                   age AS age,
-                   risk_level AS "riskLevel",
-                   phone AS phone,
-                   to_char(last_visit, 'YYYY-MM-DD') AS "lastVisit"
-            FROM pat_patient
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+    public R<List<PatientProfileVO>> patients() {
+        return R.ok(patientTenantContextService.listPatients());
+    }
+
+    /**
+     * 查询患者详情。
+     *
+     * @param id 患者编号
+     * @return 患者详情
+     */
+    @GetMapping("/patients/{id}")
+    public R<PatientProfileVO> patientDetail(@PathVariable Long id) {
+        return R.ok(patientTenantContextService.getPatient(id));
+    }
+
+    /**
+     * 创建患者档案。
+     *
+     * @param request 创建患者请求
+     * @return 患者详情
+     */
+    @PostMapping("/patients")
+    public R<PatientProfileVO> createPatient(@Valid @RequestBody CreatePatientRequest request) {
+        return R.ok(patientTenantContextService.createPatient(request));
     }
 
     /**
      * 更新当前患者档案。
      *
-     * @param command 更新命令
+     * @param request 更新命令
      * @return 患者档案
      */
     @PutMapping("/profile")
-    public R<PatientProfile> updateProfile(@RequestBody UpdatePatientProfileCommand command) {
-        return R.ok(patientProfileService.updateProfile(1L, command));
+    public R<PatientProfileVO> updateProfile(@Valid @RequestBody UpdatePatientProfileRequest request) {
+        return R.ok(patientTenantContextService.updateCurrentProfile(request));
     }
 
     /**
-     * 查询健康档案演示列表。
+     * 更新患者档案。
      *
+     * @param id 患者编号
+     * @param request 更新患者资料请求
+     * @return 患者详情
+     */
+    @PutMapping("/patients/{id}")
+    public R<PatientProfileVO> updatePatient(@PathVariable Long id, @Valid @RequestBody UpdatePatientProfileRequest request) {
+        return R.ok(patientTenantContextService.updatePatient(id, request));
+    }
+
+    /**
+     * 查询健康档案列表。
+     *
+     * @param patientId 患者编号
      * @return 健康档案列表
      */
     @GetMapping("/health-records")
-    public R<List<Map<String, Object>>> healthRecords() {
-        log.info("查询健康档案列表");
-        return R.ok(demoDataQuery.list("健康档案列表", """
-            SELECT id AS id,
-                   title AS title,
-                   summary AS summary
-            FROM pat_health_record
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+    public R<List<HealthRecordVO>> healthRecords(@RequestParam(required = false) Long patientId) {
+        return R.ok(patientTenantContextService.listHealthRecords(patientId));
     }
 
     /**
      * 创建健康档案。
      *
-     * @param command 创建命令
+     * @param request 创建命令
      * @return 创建结果
      */
     @PostMapping("/health-records")
-    public R<Map<String, Object>> createHealthRecord(@RequestBody Map<String, Object> command) {
-        return R.ok(patientHealthRecordService.createHealthRecord(command));
+    public R<HealthRecordVO> createHealthRecord(@Valid @RequestBody CreateHealthRecordRequest request) {
+        return R.ok(patientTenantContextService.createHealthRecord(request));
     }
 }
