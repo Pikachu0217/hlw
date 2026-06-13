@@ -275,12 +275,16 @@ ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS doctor_id BIGINT NOT NULL D
 ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS department_id BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS schedule_id BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS appointment_type VARCHAR(32) NOT NULL DEFAULT '普通门诊';
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS number_source_id BIGINT;
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS fee_amount DECIMAL(10, 2) NOT NULL DEFAULT 0;
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS pay_time TIMESTAMP;
+ALTER TABLE apt_appointment ADD COLUMN IF NOT EXISTS check_in_time TIMESTAMP;
 ALTER TABLE apt_appointment ALTER COLUMN patient_id SET DEFAULT 0;
 ALTER TABLE apt_appointment ALTER COLUMN doctor_id SET DEFAULT 0;
 ALTER TABLE apt_appointment ALTER COLUMN department_id SET DEFAULT 0;
 ALTER TABLE apt_appointment ALTER COLUMN schedule_id SET DEFAULT 0;
 ALTER TABLE apt_appointment ALTER COLUMN appointment_type SET DEFAULT '普通门诊';
-ALTER TABLE apt_appointment ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待就诊' ELSE status::text END;
+ALTER TABLE apt_appointment ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN '待支付' WHEN status::text = '1' THEN '已支付' WHEN status::text = '2' THEN '已签到' WHEN status::text = '3' THEN '已完成' WHEN status::text = '4' THEN '已取消' ELSE status::text END;
 
 COMMENT ON TABLE apt_appointment IS '预约单表';
 COMMENT ON COLUMN apt_appointment.id IS '主键编号';
@@ -289,6 +293,7 @@ COMMENT ON COLUMN apt_appointment.patient_id IS '患者编号';
 COMMENT ON COLUMN apt_appointment.doctor_id IS '医生编号';
 COMMENT ON COLUMN apt_appointment.department_id IS '科室编号';
 COMMENT ON COLUMN apt_appointment.schedule_id IS '排班编号';
+COMMENT ON COLUMN apt_appointment.number_source_id IS '号源编号';
 COMMENT ON COLUMN apt_appointment.appointment_type IS '预约类型';
 COMMENT ON COLUMN apt_appointment.appointment_no IS '预约单号';
 COMMENT ON COLUMN apt_appointment.patient_name IS '患者姓名';
@@ -296,6 +301,9 @@ COMMENT ON COLUMN apt_appointment.doctor_name IS '医生姓名';
 COMMENT ON COLUMN apt_appointment.clinic_time IS '就诊时间';
 COMMENT ON COLUMN apt_appointment.source IS '预约来源';
 COMMENT ON COLUMN apt_appointment.status IS '预约状态';
+COMMENT ON COLUMN apt_appointment.fee_amount IS '预约费用';
+COMMENT ON COLUMN apt_appointment.pay_time IS '支付时间';
+COMMENT ON COLUMN apt_appointment.check_in_time IS '签到时间';
 COMMENT ON COLUMN apt_appointment.create_time IS '创建时间';
 COMMENT ON COLUMN apt_appointment.update_time IS '更新时间';
 COMMENT ON COLUMN apt_appointment.create_by IS '创建人编号';
@@ -1181,7 +1189,8 @@ CREATE TABLE IF NOT EXISTS apt_number_source (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
-ALTER TABLE apt_number_source ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN 'AVAILABLE' ELSE status::text END;
+ALTER TABLE apt_number_source ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '0' THEN 'AVAILABLE' WHEN status::text = '1' THEN 'LOCKED' WHEN status::text = '2' THEN 'USED' WHEN status::text = '3' THEN 'RELEASED' ELSE status::text END;
+ALTER TABLE apt_number_source ADD COLUMN IF NOT EXISTS lock_time TIMESTAMP;
 
 COMMENT ON TABLE apt_number_source IS '预约号源表';
 COMMENT ON COLUMN apt_number_source.id IS '主键编号';
@@ -1189,33 +1198,64 @@ COMMENT ON COLUMN apt_number_source.tenant_id IS '租户编号';
 COMMENT ON COLUMN apt_number_source.schedule_id IS '排班编号';
 COMMENT ON COLUMN apt_number_source.number_seq IS '号源序号';
 COMMENT ON COLUMN apt_number_source.status IS '号源状态';
+COMMENT ON COLUMN apt_number_source.lock_time IS '锁定时间';
 COMMENT ON COLUMN apt_number_source.create_time IS '创建时间';
 COMMENT ON COLUMN apt_number_source.update_time IS '更新时间';
 COMMENT ON COLUMN apt_number_source.create_by IS '创建人编号';
 COMMENT ON COLUMN apt_number_source.update_by IS '更新人编号';
 COMMENT ON COLUMN apt_number_source.deleted IS '逻辑删除标识';
 
+CREATE TABLE IF NOT EXISTS apt_number_source_release_config (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    schedule_id BIGINT NOT NULL,
+    release_time TIMESTAMP NOT NULL,
+    release_count INT NOT NULL DEFAULT 0,
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE apt_number_source_release_config ADD COLUMN IF NOT EXISTS release_count INT NOT NULL DEFAULT 0;
+ALTER TABLE apt_number_source_release_config ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT '启用';
+ALTER TABLE apt_number_source_release_config ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' WHEN status::text = '2' THEN '已完成' ELSE status::text END;
+
+COMMENT ON TABLE apt_number_source_release_config IS '放号配置表';
+COMMENT ON COLUMN apt_number_source_release_config.id IS '主键编号';
+COMMENT ON COLUMN apt_number_source_release_config.tenant_id IS '租户编号';
+COMMENT ON COLUMN apt_number_source_release_config.schedule_id IS '排班编号';
+COMMENT ON COLUMN apt_number_source_release_config.release_time IS '放号时间';
+COMMENT ON COLUMN apt_number_source_release_config.release_count IS '放号数量';
+COMMENT ON COLUMN apt_number_source_release_config.status IS '配置状态';
+COMMENT ON COLUMN apt_number_source_release_config.create_time IS '创建时间';
+COMMENT ON COLUMN apt_number_source_release_config.update_time IS '更新时间';
+COMMENT ON COLUMN apt_number_source_release_config.create_by IS '创建人编号';
+COMMENT ON COLUMN apt_number_source_release_config.update_by IS '更新人编号';
+COMMENT ON COLUMN apt_number_source_release_config.deleted IS '逻辑删除标识';
+
 INSERT INTO apt_appointment (id, tenant_id, patient_id, doctor_id, department_id, schedule_id, appointment_type, appointment_no, patient_name, doctor_name, clinic_time, source, status)
 VALUES
-    (1, 100, 1, 1, 10, 1, '普通门诊', 'YY20260612001', '赵晓岚', '陈知衡', '2026-06-13 14:00', '小程序', '待就诊'),
+    (1, 100, 1, 1, 10, 1, '普通门诊', 'YY20260612001', '赵晓岚', '陈知衡', '2026-06-13 14:00', '小程序', '待支付'),
     (2, 100, 2, 2, 20, 2, '普通门诊', 'YY20260612002', '沈博远', '顾清和', '2026-06-13 15:30', '客服代约', '已签到')
-ON CONFLICT (id) DO UPDATE SET patient_id = EXCLUDED.patient_id,
-                               doctor_id = EXCLUDED.doctor_id,
-                               department_id = EXCLUDED.department_id,
-                               schedule_id = EXCLUDED.schedule_id,
-                               appointment_type = EXCLUDED.appointment_type,
-                               appointment_no = EXCLUDED.appointment_no,
-                               patient_name = EXCLUDED.patient_name,
-                               doctor_name = EXCLUDED.doctor_name,
-                               clinic_time = EXCLUDED.clinic_time,
-                               source = EXCLUDED.source,
-                               status = EXCLUDED.status;
+ON CONFLICT DO NOTHING;
 
 INSERT INTO apt_number_source (id, tenant_id, schedule_id, number_seq, status)
 VALUES
     (1, 100, 1, 1, 'AVAILABLE'),
     (2, 100, 1, 2, 'AVAILABLE')
 ON CONFLICT DO NOTHING;
+
+INSERT INTO apt_number_source_release_config (id, tenant_id, schedule_id, release_time, release_count, status)
+VALUES
+    (1, 100, 1, '2026-06-13 08:00:00', 10, '启用')
+ON CONFLICT DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('apt_appointment', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM apt_appointment), 1), true);
+SELECT setval(pg_get_serial_sequence('apt_number_source', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM apt_number_source), 1), true);
+SELECT setval(pg_get_serial_sequence('apt_number_source_release_config', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM apt_number_source_release_config), 1), true);
 
 \connect hospital_consult;
 

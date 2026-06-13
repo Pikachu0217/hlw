@@ -36,6 +36,37 @@ export interface CreateDrugPayload {
   unit?: string;
 }
 
+export interface CreateAppointmentPayload {
+  patientId?: number;
+  doctorId?: number;
+  departmentId?: number;
+  scheduleId?: number;
+  patientName?: string;
+  doctorName?: string;
+  timeSlot?: string;
+  source?: string;
+  appointmentType?: string;
+  feeAmount?: number;
+}
+
+export interface GrabAppointmentPayload {
+  doctorId: number;
+}
+
+export interface CreateReleaseConfigPayload {
+  scheduleId: number;
+  releaseAt: string;
+  releaseCount?: number;
+  status?: string;
+}
+
+export interface NumberSourceRecord {
+  id: number;
+  scheduleId: number;
+  numberSeq: number;
+  status: string;
+}
+
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
 async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
   console.info(`[admin-module] 查询${moduleName}列表`, url);
@@ -108,6 +139,53 @@ export function fetchConsults(): Promise<ConsultRecord[]> {
 // 查询预约单列表。
 export function fetchAppointments(): Promise<AppointmentRecord[]> {
   return fetchModuleRecords<AppointmentRecord>('/appointment/appointments', '预约单');
+}
+
+// 创建预约单。
+export async function createAppointment(payload: CreateAppointmentPayload): Promise<AppointmentRecord> {
+  console.info('[admin-module] 创建预约单', payload);
+  const response = await apiClient.post<ApiResult<AppointmentRecord>>('/appointment/appointments', payload);
+  return response.data.data;
+}
+
+// 支付预约单。
+export async function payAppointment(id: string): Promise<AppointmentRecord> {
+  console.info('[admin-module] 支付预约单', id);
+  const response = await apiClient.post<ApiResult<AppointmentRecord>>(`/appointment/appointments/${id}/pay`);
+  return response.data.data;
+}
+
+// 预约签到。
+export async function checkInAppointment(id: string): Promise<AppointmentRecord> {
+  console.info('[admin-module] 预约签到', id);
+  const response = await apiClient.post<ApiResult<AppointmentRecord>>(`/appointment/appointments/${id}/check-in`);
+  return response.data.data;
+}
+
+// 抢便民门诊预约单。
+export async function grabAppointment(id: string, payload: GrabAppointmentPayload): Promise<boolean> {
+  console.info('[admin-module] 抢预约单', id, payload);
+  const response = await apiClient.post<ApiResult<boolean>>(`/appointment/appointments/${id}/grab`, payload);
+  return response.data.data;
+}
+
+// 查询号源列表。
+export function fetchNumberSources(): Promise<NumberSourceRecord[]> {
+  return fetchModuleRecords<NumberSourceRecord>('/appointment/number-sources', '号源');
+}
+
+// 锁定号源。
+export async function lockNumberSource(scheduleId: number): Promise<NumberSourceRecord> {
+  console.info('[admin-module] 锁定号源', scheduleId);
+  const response = await apiClient.post<ApiResult<NumberSourceRecord>>(`/appointment/number-sources/${scheduleId}/lock`);
+  return response.data.data;
+}
+
+// 创建放号配置。
+export async function createReleaseConfig(payload: CreateReleaseConfigPayload): Promise<CreateReleaseConfigPayload & { id: number }> {
+  console.info('[admin-module] 创建放号配置', payload);
+  const response = await apiClient.post<ApiResult<CreateReleaseConfigPayload & { id: number }>>('/appointment/release-configs', payload);
+  return response.data.data;
 }
 
 // 查询处方列表。

@@ -403,6 +403,8 @@ POST /appointment/number-sources/{scheduleId}/lock
 POST /appointment/release-configs
 ```
 
+预约管理已接入 `apt_appointment`、`apt_number_source` 和 `apt_number_source_release_config` 表，创建预约会锁定可用号源并写入预约单，支付、签到、号源锁定和放号配置均改为数据库状态变更。
+
 Task 8 引入以下接口路径：
 
 ```http

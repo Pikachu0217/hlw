@@ -286,6 +286,44 @@ body {
   width: 100%;
 }
 
+.appointment-side-card {
+  height: 100%;
+}
+
+.appointment-side-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.appointment-side-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.appointment-side-card__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(15, 143, 168, 0.08);
+}
+
+.appointment-side-card__metric span {
+  color: #648194;
+  font-size: 12px;
+}
+
+.appointment-side-card__metric strong {
+  color: #113856;
+  font-size: 26px;
+  line-height: 1;
+}
+
 .doctor-name-cell {
   display: flex;
   flex-direction: column;

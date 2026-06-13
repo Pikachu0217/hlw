@@ -1,10 +1,8 @@
 package com.hlw.appointment.controller;
 
-import com.hlw.appointment.service.Appointment;
-import com.hlw.appointment.service.GrabAppointmentService;
+import com.hlw.appointment.service.AppointmentWorkflowService;
 import com.hlw.appointment.service.NumberSource;
 import com.hlw.appointment.service.NumberSourceStatus;
-import com.hlw.appointment.service.NumberSourceService;
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.jdbc.DemoDataQuery;
 import org.slf4j.Logger;
@@ -24,24 +22,20 @@ import java.util.Map;
 public class AppointmentController {
     private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
 
-    private final NumberSourceService numberSourceService;
-    private final GrabAppointmentService grabAppointmentService;
+    private final AppointmentWorkflowService appointmentWorkflowService;
     private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造预约控制器。
      *
-     * @param numberSourceService 号源服务
-     * @param grabAppointmentService 抢单服务
+     * @param appointmentWorkflowService 预约工作流服务
      * @param demoDataQuery 演示数据查询器
      */
     public AppointmentController(
-        NumberSourceService numberSourceService,
-        GrabAppointmentService grabAppointmentService,
+        AppointmentWorkflowService appointmentWorkflowService,
         DemoDataQuery demoDataQuery
     ) {
-        this.numberSourceService = numberSourceService;
-        this.grabAppointmentService = grabAppointmentService;
+        this.appointmentWorkflowService = appointmentWorkflowService;
         this.demoDataQuery = demoDataQuery;
     }
 
@@ -103,12 +97,7 @@ public class AppointmentController {
      */
     @PostMapping("/appointments")
     public R<Map<String, Object>> createAppointment(@RequestBody Map<String, Object> command) {
-        return R.ok(Map.of(
-            "id", 1L,
-            "appointmentNo", "YY20260612001",
-            "status", "PENDING_PAY",
-            "doctorName", command.getOrDefault("doctorName", "陈知衡")
-        ));
+        return R.ok(appointmentWorkflowService.createAppointment(command));
     }
 
     /**
@@ -119,7 +108,7 @@ public class AppointmentController {
      */
     @PostMapping("/appointments/{id}/pay")
     public R<Map<String, Object>> pay(@PathVariable Long id) {
-        return R.ok(Map.of("id", id, "status", "PAID"));
+        return R.ok(appointmentWorkflowService.pay(id));
     }
 
     /**
@@ -130,7 +119,7 @@ public class AppointmentController {
      */
     @PostMapping("/appointments/{id}/check-in")
     public R<Map<String, Object>> checkIn(@PathVariable Long id) {
-        return R.ok(Map.of("id", id, "status", "CHECKED_IN"));
+        return R.ok(appointmentWorkflowService.checkIn(id));
     }
 
     /**
@@ -142,7 +131,7 @@ public class AppointmentController {
      */
     @PostMapping("/appointments/{id}/grab")
     public R<Boolean> grab(@PathVariable Long id, @RequestBody Map<String, Long> command) {
-        return R.ok(grabAppointmentService.grab(id, command.get("doctorId")));
+        return R.ok(appointmentWorkflowService.grab(id, command.get("doctorId")));
     }
 
     /**
@@ -153,7 +142,7 @@ public class AppointmentController {
      */
     @PostMapping("/number-sources/{scheduleId}/lock")
     public R<NumberSource> lockNumberSource(@PathVariable Long scheduleId) {
-        return R.ok(numberSourceService.lockOne(scheduleId));
+        return R.ok(appointmentWorkflowService.lockNumberSource(scheduleId));
     }
 
     /**
@@ -164,6 +153,6 @@ public class AppointmentController {
      */
     @PostMapping("/release-configs")
     public R<Map<String, Object>> createReleaseConfig(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(appointmentWorkflowService.createReleaseConfig(command));
     }
 }

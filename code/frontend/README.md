@@ -144,3 +144,5 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 科室管理页面已接入新增科室弹窗，提交后调用 `POST /doctor/departments` 并刷新列表；弹窗样式同样收口在 `src/styles/global.css`。
 
 药品库存页面已接入新增药品弹窗，提交后调用 `POST /drug/drugs` 并刷新列表；接口业务失败会由 `apiClient` 统一转成前端错误提示。
+
+预约管理页面已接入预约单创建、预约支付、预约签到、便民门诊抢单、号源锁定和放号配置弹窗；预约列表与号源池均来自真实接口，页面样式统一收口在 `src/styles/global.css`。
