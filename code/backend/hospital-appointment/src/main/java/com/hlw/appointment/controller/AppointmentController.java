@@ -1,10 +1,14 @@
 package com.hlw.appointment.controller;
 
+import com.hlw.appointment.dto.CreateAppointmentRequest;
+import com.hlw.appointment.dto.CreateReleaseConfigRequest;
+import com.hlw.appointment.dto.GrabAppointmentRequest;
 import com.hlw.appointment.service.AppointmentWorkflowService;
-import com.hlw.appointment.service.NumberSource;
-import com.hlw.appointment.service.NumberSourceStatus;
+import com.hlw.appointment.vo.AppointmentVO;
+import com.hlw.appointment.vo.NumberSourceVO;
+import com.hlw.appointment.vo.ReleaseConfigVO;
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.jdbc.DemoDataQuery;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,28 +19,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
+/**
+ * 预约管理控制器。
+ */
 @RestController
 @RequestMapping("/appointment")
 public class AppointmentController {
     private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
 
     private final AppointmentWorkflowService appointmentWorkflowService;
-    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造预约控制器。
      *
      * @param appointmentWorkflowService 预约工作流服务
-     * @param demoDataQuery 演示数据查询器
      */
-    public AppointmentController(
-        AppointmentWorkflowService appointmentWorkflowService,
-        DemoDataQuery demoDataQuery
-    ) {
+    public AppointmentController(AppointmentWorkflowService appointmentWorkflowService) {
         this.appointmentWorkflowService = appointmentWorkflowService;
-        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -45,59 +45,31 @@ public class AppointmentController {
      * @return 预约单列表
      */
     @GetMapping("/appointments")
-    public R<List<Map<String, Object>>> appointments() {
+    public R<List<AppointmentVO>> appointments() {
         log.info("查询预约单列表");
-        return R.ok(demoDataQuery.list("预约单列表", """
-            SELECT id::text AS key,
-                   appointment_no AS "appointmentNo",
-                   patient_name AS "patientName",
-                   doctor_name AS "doctorName",
-                   clinic_time AS "clinicTime",
-                   source AS source,
-                   status AS status
-            FROM apt_appointment
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+        return R.ok(appointmentWorkflowService.listAppointments());
     }
 
     /**
-     * 查询号源演示列表。
+     * 查询号源列表。
      *
      * @return 号源列表
      */
     @GetMapping("/number-sources")
-    public R<List<NumberSource>> numberSources() {
+    public R<List<NumberSourceVO>> numberSources() {
         log.info("查询号源列表");
-        List<NumberSource> sources = demoDataQuery.list("号源列表", """
-                SELECT id AS id,
-                       schedule_id AS "scheduleId",
-                       number_seq AS "numberSeq",
-                       status AS status
-                FROM apt_number_source
-                WHERE deleted = 0
-                ORDER BY id
-                """)
-            .stream()
-            .map(row -> new NumberSource(
-                ((Number) row.get("id")).longValue(),
-                ((Number) row.get("scheduleId")).longValue(),
-                ((Number) row.get("numberSeq")).intValue(),
-                NumberSourceStatus.valueOf(String.valueOf(row.get("status")))
-            ))
-            .toList();
-        return R.ok(sources);
+        return R.ok(appointmentWorkflowService.listNumberSources());
     }
 
     /**
      * 创建预约单。
      *
-     * @param command 创建命令
+     * @param request 创建命令
      * @return 创建结果
      */
     @PostMapping("/appointments")
-    public R<Map<String, Object>> createAppointment(@RequestBody Map<String, Object> command) {
-        return R.ok(appointmentWorkflowService.createAppointment(command));
+    public R<AppointmentVO> createAppointment(@Valid @RequestBody CreateAppointmentRequest request) {
+        return R.ok(appointmentWorkflowService.createAppointment(request));
     }
 
     /**
@@ -107,7 +79,7 @@ public class AppointmentController {
      * @return 支付结果
      */
     @PostMapping("/appointments/{id}/pay")
-    public R<Map<String, Object>> pay(@PathVariable Long id) {
+    public R<AppointmentVO> pay(@PathVariable Long id) {
         return R.ok(appointmentWorkflowService.pay(id));
     }
 
@@ -118,7 +90,7 @@ public class AppointmentController {
      * @return 签到结果
      */
     @PostMapping("/appointments/{id}/check-in")
-    public R<Map<String, Object>> checkIn(@PathVariable Long id) {
+    public R<AppointmentVO> checkIn(@PathVariable Long id) {
         return R.ok(appointmentWorkflowService.checkIn(id));
     }
 
@@ -130,8 +102,8 @@ public class AppointmentController {
      * @return 是否抢单成功
      */
     @PostMapping("/appointments/{id}/grab")
-    public R<Boolean> grab(@PathVariable Long id, @RequestBody Map<String, Long> command) {
-        return R.ok(appointmentWorkflowService.grab(id, command.get("doctorId")));
+    public R<Boolean> grab(@PathVariable Long id, @Valid @RequestBody GrabAppointmentRequest request) {
+        return R.ok(appointmentWorkflowService.grab(id, request.getDoctorId()));
     }
 
     /**
@@ -141,18 +113,18 @@ public class AppointmentController {
      * @return 号源
      */
     @PostMapping("/number-sources/{scheduleId}/lock")
-    public R<NumberSource> lockNumberSource(@PathVariable Long scheduleId) {
+    public R<NumberSourceVO> lockNumberSource(@PathVariable Long scheduleId) {
         return R.ok(appointmentWorkflowService.lockNumberSource(scheduleId));
     }
 
     /**
      * 创建放号配置。
      *
-     * @param command 创建命令
+     * @param request 创建命令
      * @return 创建结果
      */
     @PostMapping("/release-configs")
-    public R<Map<String, Object>> createReleaseConfig(@RequestBody Map<String, Object> command) {
-        return R.ok(appointmentWorkflowService.createReleaseConfig(command));
+    public R<ReleaseConfigVO> createReleaseConfig(@Valid @RequestBody CreateReleaseConfigRequest request) {
+        return R.ok(appointmentWorkflowService.createReleaseConfig(request));
     }
 }

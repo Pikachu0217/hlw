@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 /**
  * 预约服务启动入口。
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.hlw")
 public class AppointmentApplication {
     /**
      * 启动预约服务。
