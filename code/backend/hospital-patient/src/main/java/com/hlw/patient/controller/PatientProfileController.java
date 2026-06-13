@@ -2,6 +2,7 @@ package com.hlw.patient.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.jdbc.DemoDataQuery;
+import com.hlw.patient.service.PatientHealthRecordService;
 import com.hlw.patient.service.PatientProfile;
 import com.hlw.patient.service.PatientProfileService;
 import com.hlw.patient.service.UpdatePatientProfileCommand;
@@ -23,16 +24,23 @@ public class PatientProfileController {
     private static final Logger log = LoggerFactory.getLogger(PatientProfileController.class);
 
     private final PatientProfileService patientProfileService;
+    private final PatientHealthRecordService patientHealthRecordService;
     private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造患者档案控制器。
      *
      * @param patientProfileService 患者档案服务
+     * @param patientHealthRecordService 患者健康档案服务
      * @param demoDataQuery 演示数据查询器
      */
-    public PatientProfileController(PatientProfileService patientProfileService, DemoDataQuery demoDataQuery) {
+    public PatientProfileController(
+        PatientProfileService patientProfileService,
+        PatientHealthRecordService patientHealthRecordService,
+        DemoDataQuery demoDataQuery
+    ) {
         this.patientProfileService = patientProfileService;
+        this.patientHealthRecordService = patientHealthRecordService;
         this.demoDataQuery = demoDataQuery;
     }
 
@@ -124,6 +132,6 @@ public class PatientProfileController {
      */
     @PostMapping("/health-records")
     public R<Map<String, Object>> createHealthRecord(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(patientHealthRecordService.createHealthRecord(command));
     }
 }

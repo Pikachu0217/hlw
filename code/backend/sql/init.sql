@@ -1164,6 +1164,8 @@ VALUES
     (2, 100, 2, '复诊续方', '慢病用药复诊记录')
 ON CONFLICT DO NOTHING;
 
+SELECT setval(pg_get_serial_sequence('pat_health_record', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM pat_health_record), 1), true);
+
 \connect hospital_appointment;
 
 CREATE TABLE IF NOT EXISTS apt_number_source (

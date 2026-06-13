@@ -706,6 +706,8 @@ CREATE TABLE IF NOT EXISTS pat_health_record (
     id BIGSERIAL PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     patient_id BIGINT NOT NULL,
+    title VARCHAR(128) NOT NULL DEFAULT '',
+    summary VARCHAR(256) NOT NULL DEFAULT '',
     allergies TEXT,
     history TEXT,
     diagnosis TEXT,
@@ -716,6 +718,58 @@ CREATE TABLE IF NOT EXISTS pat_health_record (
     update_by BIGINT,
     deleted SMALLINT NOT NULL DEFAULT 0
 );
+
+ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS title VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS summary VARCHAR(256) NOT NULL DEFAULT '';
+UPDATE pat_health_record
+SET title = COALESCE(NULLIF(title, ''), '历史健康档案'),
+    summary = COALESCE(NULLIF(summary, ''), COALESCE(NULLIF(diagnosis, ''), NULLIF(history, ''), NULLIF(remark, ''), '历史健康档案'))
+WHERE title = '' OR summary = '';
+
+COMMENT ON TABLE pat_patient IS '患者档案表';
+COMMENT ON COLUMN pat_patient.id IS '主键编号';
+COMMENT ON COLUMN pat_patient.tenant_id IS '租户编号';
+COMMENT ON COLUMN pat_patient.user_id IS '关联用户编号';
+COMMENT ON COLUMN pat_patient.name IS '患者姓名';
+COMMENT ON COLUMN pat_patient.phone IS '联系电话';
+COMMENT ON COLUMN pat_patient.gender IS '患者性别';
+COMMENT ON COLUMN pat_patient.id_card IS '身份证号';
+COMMENT ON COLUMN pat_patient.birthday IS '出生日期';
+COMMENT ON COLUMN pat_patient.address IS '联系地址';
+COMMENT ON COLUMN pat_patient.create_time IS '创建时间';
+COMMENT ON COLUMN pat_patient.update_time IS '更新时间';
+COMMENT ON COLUMN pat_patient.create_by IS '创建人编号';
+COMMENT ON COLUMN pat_patient.update_by IS '更新人编号';
+COMMENT ON COLUMN pat_patient.deleted IS '逻辑删除标识';
+COMMENT ON TABLE pat_health_record IS '健康档案表';
+COMMENT ON COLUMN pat_health_record.id IS '主键编号';
+COMMENT ON COLUMN pat_health_record.tenant_id IS '租户编号';
+COMMENT ON COLUMN pat_health_record.patient_id IS '患者编号';
+COMMENT ON COLUMN pat_health_record.title IS '档案标题';
+COMMENT ON COLUMN pat_health_record.summary IS '档案摘要';
+COMMENT ON COLUMN pat_health_record.allergies IS '过敏史';
+COMMENT ON COLUMN pat_health_record.history IS '既往病史';
+COMMENT ON COLUMN pat_health_record.diagnosis IS '诊断信息';
+COMMENT ON COLUMN pat_health_record.remark IS '备注';
+COMMENT ON COLUMN pat_health_record.create_time IS '创建时间';
+COMMENT ON COLUMN pat_health_record.update_time IS '更新时间';
+COMMENT ON COLUMN pat_health_record.create_by IS '创建人编号';
+COMMENT ON COLUMN pat_health_record.update_by IS '更新人编号';
+COMMENT ON COLUMN pat_health_record.deleted IS '逻辑删除标识';
+
+INSERT INTO pat_patient (id, tenant_id, user_id, name, phone, gender, id_card, birthday, address)
+VALUES
+    (1, 100, 1, '赵晓岚', '13900001111', 2, '110101199201010011', '1992-01-01', '杭州市西湖区'),
+    (2, 100, 2, '沈博远', '13900002222', 1, '110101196801010022', '1968-01-01', '杭州市滨江区')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO pat_health_record (id, tenant_id, patient_id, title, summary, history, diagnosis, remark)
+VALUES
+    (1, 100, 1, '发热问诊', '儿童发热 12 小时，已线上问诊', '无特殊既往史', '上呼吸道感染待观察', '演示健康档案'),
+    (2, 100, 2, '复诊续方', '慢病用药复诊记录', '高血压慢病管理', '血压控制稳定', '演示健康档案')
+ON CONFLICT DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('pat_health_record', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM pat_health_record), 1), true);
 
 CREATE TABLE IF NOT EXISTS local_message (
     id BIGSERIAL PRIMARY KEY,

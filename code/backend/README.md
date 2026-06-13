@@ -389,6 +389,8 @@ GET /patient/health-records
 POST /patient/health-records
 ```
 
+患者健康档案管理已接入 `pat_health_record` 表，`POST /patient/health-records` 会校验患者存在并落库档案标题与摘要，接口脚本默认写入首位患者示例数据。
+
 Task 7 引入以下接口路径：
 
 ```http
