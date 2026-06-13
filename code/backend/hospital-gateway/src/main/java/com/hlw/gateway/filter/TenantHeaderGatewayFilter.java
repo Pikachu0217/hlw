@@ -24,7 +24,6 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
         return tenantId == null ? null : String.valueOf(tenantId);
     }
 
-    @Override
     /**
      * 过滤网关请求并透传租户编号。
      *
@@ -32,6 +31,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      * @param chain 过滤链
      * @return 过滤结果
      */
+    @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String token = exchange.getRequest().getHeaders().getFirst("satoken");
         String tenantHeader = resolveTenantHeader(token);
