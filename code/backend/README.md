@@ -18,7 +18,7 @@
 - `hospital-gateway`：网关租户请求头透传过滤器。
 - `hospital-auth`：登录服务与认证接口骨架。
 - `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单已改造为 MyBatis Plus + DTO/VO 分层实现。
-- `hospital-doctor`：医生、科室、排班接口骨架与挂号费规则。
+- `hospital-doctor`：医生、科室、医生科室绑定、排班和挂号费规则已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-patient`：患者资料、手机号脱敏和健康记录接口骨架。
 - `hospital-appointment`：预约、号源锁定、放号配置和便民门诊抢单骨架。
 - `hospital-consult`：在线问诊生命周期、消息处理、WebSocket 端点和超时调度骨架。
@@ -388,7 +388,7 @@ POST /doctor/schedules
 POST /doctor/appointment-fee/resolve
 ```
 
-医生管理已接入 `doc_doctor`、`doc_department`、`doc_doctor_department` 和 `doc_schedule` 表；医生创建、医生状态变更、医生科室绑定和排班创建均会写入数据库并返回当前业务记录。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
+医生管理已接入 `doc_doctor`、`doc_department`、`doc_doctor_department` 和 `doc_schedule` 表；医生、科室、医生科室绑定和排班接口已统一改造为 DTO/VO + MyBatis Plus 分层实现，医生状态变更与挂号费计算也已完成服务层收口。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
 
 患者与健康档案接口：
 

@@ -5,13 +5,16 @@ import { useState } from 'react';
 
 export interface DoctorRecord {
   key: string;
+  id?: number;
   name: string;
   title: string;
   department: string;
   specialty: string;
   status: string;
+  consultStatus: string;
   schedule: string;
   patientCount: number;
+  consultFee?: string;
 }
 
 interface DoctorListProps {
@@ -36,8 +39,17 @@ function DoctorList({ doctors, onCreateDoctor, onCreateSchedule, onToggleStatus 
     },
     { title: '所属科室', dataIndex: 'department' },
     { title: '擅长方向', dataIndex: 'specialty' },
+    { title: '问诊费用', dataIndex: 'consultFee', render: (value?: string) => (value ? `￥${value}` : '￥0') },
     { title: '今日排班', dataIndex: 'schedule' },
-    { title: '接诊状态', dataIndex: 'status', render: (value: string) => <Tag color={value.includes('停') ? 'default' : 'blue'}>{value}</Tag> },
+    {
+      title: '接诊状态',
+      dataIndex: 'status',
+      render: (value: string, record: DoctorRecord) => (
+        <Tag color={record.consultStatus === 'OFFLINE' ? 'default' : record.consultStatus === 'BUSY' ? 'gold' : 'blue'}>
+          {value}
+        </Tag>
+      ),
+    },
     { title: '今日患者', dataIndex: 'patientCount' },
     {
       title: '操作',
@@ -45,7 +57,7 @@ function DoctorList({ doctors, onCreateDoctor, onCreateSchedule, onToggleStatus 
       render: (_, record) => (
         <Space wrap>
           <Button size="small" onClick={() => onToggleStatus(record)}>
-            {record.status.includes('停') ? '恢复接诊' : '停诊'}
+            {record.consultStatus === 'OFFLINE' ? '恢复接诊' : '停诊'}
           </Button>
           <Button size="small" onClick={() => onCreateSchedule(record)}>
             排班
@@ -57,7 +69,7 @@ function DoctorList({ doctors, onCreateDoctor, onCreateSchedule, onToggleStatus 
 
   const filteredDoctors = keyword.trim()
     ? doctors.filter((doctor) =>
-        `${doctor.name} ${doctor.department} ${doctor.specialty} ${doctor.status}`
+        `${doctor.name} ${doctor.department} ${doctor.specialty} ${doctor.status} ${doctor.consultStatus}`
           .toLowerCase()
           .includes(keyword.trim().toLowerCase()),
       )

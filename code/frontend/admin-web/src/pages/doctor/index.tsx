@@ -66,7 +66,7 @@ function DoctorPage() {
   };
 
   const handleToggleStatus = async (doctor: DoctorRecord) => {
-    const nextStatus = doctor.status.includes('停') ? 'ONLINE' : 'OFFLINE';
+    const nextStatus = doctor.consultStatus === 'OFFLINE' ? 'ONLINE' : 'OFFLINE';
     setSubmitting(true);
     try {
       await updateDoctorStatus(doctor.key, nextStatus);
@@ -115,7 +115,7 @@ function DoctorPage() {
         <Row gutter={[18, 18]}>
           {[
             ['医生总数', String(doctors.length), '来自后端医生接口'],
-            ['接诊医生', String(doctors.filter((doctor) => doctor.status.includes('接诊')).length), '按接诊状态实时统计'],
+            ['接诊医生', String(doctors.filter((doctor) => doctor.consultStatus === 'ONLINE').length), '按接诊状态实时统计'],
             ['今日接诊量', String(doctors.reduce((sum, doctor) => sum + doctor.patientCount, 0)), '汇总当前医生接诊数'],
           ].map(([label, value, hint]) => (
             <Col key={label} xs={24} md={8}>
@@ -164,6 +164,7 @@ function DoctorPage() {
             <Select
               options={[
                 { label: '在线', value: 'ONLINE' },
+                { label: '忙碌', value: 'BUSY' },
                 { label: '离线', value: 'OFFLINE' },
               ]}
             />

@@ -15,8 +15,10 @@ interface BackendDoctor {
   department: string;
   specialty: string;
   status: string;
+  consultStatus: string;
   schedule: string;
   patientCount: number;
+  consultFee: string;
 }
 
 // 查询医生列表，并适配表格 rowKey。
@@ -25,13 +27,16 @@ export async function fetchDoctors(): Promise<DoctorRecord[]> {
   const response = await apiClient.get<ApiResult<BackendDoctor[]>>('/doctor/doctors');
 
   return response.data.data.map((doctor) => ({
+    id: doctor.id,
     key: doctor.key ?? String(doctor.id),
     name: doctor.name,
     title: doctor.title,
     department: doctor.department,
     specialty: doctor.specialty,
     status: doctor.status,
+    consultStatus: doctor.consultStatus,
     schedule: doctor.schedule,
     patientCount: doctor.patientCount,
+    consultFee: doctor.consultFee,
   }));
 }

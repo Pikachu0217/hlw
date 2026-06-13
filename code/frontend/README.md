@@ -31,7 +31,7 @@
 - `drug`
 - `order`
 
-管理端 `tenant` 页面已接入租户新增弹窗；`doctor` 页面已接入新增医生、医生状态切换和医生排班创建操作，提交后会刷新后端列表数据。
+管理端 `tenant` 页面已接入租户新增弹窗；`doctor` 页面已接入新增医生、医生状态切换和医生排班创建操作，`doctor/departments` 页面已接入新增科室弹窗，提交后会刷新后端列表数据。
 
 `patient-h5` 当前已覆盖以下页面骨架：
 
@@ -143,7 +143,7 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 
 系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。用户、角色、菜单、字典、岗位、权限码页面均已接入新增弹窗；提交后调用对应 `POST /system/*` 接口并刷新列表。
 
-科室管理页面已接入新增科室弹窗，提交后调用 `POST /doctor/departments` 并刷新列表；弹窗样式同样收口在 `src/styles/global.css`。
+科室管理页面已接入新增科室弹窗，提交后调用 `POST /doctor/departments` 并刷新列表；医生管理页面已接入 `GET /doctor/doctors`、`POST /doctor/doctors`、`PUT /doctor/doctors/{id}/status` 和 `POST /doctor/schedules`，医生列表与排班弹窗继续复用统一样式；弹窗样式同样收口在 `src/styles/global.css`。
 
 药品库存页面已接入新增药品弹窗，提交后调用 `POST /drug/drugs` 并刷新列表；接口业务失败会由 `apiClient` 统一转成前端错误提示。
 
