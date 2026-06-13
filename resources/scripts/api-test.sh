@@ -494,6 +494,17 @@ run_all_cases() {
   run_case "查询后台用户列表" "GET" "/system/users"
   run_case "查询角色列表" "GET" "/system/roles"
   run_case "查询菜单列表" "GET" "/system/menus"
+  run_case "查询字典列表" "GET" "/system/dicts"
+  run_case "创建字典项" "POST" "/system/dicts" "{\"dictType\":\"api_test\",\"dictLabel\":\"接口测试\",\"dictValue\":\"API_TEST\",\"sort\":99,\"remark\":\"脚本自动创建\"}"
+  run_case "查询参数配置列表" "GET" "/system/configs"
+  run_case "更新参数配置" "PUT" "/system/configs/1" "{\"configValue\":\"30\",\"remark\":\"接口测试更新\"}"
+  run_case "查询岗位列表" "GET" "/system/posts"
+  run_case "创建岗位" "POST" "/system/posts" "{\"postName\":\"接口测试岗\",\"postCode\":\"API_TEST_POST\",\"sort\":99,\"remark\":\"脚本自动创建\"}"
+  run_case "查询权限码列表" "GET" "/system/permissions"
+  run_case "查询用户角色授权" "GET" "/system/user-roles"
+  run_case "绑定用户角色" "POST" "/system/user-roles" "{\"userId\":1,\"roleId\":1}"
+  run_case "查询角色菜单授权" "GET" "/system/role-menus"
+  run_case "绑定角色菜单" "POST" "/system/role-menus" "{\"roleId\":1,\"menuId\":1}"
 
   # 患者端首页与档案接口。
   run_case "查询当前患者档案" "GET" "/patient/profile"

@@ -2,10 +2,15 @@ import { apiClient } from '@/api/client';
 import type { AppointmentRecord } from '@/pages/appointment';
 import type { ConsultRecord } from '@/pages/consult';
 import type { DrugRecord } from '@/pages/drug';
+import type { DepartmentRecord } from '@/pages/doctor/departments';
 import type { OrderRecord } from '@/pages/order';
 import type { PatientRecord } from '@/pages/patient';
 import type { PrescriptionRecord } from '@/pages/prescription';
+import type { ConfigRecord } from '@/pages/system/configs';
+import type { DictRecord } from '@/pages/system/dicts';
 import type { MenuRecord } from '@/pages/system/menus';
+import type { PermissionRecord } from '@/pages/system/permissions';
+import type { PostRecord } from '@/pages/system/posts';
 import type { RoleRecord } from '@/pages/system/roles';
 import type { UserRecord } from '@/pages/system/users';
 import type { TenantRecord } from '@/pages/tenant';
@@ -41,6 +46,31 @@ export function fetchRoles(): Promise<RoleRecord[]> {
 // 查询菜单列表。
 export function fetchMenus(): Promise<MenuRecord[]> {
   return fetchModuleRecords<MenuRecord>('/system/menus', '菜单');
+}
+
+// 查询字典列表。
+export function fetchDicts(): Promise<DictRecord[]> {
+  return fetchModuleRecords<DictRecord>('/system/dicts', '字典');
+}
+
+// 查询系统参数配置列表。
+export function fetchConfigs(): Promise<ConfigRecord[]> {
+  return fetchModuleRecords<ConfigRecord>('/system/configs', '参数配置');
+}
+
+// 查询岗位列表。
+export function fetchPosts(): Promise<PostRecord[]> {
+  return fetchModuleRecords<PostRecord>('/system/posts', '岗位');
+}
+
+// 查询权限码列表。
+export function fetchPermissions(): Promise<PermissionRecord[]> {
+  return fetchModuleRecords<PermissionRecord>('/system/permissions', '权限码');
+}
+
+// 查询科室列表。
+export function fetchDepartments(): Promise<DepartmentRecord[]> {
+  return fetchModuleRecords<DepartmentRecord>('/doctor/departments', '科室');
 }
 
 // 查询患者列表。

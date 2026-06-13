@@ -18,7 +18,12 @@
 - `system/users`
 - `system/roles`
 - `system/menus`
+- `system/dicts`
+- `system/configs`
+- `system/posts`
+- `system/permissions`
 - `doctor`
+- `doctor/departments`
 - `patient`
 - `consult`
 - `appointment`
@@ -74,15 +79,15 @@ pnpm test
 
 ```bash
 cd /Users/pakachuzy/Desktop/zzz/project/hlw
-./scripts/service.sh
-./scripts/service.sh start
-./scripts/service.sh stop
-./scripts/service.sh restart
-./scripts/service.sh status
-./scripts/service.sh logs
+./resources/scripts/service.sh
+./resources/scripts/service.sh start
+./resources/scripts/service.sh stop
+./resources/scripts/service.sh restart
+./resources/scripts/service.sh status
+./resources/scripts/service.sh logs
 ```
 
-直接执行 `./scripts/service.sh` 会进入交互式菜单：
+直接执行 `./resources/scripts/service.sh` 会进入交互式菜单：
 
 ```text
 1 前端
@@ -96,14 +101,14 @@ cd /Users/pakachuzy/Desktop/zzz/project/hlw
 
 ```bash
 cd /Users/pakachuzy/Desktop/zzz/project/hlw
-SKIP_BACKEND=1 ./scripts/service.sh start
+SKIP_BACKEND=1 ./resources/scripts/service.sh start
 ```
 
 如需只启动指定前端应用：
 
 ```bash
 cd /Users/pakachuzy/Desktop/zzz/project/hlw
-FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./scripts/service.sh start
+FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 ```
 
 脚本默认启动：
@@ -120,3 +125,18 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./scripts/service.sh start
 - 新增页面时同步更新对应应用的页面说明。
 - 新增共享请求层、状态管理或路由约定时同步补充本文档。
 - 如接入真实后端接口、鉴权流程或 WebSocket 地址，需补充环境变量和联调说明。
+
+## 管理端接口接入
+
+`admin-web` 的系统管理列表接口集中在 `src/api/modules.ts`，当前已接入：
+
+- `/system/users`
+- `/system/roles`
+- `/system/menus`
+- `/system/dicts`
+- `/system/configs`
+- `/system/posts`
+- `/system/permissions`
+- `/doctor/departments`
+
+系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。

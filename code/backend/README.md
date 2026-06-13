@@ -17,7 +17,7 @@
 
 - `hospital-gateway`：网关租户请求头透传过滤器。
 - `hospital-auth`：登录服务与认证接口骨架。
-- `hospital-system`：租户、角色、菜单接口骨架。
+- `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单接口骨架。
 - `hospital-doctor`：医生、科室、排班接口骨架与挂号费规则。
 - `hospital-patient`：患者资料、手机号脱敏和健康记录接口骨架。
 - `hospital-appointment`：预约、号源锁定、放号配置和便民门诊抢单骨架。
@@ -106,6 +106,21 @@ psql -U postgres -f sql/init.sql
 
 每个服务库包含本服务业务表，并包含一张 `local_message` 表，用于本地队列兜底。
 
+`hospital_system` 当前已补齐基础管理表：
+
+- `sys_user`：后台用户展示与管理基础表。
+- `sys_role`：角色与数据范围基础表。
+- `sys_menu`：菜单、路由和权限标识基础表。
+- `sys_dict`：字典类型和字典项。
+- `sys_config`：系统参数配置。
+- `sys_post`：岗位基础资料。
+- `sys_user_post`：用户岗位关系。
+- `sys_permission`：权限码清单。
+- `sys_user_role`：用户角色关系。
+- `sys_role_menu`：角色菜单关系。
+
+`resources/sql/init.sql` 保留更完整的领域设计基线，`code/backend/sql/init.sql` 是当前本地联调使用脚本；后续新增字段、表或演示数据时需要同步维护两处口径，并为每个字段补充 `COMMENT ON COLUMN`。
+
 ## 构建与测试
 
 你可以按需自行执行以下命令。当前仓库协作约束下，代理默认不会主动执行这些编译或测试命令。
@@ -186,15 +201,15 @@ mvn -pl hospital-prescription,hospital-drug,hospital-order -am test
 
 ```bash
 cd /Users/pakachuzy/Desktop/zzz/project/hlw
-./scripts/service.sh
-./scripts/service.sh start
-./scripts/service.sh stop
-./scripts/service.sh restart
-./scripts/service.sh status
-./scripts/service.sh logs
+./resources/scripts/service.sh
+./resources/scripts/service.sh start
+./resources/scripts/service.sh stop
+./resources/scripts/service.sh restart
+./resources/scripts/service.sh status
+./resources/scripts/service.sh logs
 ```
 
-直接执行 `./scripts/service.sh` 会进入交互式菜单：
+直接执行 `./resources/scripts/service.sh` 会进入交互式菜单：
 
 ```text
 1 前端
@@ -225,19 +240,19 @@ mvn spring-boot:run -Dspring-boot.run.profiles=local
 
 ```bash
 cd /Users/pakachuzy/Desktop/zzz/project/hlw
-BACKEND_MODULES="hospital-gateway hospital-auth" SKIP_FRONTEND=1 ./scripts/service.sh start
+BACKEND_MODULES="hospital-gateway hospital-auth" SKIP_FRONTEND=1 ./resources/scripts/service.sh start
 ```
 
 如需指定 Spring Profile：
 
 ```bash
 cd /Users/pakachuzy/Desktop/zzz/project/hlw
-SPRING_PROFILES_ACTIVE=prod SKIP_FRONTEND=1 ./scripts/service.sh start
+SPRING_PROFILES_ACTIVE=prod SKIP_FRONTEND=1 ./resources/scripts/service.sh start
 ```
 
 脚本运行时会在仓库根目录生成 `.runtime/pids` 和 `.runtime/logs`，分别保存进程 pid 与服务日志。脚本只负责项目进程启停，不会自动启动 PostgreSQL、Redis、Nacos、RabbitMQ、MinIO 等本地中间件。
 
-当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 以及各业务服务模块已具备接口骨架，但尚未全部补齐完整联调能力。后续模块启动方式、端口、依赖或环境变量发生变化时，需要同步更新本文档和 `scripts/service.sh`。
+当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 以及各业务服务模块已具备接口骨架，但尚未全部补齐完整联调能力。后续模块启动方式、端口、依赖或环境变量发生变化时，需要同步更新本文档和 `resources/scripts/service.sh`。
 
 ## 日志配置
 
@@ -331,6 +346,22 @@ GET /system/tenants
 POST /system/tenants
 GET /system/roles
 GET /system/menus
+```
+
+系统基础管理补齐引入以下接口路径：
+
+```http
+GET /system/dicts
+POST /system/dicts
+GET /system/configs
+PUT /system/configs/{id}
+GET /system/posts
+POST /system/posts
+GET /system/permissions
+GET /system/user-roles
+POST /system/user-roles
+GET /system/role-menus
+POST /system/role-menus
 ```
 
 Task 5 引入以下接口路径：

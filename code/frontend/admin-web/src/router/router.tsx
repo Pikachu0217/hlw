@@ -7,7 +7,12 @@ import TenantPage from '@/pages/tenant';
 import UsersPage from '@/pages/system/users';
 import RolesPage from '@/pages/system/roles';
 import MenusPage from '@/pages/system/menus';
+import DictsPage from '@/pages/system/dicts';
+import ConfigsPage from '@/pages/system/configs';
+import PostsPage from '@/pages/system/posts';
+import PermissionsPage from '@/pages/system/permissions';
 import DoctorPage from '@/pages/doctor';
+import DepartmentsPage from '@/pages/doctor/departments';
 import PatientPage from '@/pages/patient';
 import ConsultPage from '@/pages/consult';
 import AppointmentPage from '@/pages/appointment';
@@ -31,7 +36,12 @@ export const appRouter = createBrowserRouter([
       { path: 'system/users', element: <UsersPage /> },
       { path: 'system/roles', element: <RolesPage /> },
       { path: 'system/menus', element: <MenusPage /> },
+      { path: 'system/dicts', element: <DictsPage /> },
+      { path: 'system/configs', element: <ConfigsPage /> },
+      { path: 'system/posts', element: <PostsPage /> },
+      { path: 'system/permissions', element: <PermissionsPage /> },
       { path: 'doctor', element: <DoctorPage /> },
+      { path: 'doctor/departments', element: <DepartmentsPage /> },
       { path: 'patient', element: <PatientPage /> },
       { path: 'consult', element: <ConsultPage /> },
       { path: 'appointment', element: <AppointmentPage /> },

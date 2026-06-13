@@ -610,7 +610,210 @@ COMMENT ON COLUMN sys_menu.update_by IS '更新人编号';
 COMMENT ON COLUMN sys_menu.deleted IS '逻辑删除标识';
 
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS menu_type VARCHAR(32) NOT NULL DEFAULT '菜单';
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS parent_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS sort INT NOT NULL DEFAULT 0;
 COMMENT ON COLUMN sys_menu.menu_type IS '菜单类型';
+COMMENT ON COLUMN sys_menu.parent_id IS '父级菜单编号';
+COMMENT ON COLUMN sys_menu.sort IS '菜单排序';
+
+CREATE TABLE IF NOT EXISTS sys_dict (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    dict_type VARCHAR(64) NOT NULL,
+    dict_label VARCHAR(128) NOT NULL,
+    dict_value VARCHAR(128) NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    sort INT NOT NULL DEFAULT 0,
+    remark VARCHAR(512),
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE sys_dict ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
+ALTER TABLE sys_dict ADD COLUMN IF NOT EXISTS remark VARCHAR(512);
+
+COMMENT ON TABLE sys_dict IS '系统字典表';
+COMMENT ON COLUMN sys_dict.id IS '主键编号';
+COMMENT ON COLUMN sys_dict.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_dict.dict_type IS '字典类型';
+COMMENT ON COLUMN sys_dict.dict_label IS '字典标签';
+COMMENT ON COLUMN sys_dict.dict_value IS '字典键值';
+COMMENT ON COLUMN sys_dict.status IS '字典状态';
+COMMENT ON COLUMN sys_dict.sort IS '显示排序';
+COMMENT ON COLUMN sys_dict.remark IS '备注';
+COMMENT ON COLUMN sys_dict.create_time IS '创建时间';
+COMMENT ON COLUMN sys_dict.update_time IS '更新时间';
+COMMENT ON COLUMN sys_dict.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_dict.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_dict.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS sys_config (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    config_key VARCHAR(128) NOT NULL,
+    config_value TEXT,
+    config_type VARCHAR(64) NOT NULL DEFAULT '业务参数',
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    remark VARCHAR(512),
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+ALTER TABLE sys_config ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT '启用';
+ALTER TABLE sys_config ALTER COLUMN config_type SET DEFAULT '业务参数';
+
+COMMENT ON TABLE sys_config IS '系统参数配置表';
+COMMENT ON COLUMN sys_config.id IS '主键编号';
+COMMENT ON COLUMN sys_config.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_config.config_key IS '配置键';
+COMMENT ON COLUMN sys_config.config_value IS '配置值';
+COMMENT ON COLUMN sys_config.config_type IS '配置类型';
+COMMENT ON COLUMN sys_config.status IS '配置状态';
+COMMENT ON COLUMN sys_config.remark IS '备注';
+COMMENT ON COLUMN sys_config.create_time IS '创建时间';
+COMMENT ON COLUMN sys_config.update_time IS '更新时间';
+COMMENT ON COLUMN sys_config.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_config.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_config.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS sys_post (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    post_name VARCHAR(64) NOT NULL,
+    post_code VARCHAR(64) NOT NULL,
+    sort INT NOT NULL DEFAULT 0,
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    remark VARCHAR(512),
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE sys_post IS '系统岗位表';
+COMMENT ON COLUMN sys_post.id IS '主键编号';
+COMMENT ON COLUMN sys_post.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_post.post_name IS '岗位名称';
+COMMENT ON COLUMN sys_post.post_code IS '岗位编码';
+COMMENT ON COLUMN sys_post.sort IS '显示排序';
+COMMENT ON COLUMN sys_post.status IS '岗位状态';
+COMMENT ON COLUMN sys_post.remark IS '备注';
+COMMENT ON COLUMN sys_post.create_time IS '创建时间';
+COMMENT ON COLUMN sys_post.update_time IS '更新时间';
+COMMENT ON COLUMN sys_post.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_post.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_post.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS sys_user_post (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    post_id BIGINT NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE sys_user_post IS '用户岗位关联表';
+COMMENT ON COLUMN sys_user_post.id IS '主键编号';
+COMMENT ON COLUMN sys_user_post.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_user_post.user_id IS '用户编号';
+COMMENT ON COLUMN sys_user_post.post_id IS '岗位编号';
+COMMENT ON COLUMN sys_user_post.status IS '关联状态';
+COMMENT ON COLUMN sys_user_post.create_time IS '创建时间';
+COMMENT ON COLUMN sys_user_post.update_time IS '更新时间';
+COMMENT ON COLUMN sys_user_post.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_user_post.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_user_post.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS sys_permission (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    permission_name VARCHAR(64) NOT NULL,
+    permission_code VARCHAR(128) NOT NULL,
+    resource_type VARCHAR(32) NOT NULL,
+    menu_id BIGINT,
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE sys_permission IS '系统权限码表';
+COMMENT ON COLUMN sys_permission.id IS '主键编号';
+COMMENT ON COLUMN sys_permission.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_permission.permission_name IS '权限名称';
+COMMENT ON COLUMN sys_permission.permission_code IS '权限编码';
+COMMENT ON COLUMN sys_permission.resource_type IS '资源类型';
+COMMENT ON COLUMN sys_permission.menu_id IS '关联菜单编号';
+COMMENT ON COLUMN sys_permission.status IS '权限状态';
+COMMENT ON COLUMN sys_permission.create_time IS '创建时间';
+COMMENT ON COLUMN sys_permission.update_time IS '更新时间';
+COMMENT ON COLUMN sys_permission.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_permission.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_permission.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS sys_user_role (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE sys_user_role IS '用户角色关联表';
+COMMENT ON COLUMN sys_user_role.id IS '主键编号';
+COMMENT ON COLUMN sys_user_role.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_user_role.user_id IS '用户编号';
+COMMENT ON COLUMN sys_user_role.role_id IS '角色编号';
+COMMENT ON COLUMN sys_user_role.status IS '关联状态';
+COMMENT ON COLUMN sys_user_role.create_time IS '创建时间';
+COMMENT ON COLUMN sys_user_role.update_time IS '更新时间';
+COMMENT ON COLUMN sys_user_role.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_user_role.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_user_role.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS sys_role_menu (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    role_id BIGINT NOT NULL,
+    menu_id BIGINT NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+COMMENT ON TABLE sys_role_menu IS '角色菜单关联表';
+COMMENT ON COLUMN sys_role_menu.id IS '主键编号';
+COMMENT ON COLUMN sys_role_menu.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_role_menu.role_id IS '角色编号';
+COMMENT ON COLUMN sys_role_menu.menu_id IS '菜单编号';
+COMMENT ON COLUMN sys_role_menu.status IS '关联状态';
+COMMENT ON COLUMN sys_role_menu.create_time IS '创建时间';
+COMMENT ON COLUMN sys_role_menu.update_time IS '更新时间';
+COMMENT ON COLUMN sys_role_menu.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_role_menu.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_role_menu.deleted IS '逻辑删除标识';
 
 INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_name, role_name, last_login, status)
 VALUES
@@ -627,8 +830,101 @@ ON CONFLICT DO NOTHING;
 INSERT INTO sys_menu (id, tenant_id, menu_name, menu_type, permission, route_path, status)
 VALUES
     (1, 100, '工作台', '菜单', 'dashboard:view', '/dashboard', '启用'),
-    (2, 100, '医生管理', '菜单', 'doctor:list', '/doctor', '启用')
-ON CONFLICT DO NOTHING;
+    (2, 100, '医生管理', '菜单', 'doctor:list', '/doctor', '启用'),
+    (3, 100, '用户管理', '菜单', 'system:user:list', '/system/users', '启用'),
+    (4, 100, '角色管理', '菜单', 'system:role:list', '/system/roles', '启用'),
+    (5, 100, '菜单管理', '菜单', 'system:menu:list', '/system/menus', '启用'),
+    (6, 100, '字典管理', '菜单', 'system:dict:list', '/system/dicts', '启用'),
+    (7, 100, '参数配置', '菜单', 'system:config:list', '/system/configs', '启用'),
+    (8, 100, '岗位管理', '菜单', 'system:post:list', '/system/posts', '启用'),
+    (9, 100, '权限管理', '菜单', 'system:permission:list', '/system/permissions', '启用'),
+    (10, 100, '科室管理', '菜单', 'doctor:department:list', '/doctor/departments', '启用')
+ON CONFLICT (id) DO UPDATE SET menu_name = EXCLUDED.menu_name,
+                               menu_type = EXCLUDED.menu_type,
+                               permission = EXCLUDED.permission,
+                               route_path = EXCLUDED.route_path,
+                               status = EXCLUDED.status;
+
+INSERT INTO sys_dict (id, tenant_id, dict_type, dict_label, dict_value, sort, status, remark)
+VALUES
+    (1, 100, 'account_status', '启用', '启用', 1, '启用', '后台账号可登录'),
+    (2, 100, 'account_status', '停用', '停用', 2, '启用', '后台账号禁止登录'),
+    (3, 100, 'menu_type', '目录', '目录', 1, '启用', '菜单目录节点'),
+    (4, 100, 'menu_type', '菜单', '菜单', 2, '启用', '可访问页面菜单'),
+    (5, 100, 'menu_type', '按钮', '按钮', 3, '启用', '页面按钮权限')
+ON CONFLICT (id) DO UPDATE SET dict_type = EXCLUDED.dict_type,
+                               dict_label = EXCLUDED.dict_label,
+                               dict_value = EXCLUDED.dict_value,
+                               sort = EXCLUDED.sort,
+                               status = EXCLUDED.status,
+                               remark = EXCLUDED.remark;
+
+INSERT INTO sys_config (id, tenant_id, config_key, config_value, config_type, status, remark)
+VALUES
+    (1, 100, 'consult.default_duration_minutes', '30', '问诊配置', '启用', '默认问诊时长'),
+    (2, 100, 'appointment.release_window_minutes', '15', '预约配置', '启用', '放号提前窗口'),
+    (3, 100, 'security.password_expire_days', '90', '安全配置', '启用', '密码过期天数')
+ON CONFLICT (id) DO UPDATE SET config_key = EXCLUDED.config_key,
+                               config_value = EXCLUDED.config_value,
+                               config_type = EXCLUDED.config_type,
+                               status = EXCLUDED.status,
+                               remark = EXCLUDED.remark;
+
+INSERT INTO sys_post (id, tenant_id, post_name, post_code, sort, status, remark)
+VALUES
+    (1, 100, '运营管理员', 'OPERATIONS_ADMIN', 1, '启用', '负责平台日常运营'),
+    (2, 100, '药房主管', 'PHARMACY_MANAGER', 2, '启用', '负责药品库存和发药'),
+    (3, 100, '客服专员', 'SERVICE_AGENT', 3, '启用', '负责患者咨询和预约协助')
+ON CONFLICT (id) DO UPDATE SET post_name = EXCLUDED.post_name,
+                               post_code = EXCLUDED.post_code,
+                               sort = EXCLUDED.sort,
+                               status = EXCLUDED.status,
+                               remark = EXCLUDED.remark;
+
+INSERT INTO sys_user_post (id, tenant_id, user_id, post_id, status)
+VALUES
+    (1, 100, 1, 1, '启用'),
+    (2, 100, 2, 2, '启用')
+ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
+                               post_id = EXCLUDED.post_id,
+                               status = EXCLUDED.status;
+
+INSERT INTO sys_permission (id, tenant_id, permission_name, permission_code, resource_type, menu_id, status)
+VALUES
+    (1, 100, '查看用户', 'system:user:list', '菜单', 3, '启用'),
+    (2, 100, '维护角色', 'system:role:edit', '按钮', 4, '启用'),
+    (3, 100, '维护菜单', 'system:menu:edit', '按钮', 5, '启用'),
+    (4, 100, '维护字典', 'system:dict:edit', '按钮', 6, '启用'),
+    (5, 100, '维护岗位', 'system:post:edit', '按钮', 8, '启用')
+ON CONFLICT (id) DO UPDATE SET permission_name = EXCLUDED.permission_name,
+                               permission_code = EXCLUDED.permission_code,
+                               resource_type = EXCLUDED.resource_type,
+                               menu_id = EXCLUDED.menu_id,
+                               status = EXCLUDED.status;
+
+INSERT INTO sys_user_role (id, tenant_id, user_id, role_id, status)
+VALUES
+    (1, 100, 1, 1, '启用'),
+    (2, 100, 2, 2, '启用')
+ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
+                               role_id = EXCLUDED.role_id,
+                               status = EXCLUDED.status;
+
+INSERT INTO sys_role_menu (id, tenant_id, role_id, menu_id, status)
+VALUES
+    (1, 100, 1, 1, '启用'),
+    (2, 100, 1, 3, '启用'),
+    (3, 100, 1, 4, '启用'),
+    (4, 100, 1, 5, '启用'),
+    (5, 100, 1, 6, '启用'),
+    (6, 100, 1, 7, '启用'),
+    (7, 100, 1, 8, '启用'),
+    (8, 100, 1, 9, '启用'),
+    (9, 100, 2, 1, '启用'),
+    (10, 100, 2, 3, '启用')
+ON CONFLICT (id) DO UPDATE SET role_id = EXCLUDED.role_id,
+                               menu_id = EXCLUDED.menu_id,
+                               status = EXCLUDED.status;
 
 \connect hospital_auth;
 

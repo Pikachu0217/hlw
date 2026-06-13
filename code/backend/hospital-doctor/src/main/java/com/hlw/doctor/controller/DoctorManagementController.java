@@ -45,6 +45,7 @@ public class DoctorManagementController {
         log.info("查询科室列表");
         return R.ok(demoDataQuery.list("科室列表", """
             SELECT id AS id,
+                   id::text AS key,
                    department_name AS name,
                    doctor_count AS "doctorCount",
                    queue_desc AS queue
