@@ -17,7 +17,7 @@
 
 - `hospital-gateway`：网关租户请求头透传过滤器。
 - `hospital-auth`：登录服务与认证接口骨架。
-- `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单接口骨架。
+- `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-doctor`：医生、科室、排班接口骨架与挂号费规则。
 - `hospital-patient`：患者资料、手机号脱敏和健康记录接口骨架。
 - `hospital-appointment`：预约、号源锁定、放号配置和便民门诊抢单骨架。
@@ -60,7 +60,7 @@ code/backend/
 └── hospital-order/
 ```
 
-后端业务模块骨架已覆盖 PRD 中的核心服务，当前阶段重点转向前端工作台、联调接入、可启动配置、持久化实现和网关路由完善。
+后端业务模块骨架已覆盖 PRD 中的核心服务，当前阶段重点转向前端工作台、联调接入、可启动配置、持久化实现和网关路由完善。当前 `hospital-system` 已完成首轮标准分层改造，可作为其他业务模块迁移 `JdbcOperations + Map` 到 `MyBatis Plus + DTO/VO` 的参考样板。
 
 ## 本地中间件
 
@@ -118,6 +118,14 @@ psql -U postgres -f sql/init.sql
 - `sys_permission`：权限码清单。
 - `sys_user_role`：用户角色关系。
 - `sys_role_menu`：角色菜单关系。
+
+`hospital-system` 当前约定补充如下：
+
+- 控制器统一仅接收 DTO、执行参数校验、调用 Service 并返回 `R`。
+- Service 统一负责系统管理业务编排、关系绑定校验和 VO 转换。
+- Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再在系统模块中保留 `JdbcOperations` 直查实现。
+- 系统服务会优先基于 `satoken` 解析租户上下文，只有缺少令牌时才读取正数 `X-Tenant-Id` 请求头；无法识别租户时会进入隔离上下文，不再默认落到平台租户。
+- 涉及平台级租户主数据的查询与创建，会在 Service 中显式忽略租户行过滤，并且仅允许平台令牌上下文访问。
 
 `resources/sql/init.sql` 保留更完整的领域设计基线，`code/backend/sql/init.sql` 是当前本地联调使用脚本；后续新增字段、表或演示数据时需要同步维护两处口径，并为每个字段补充 `COMMENT ON COLUMN`。
 

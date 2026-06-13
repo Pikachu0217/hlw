@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class MybatisPlusTenantConfig {
+    private static final long ISOLATED_TENANT_ID = -1L;
+
     /**
      * 创建 MyBatis Plus 租户拦截器。
      *
@@ -31,7 +33,7 @@ public class MybatisPlusTenantConfig {
         @Override
         public Expression getTenantId() {
             Long tenantId = TenantContext.getTenantId();
-            return new LongValue(tenantId == null ? 0L : tenantId);
+            return new LongValue(tenantId == null ? ISOLATED_TENANT_ID : tenantId);
         }
 
         /**

@@ -1,8 +1,29 @@
 package com.hlw.system.controller;
 
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.jdbc.DemoDataQuery;
-import com.hlw.system.service.SystemCatalogService;
+import com.hlw.system.dto.BindRoleMenuRequest;
+import com.hlw.system.dto.BindUserRoleRequest;
+import com.hlw.system.dto.CreateDictRequest;
+import com.hlw.system.dto.CreateMenuRequest;
+import com.hlw.system.dto.CreatePermissionRequest;
+import com.hlw.system.dto.CreatePostRequest;
+import com.hlw.system.dto.CreateRoleRequest;
+import com.hlw.system.dto.CreateTenantRequest;
+import com.hlw.system.dto.CreateUserRequest;
+import com.hlw.system.dto.UpdateConfigRequest;
+import com.hlw.system.service.SystemTenantContextService;
+import com.hlw.system.vo.ConfigVO;
+import com.hlw.system.vo.DictVO;
+import com.hlw.system.vo.MenuVO;
+import com.hlw.system.vo.PermissionVO;
+import com.hlw.system.vo.PostVO;
+import com.hlw.system.vo.RelationBindingVO;
+import com.hlw.system.vo.RoleMenuVO;
+import com.hlw.system.vo.RoleVO;
+import com.hlw.system.vo.TenantVO;
+import com.hlw.system.vo.UserRoleVO;
+import com.hlw.system.vo.UserVO;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,25 +35,24 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
+/**
+ * 系统管理控制器。
+ */
 @RestController
 @RequestMapping("/system")
 public class SystemManagementController {
     private static final Logger log = LoggerFactory.getLogger(SystemManagementController.class);
 
-    private final DemoDataQuery demoDataQuery;
-    private final SystemCatalogService systemCatalogService;
+    private final SystemTenantContextService systemTenantContextService;
 
     /**
      * 构造系统管理控制器。
      *
-     * @param demoDataQuery 演示数据查询器
-     * @param systemCatalogService 系统基础管理服务
+     * @param systemTenantContextService 系统管理服务
      */
-    public SystemManagementController(DemoDataQuery demoDataQuery, SystemCatalogService systemCatalogService) {
-        this.demoDataQuery = demoDataQuery;
-        this.systemCatalogService = systemCatalogService;
+    public SystemManagementController(SystemTenantContextService systemTenantContextService) {
+        this.systemTenantContextService = systemTenantContextService;
     }
 
     /**
@@ -41,29 +61,20 @@ public class SystemManagementController {
      * @return 租户列表
      */
     @GetMapping("/tenants")
-    public R<List<Map<String, Object>>> tenants() {
+    public R<List<TenantVO>> tenants() {
         log.info("查询租户列表");
-        return R.ok(demoDataQuery.list("租户列表", """
-            SELECT id::text AS key,
-                   tenant_name AS "tenantName",
-                   package_name AS "packageName",
-                   admin_name AS "adminName",
-                   to_char(expire_at, 'YYYY-MM-DD') AS "expireAt",
-                   status AS status
-            FROM sys_tenant
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+        return R.ok(systemTenantContextService.listTenants());
     }
 
     /**
      * 创建租户。
      *
+     * @param request 创建租户请求
      * @return 创建结果
      */
     @PostMapping("/tenants")
-    public R<Map<String, Object>> createTenant(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.createTenant(command));
+    public R<TenantVO> createTenant(@Valid @RequestBody CreateTenantRequest request) {
+        return R.ok(systemTenantContextService.createTenant(request));
     }
 
     /**
@@ -72,19 +83,19 @@ public class SystemManagementController {
      * @return 后台用户列表
      */
     @GetMapping("/users")
-    public R<List<Map<String, Object>>> users() {
-        return R.ok(systemCatalogService.listUsers());
+    public R<List<UserVO>> users() {
+        return R.ok(systemTenantContextService.listUsers());
     }
 
     /**
      * 创建后台用户。
      *
-     * @param command 用户创建命令
+     * @param request 用户创建命令
      * @return 创建后的用户
      */
     @PostMapping("/users")
-    public R<Map<String, Object>> createUser(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.createUser(command));
+    public R<UserVO> createUser(@Valid @RequestBody CreateUserRequest request) {
+        return R.ok(systemTenantContextService.createUser(request));
     }
 
     /**
@@ -93,19 +104,19 @@ public class SystemManagementController {
      * @return 角色列表
      */
     @GetMapping("/roles")
-    public R<List<Map<String, Object>>> roles() {
-        return R.ok(systemCatalogService.listRoles());
+    public R<List<RoleVO>> roles() {
+        return R.ok(systemTenantContextService.listRoles());
     }
 
     /**
      * 创建角色。
      *
-     * @param command 角色创建命令
+     * @param request 角色创建命令
      * @return 创建后的角色
      */
     @PostMapping("/roles")
-    public R<Map<String, Object>> createRole(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.createRole(command));
+    public R<RoleVO> createRole(@Valid @RequestBody CreateRoleRequest request) {
+        return R.ok(systemTenantContextService.createRole(request));
     }
 
     /**
@@ -114,19 +125,19 @@ public class SystemManagementController {
      * @return 菜单列表
      */
     @GetMapping("/menus")
-    public R<List<Map<String, Object>>> menus() {
-        return R.ok(systemCatalogService.listMenus());
+    public R<List<MenuVO>> menus() {
+        return R.ok(systemTenantContextService.listMenus());
     }
 
     /**
      * 创建菜单。
      *
-     * @param command 菜单创建命令
+     * @param request 菜单创建命令
      * @return 创建后的菜单
      */
     @PostMapping("/menus")
-    public R<Map<String, Object>> createMenu(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.createMenu(command));
+    public R<MenuVO> createMenu(@Valid @RequestBody CreateMenuRequest request) {
+        return R.ok(systemTenantContextService.createMenu(request));
     }
 
     /**
@@ -135,19 +146,19 @@ public class SystemManagementController {
      * @return 字典列表
      */
     @GetMapping("/dicts")
-    public R<List<Map<String, Object>>> dicts() {
-        return R.ok(systemCatalogService.listDicts());
+    public R<List<DictVO>> dicts() {
+        return R.ok(systemTenantContextService.listDicts());
     }
 
     /**
      * 创建字典项。
      *
-     * @param command 字典创建命令
+     * @param request 字典创建命令
      * @return 创建后的字典项
      */
     @PostMapping("/dicts")
-    public R<Map<String, Object>> createDict(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.createDict(command));
+    public R<DictVO> createDict(@Valid @RequestBody CreateDictRequest request) {
+        return R.ok(systemTenantContextService.createDict(request));
     }
 
     /**
@@ -156,20 +167,20 @@ public class SystemManagementController {
      * @return 系统参数配置列表
      */
     @GetMapping("/configs")
-    public R<List<Map<String, Object>>> configs() {
-        return R.ok(systemCatalogService.listConfigs());
+    public R<List<ConfigVO>> configs() {
+        return R.ok(systemTenantContextService.listConfigs());
     }
 
     /**
      * 更新系统参数配置。
      *
      * @param id 配置编号
-     * @param command 配置更新命令
+     * @param request 配置更新命令
      * @return 更新后的配置
      */
     @PutMapping("/configs/{id}")
-    public R<Map<String, Object>> updateConfig(@PathVariable Long id, @RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.updateConfig(id, command));
+    public R<ConfigVO> updateConfig(@PathVariable Long id, @Valid @RequestBody UpdateConfigRequest request) {
+        return R.ok(systemTenantContextService.updateConfig(id, request));
     }
 
     /**
@@ -178,19 +189,19 @@ public class SystemManagementController {
      * @return 岗位列表
      */
     @GetMapping("/posts")
-    public R<List<Map<String, Object>>> posts() {
-        return R.ok(systemCatalogService.listPosts());
+    public R<List<PostVO>> posts() {
+        return R.ok(systemTenantContextService.listPosts());
     }
 
     /**
      * 创建岗位。
      *
-     * @param command 岗位创建命令
+     * @param request 岗位创建命令
      * @return 创建后的岗位
      */
     @PostMapping("/posts")
-    public R<Map<String, Object>> createPost(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.createPost(command));
+    public R<PostVO> createPost(@Valid @RequestBody CreatePostRequest request) {
+        return R.ok(systemTenantContextService.createPost(request));
     }
 
     /**
@@ -199,19 +210,19 @@ public class SystemManagementController {
      * @return 权限码列表
      */
     @GetMapping("/permissions")
-    public R<List<Map<String, Object>>> permissions() {
-        return R.ok(systemCatalogService.listPermissions());
+    public R<List<PermissionVO>> permissions() {
+        return R.ok(systemTenantContextService.listPermissions());
     }
 
     /**
      * 创建权限码。
      *
-     * @param command 权限创建命令
+     * @param request 权限创建命令
      * @return 创建后的权限码
      */
     @PostMapping("/permissions")
-    public R<Map<String, Object>> createPermission(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.createPermission(command));
+    public R<PermissionVO> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
+        return R.ok(systemTenantContextService.createPermission(request));
     }
 
     /**
@@ -220,19 +231,19 @@ public class SystemManagementController {
      * @return 用户角色授权列表
      */
     @GetMapping("/user-roles")
-    public R<List<Map<String, Object>>> userRoles() {
-        return R.ok(systemCatalogService.listUserRoles());
+    public R<List<UserRoleVO>> userRoles() {
+        return R.ok(systemTenantContextService.listUserRoles());
     }
 
     /**
      * 绑定用户角色。
      *
-     * @param command 用户角色绑定命令
+     * @param request 用户角色绑定命令
      * @return 绑定结果
      */
     @PostMapping("/user-roles")
-    public R<Map<String, Object>> bindUserRole(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.bindUserRole(command));
+    public R<RelationBindingVO> bindUserRole(@Valid @RequestBody BindUserRoleRequest request) {
+        return R.ok(systemTenantContextService.bindUserRole(request));
     }
 
     /**
@@ -241,18 +252,18 @@ public class SystemManagementController {
      * @return 角色菜单授权列表
      */
     @GetMapping("/role-menus")
-    public R<List<Map<String, Object>>> roleMenus() {
-        return R.ok(systemCatalogService.listRoleMenus());
+    public R<List<RoleMenuVO>> roleMenus() {
+        return R.ok(systemTenantContextService.listRoleMenus());
     }
 
     /**
      * 绑定角色菜单。
      *
-     * @param command 角色菜单绑定命令
+     * @param request 角色菜单绑定命令
      * @return 绑定结果
      */
     @PostMapping("/role-menus")
-    public R<Map<String, Object>> bindRoleMenu(@RequestBody Map<String, Object> command) {
-        return R.ok(systemCatalogService.bindRoleMenu(command));
+    public R<RelationBindingVO> bindRoleMenu(@Valid @RequestBody BindRoleMenuRequest request) {
+        return R.ok(systemTenantContextService.bindRoleMenu(request));
     }
 }

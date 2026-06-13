@@ -3,6 +3,7 @@ import {
   clearAuthSnapshot,
   emitAuthExpiredEvent,
   readSaToken,
+  readTenantId,
 } from '@/utils/auth-storage';
 
 export const apiClient = axios.create({
@@ -10,18 +11,30 @@ export const apiClient = axios.create({
   timeout: 15000,
 });
 
+/**
+ * 注册请求拦截器，统一注入登录令牌与租户请求头。
+ */
 apiClient.interceptors.request.use((config) => {
   const token = readSaToken();
+  const tenantId = readTenantId();
 
   if (token) {
     config.headers = AxiosHeaders.from(config.headers);
     config.headers.set('satoken', token);
   }
 
+  if (tenantId > 0) {
+    config.headers = AxiosHeaders.from(config.headers);
+    config.headers.set('X-Tenant-Id', String(tenantId));
+  }
+
   console.info('[api] 发起请求', config.method?.toUpperCase(), config.url);
   return config;
 });
 
+/**
+ * 注册响应拦截器，统一处理业务异常与登录态失效。
+ */
 apiClient.interceptors.response.use(
   (response) => {
     const payload = response.data as { code?: number; message?: string } | undefined;

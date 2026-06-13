@@ -21,6 +21,7 @@ export interface AdminLoginSnapshot {
   token: string;
   displayName: string;
   roleName: string;
+  tenantId: number;
 }
 
 const roleNameMap: Record<string, string> = {
@@ -30,7 +31,12 @@ const roleNameMap: Record<string, string> = {
   PATIENT: '患者',
 };
 
-// 登录接口返回后端令牌，并转换成管理端鉴权快照。
+/**
+ * 调用后台登录接口并转换管理端登录快照。
+ *
+ * @param payload 登录参数
+ * @return 登录快照
+ */
 export async function loginAdmin(payload: LoginPayload): Promise<AdminLoginSnapshot> {
   console.info('[auth] 请求后端登录接口', payload.username);
   const response = await apiClient.post<ApiResult<LoginResponse>>('/auth/login', payload);
@@ -40,5 +46,6 @@ export async function loginAdmin(payload: LoginPayload): Promise<AdminLoginSnaps
     token: result.token,
     displayName: payload.username,
     roleName: roleNameMap[result.userType] ?? result.userType,
+    tenantId: result.tenantId,
   };
 }
