@@ -76,7 +76,11 @@ function ModulePage<T extends { key: string }>({
               placeholder={searchPlaceholder}
               className="console-card__search"
             />
-            <Button type="primary" onClick={onCreate}>新增</Button>
+            {onCreate ? (
+              <Button type="primary" onClick={onCreate}>
+                新增
+              </Button>
+            ) : null}
             <Button>批量导出</Button>
             <Tag color="blue">当前 {filteredData.length} 条</Tag>
           </Space>
