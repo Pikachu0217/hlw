@@ -336,7 +336,7 @@ PRD 规划端口：
 
 ## 当前接口范围
 
-Task 4 引入以下接口路径：
+认证与系统管理接口：
 
 ```http
 POST /auth/login
@@ -350,13 +350,6 @@ GET /system/roles
 POST /system/roles
 GET /system/menus
 POST /system/menus
-```
-
-认证资料接口已从登录令牌解析用户编号和租户编号，并回查 `sys_user` 返回登录用户资料；租户创建接口已接入 `sys_tenant`，会校验租户名称、套餐名称、管理员和到期日期后写入租户表。用户、角色和菜单新增接口已接入 `sys_user`、`sys_role`、`sys_menu`，用于支撑基础账号和菜单配置闭环。
-
-系统基础管理补齐引入以下接口路径：
-
-```http
 GET /system/dicts
 POST /system/dicts
 GET /system/configs
@@ -371,9 +364,9 @@ GET /system/role-menus
 POST /system/role-menus
 ```
 
-权限码新增接口已接入 `sys_permission`，会校验关联菜单存在；用户角色和角色菜单绑定接口继续写入 `sys_user_role`、`sys_role_menu`。
+认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_role`、`sys_menu`、`sys_dict`、`sys_config`、`sys_post`、`sys_permission`、`sys_user_role` 和 `sys_role_menu` 表；租户、用户、角色、菜单、字典、岗位、权限码新增接口均会进行基础参数校验后落库，用户角色和角色菜单绑定接口会校验关联数据并写入授权关系。
 
-Task 5 引入以下接口路径：
+医生、科室与排班接口：
 
 ```http
 GET /doctor/departments
@@ -387,11 +380,9 @@ POST /doctor/schedules
 POST /doctor/appointment-fee/resolve
 ```
 
-医生管理已接入 `doc_doctor`、`doc_department`、`doc_doctor_department` 和 `doc_schedule` 表，医生创建、医生状态变更、医生科室绑定和排班创建均会写入数据库并返回当前业务记录。
+医生管理已接入 `doc_doctor`、`doc_department`、`doc_doctor_department` 和 `doc_schedule` 表；医生创建、医生状态变更、医生科室绑定和排班创建均会写入数据库并返回当前业务记录。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
 
-医生科室管理已接入 `doc_department` 和 `doc_doctor_department` 表，`POST /doctor/departments` 会写入科室基础资料，`POST /doctor/doctors/{id}/departments` 会校验医生与科室是否存在并幂等创建关联关系。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
-
-Task 6 引入以下接口路径：
+患者与健康档案接口：
 
 ```http
 GET /patient/profile
@@ -401,13 +392,12 @@ GET /patient/health-records
 POST /patient/health-records
 ```
 
-患者基础档案已接入 `pat_patient` 表，`GET /patient/profile` 和 `PUT /patient/profile` 均读取或更新首位患者示例档案，并保持手机号脱敏返回。
+患者基础档案已接入 `pat_patient` 表，`GET /patient/profile` 和 `PUT /patient/profile` 均读取或更新首位患者示例档案，并保持手机号脱敏返回。患者健康档案管理已接入 `pat_health_record` 表，`POST /patient/health-records` 会校验患者存在并落库档案标题与摘要。
 
-患者健康档案管理已接入 `pat_health_record` 表，`POST /patient/health-records` 会校验患者存在并落库档案标题与摘要，接口脚本默认写入首位患者示例数据。
-
-Task 7 引入以下接口路径：
+预约挂号接口：
 
 ```http
+GET /appointment/appointments
 GET /appointment/number-sources
 POST /appointment/appointments
 POST /appointment/appointments/{id}/pay
@@ -419,82 +409,19 @@ POST /appointment/release-configs
 
 预约管理已接入 `apt_appointment`、`apt_number_source` 和 `apt_number_source_release_config` 表，创建预约会锁定可用号源并写入预约单，支付、签到、号源锁定和放号配置均改为数据库状态变更。
 
-Task 8 引入以下接口路径：
+问诊接口：
 
 ```http
 GET /consult/consults
-POST /consult/consults
-POST /consult/consults/{id}/accept
-POST /consult/consults/{id}/complete
-POST /consult/consults/{id}/timeout-check
-```
-
-Task 9 引入以下接口路径：
-
-```http
-POST /prescription/prescriptions
-POST /prescription/prescriptions/{id}/submit
-POST /prescription/prescriptions/{id}/approve
-POST /prescription/prescriptions/{id}/reject
-GET /drug/drugs
-POST /drug/drugs
-GET /drug/stocks
-POST /drug/stocks
-POST /drug/deliveries/{id}/ship
-POST /order/orders
-POST /order/orders/{id}/pay
-GET /order/orders
-```
-
-药品库存管理已接入 `drug_info`、`drug_stock`、`drug_delivery` 表，`POST /drug/drugs` 会创建药品资料，`POST /drug/stocks` 会校验药品并写入库存记录，`POST /drug/deliveries/{id}/ship` 会更新配送单状态并发送发货事件。
-
-Task 8 引入以下接口路径：
-
-```http
-GET /consult/consults
-POST /consult/consults
-POST /consult/consults/{id}/accept
-POST /consult/consults/{id}/complete
-POST /consult/consults/{id}/timeout-check
-```
-
-Task 9 引入以下接口路径：
-
-```http
-POST /prescription/prescriptions
-POST /prescription/prescriptions/{id}/submit
-POST /prescription/prescriptions/{id}/approve
-POST /prescription/prescriptions/{id}/reject
-GET /drug/drugs
-POST /drug/drugs
-GET /drug/stocks
-POST /drug/stocks
-POST /drug/deliveries/{id}/ship
-POST /order/orders
-POST /order/orders/{id}/pay
-GET /order/orders
-```
-
-预约模块锁 key 约定：
-
-```text
-抢单锁：hlw:grab:appointment:{appointmentId}
-号源锁：hlw:lock:number:{scheduleId}
-```
-
-Task 8 引入以下接口路径：
-
-```http
 POST /consult/consults
 POST /consult/consults/{id}/accept
 POST /consult/consults/{id}/complete
 POST /consult/consults/{id}/extend
 GET /consult/consults/{id}/messages
+WS /ws/consult/{consultId}
 ```
 
-问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。WebSocket 收到的新消息也会写入 `con_message`，`GET /consult/consults/{id}/messages` 统一从数据库读取消息记录。
-
-`con_consult_image` 仅存在于 `resources/sql/init.sql` 的完整 baseline 中，用于后续图文问诊图片附件扩展；当前前后端消息接口尚未提供图片上传地址和图片排序入参，因此暂不启用该表，避免产生无入口的伪业务数据。
+问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。WebSocket 收到的新消息也会写入 `con_message`，`GET /consult/consults/{id}/messages` 统一从数据库读取消息记录。`con_consult_image` 仅存在于 `resources/sql/init.sql` 的完整 baseline 中，用于后续图文问诊图片附件扩展；当前前后端消息接口尚未提供图片上传地址和图片排序入参，因此暂不启用该表，避免产生无入口的伪业务数据。
 
 问诊 WebSocket 地址约定：
 
@@ -509,9 +436,10 @@ IN_PROGRESS 问诊 remaining_seconds <= 0 时标记 TIMEOUT。
 remaining_seconds <= 300 时推送五分钟提醒。
 ```
 
-Task 9 引入以下接口路径：
+处方、药品和订单接口：
 
 ```http
+GET /prescription/prescriptions
 POST /prescription/prescriptions
 POST /prescription/prescriptions/{id}/submit
 POST /prescription/prescriptions/{id}/approve
@@ -528,14 +456,25 @@ GET /order/orders
 
 处方管理已接入 `pre_prescription` 和 `pre_prescription_item` 表，创建处方会写入草稿和药品明细，提交、审核通过、驳回均改为数据库状态变更并保留审核备注。
 
+药品库存管理已接入 `drug_info`、`drug_stock`、`drug_delivery` 表，`POST /drug/drugs` 会创建药品资料，`POST /drug/stocks` 会校验药品并写入库存记录，`POST /drug/deliveries/{id}/ship` 会更新配送单状态并发送发货事件。
+
 订单管理已接入 `ord_order` 表，创建订单会写入待支付订单，支付接口会更新支付状态、支付方式和支付时间，并发布 `order.paid` 事件。
 
-Task 9 事件 topic 约定：
+本地消息与事件 topic 约定：
 
 ```text
 prescription.audited
 order.paid
 drug.shipped
+```
+
+`local_message` 表在每个服务库中作为本地消息兜底表使用。`common-mq` 检测到服务上下文存在 `JdbcOperations` 时会优先写入数据库，否则保留内存实现以支撑单元测试和轻量上下文。
+
+预约模块锁 key 约定：
+
+```text
+抢单锁：hlw:grab:appointment:{appointmentId}
+号源锁：hlw:lock:number:{scheduleId}
 ```
 
 网关租户透传规则：

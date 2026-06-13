@@ -24,7 +24,7 @@ const columns: ColumnsType<DoctorListItem> = [
     dataIndex: "name",
     render: (value: string) => (
       <Space>
-        <Avatar style={{ background: "#0f8fa8" }}>{value.slice(0, 1)}</Avatar>
+        <Avatar className="theme-avatar">{value.slice(0, 1)}</Avatar>
         {value}
       </Space>
     )

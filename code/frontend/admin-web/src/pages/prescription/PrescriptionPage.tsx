@@ -3,7 +3,7 @@ import { PageSection } from "../../components/PageSection";
 
 export function PrescriptionPage() {
   return (
-    <Space direction="vertical" size={24} style={{ width: "100%" }}>
+    <Space direction="vertical" size={24} className="stack-full">
       <PageSection
         title="处方审核"
         description="支持待审、已通过、已驳回三类处方的审核流转查看。"

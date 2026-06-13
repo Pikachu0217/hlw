@@ -11,7 +11,7 @@ const todoItems = [
 
 export function DashboardPage() {
   return (
-    <Space direction="vertical" size={24} style={{ width: "100%" }}>
+    <Space direction="vertical" size={24} className="stack-full">
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12} xl={6}>
           <MetricCard title="今日问诊" value={126} suffix="单" icon={<MessageOutlined />} note="较昨日提升 18%" />

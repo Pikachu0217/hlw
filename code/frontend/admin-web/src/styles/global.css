@@ -127,6 +127,28 @@ body {
   line-height: 1;
 }
 
+.stack-full {
+  width: 100%;
+}
+
+.section-title,
+.ant-typography.section-title {
+  margin-bottom: 8px !important;
+}
+
+.section-description,
+.ant-typography.section-description {
+  margin-bottom: 0 !important;
+}
+
+.theme-avatar {
+  background: #0f8fa8 !important;
+}
+
+.spaced-list {
+  margin-top: 16px;
+}
+
 .metric-card__label {
   display: block;
   color: #618097;

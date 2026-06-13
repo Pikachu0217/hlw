@@ -153,7 +153,7 @@ function AdminLayout() {
             </Badge>
             <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }} trigger={['click']}>
               <Space className="header-user">
-                <Avatar style={{ background: '#0f8fa8' }}>{displayName.slice(0, 1)}</Avatar>
+                <Avatar className="theme-avatar">{displayName.slice(0, 1)}</Avatar>
                 <div>
                   <Typography.Text strong>{displayName}</Typography.Text>
                   <div className="header-label">{roleName}</div>

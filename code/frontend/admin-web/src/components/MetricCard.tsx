@@ -12,7 +12,7 @@ type MetricCardProps = {
 export function MetricCard({ title, value, suffix, icon, note }: MetricCardProps) {
   return (
     <Card className="metric-card">
-      <Space direction="vertical" size={12} style={{ width: "100%" }}>
+      <Space direction="vertical" size={12} className="stack-full">
         <div className="metric-topline">
           <Typography.Text>{title}</Typography.Text>
           <span className="metric-icon">{icon}</span>

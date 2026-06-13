@@ -10,7 +10,7 @@ const doctors: DoctorListItem[] = [
 
 export function DoctorPage() {
   return (
-    <Space direction="vertical" size={24} style={{ width: "100%" }}>
+    <Space direction="vertical" size={24} className="stack-full">
       <PageSection title="医生中心" description="管理医生档案、排班、挂号费和在线问诊状态。">
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={16}>

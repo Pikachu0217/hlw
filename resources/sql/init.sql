@@ -832,6 +832,24 @@ CREATE TABLE IF NOT EXISTS doc_doctor (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+COMMENT ON TABLE doc_doctor IS '医生信息表';
+COMMENT ON COLUMN doc_doctor.id IS '主键编号';
+COMMENT ON COLUMN doc_doctor.user_id IS '关联用户编号';
+COMMENT ON COLUMN doc_doctor.tenant_id IS '租户编号';
+COMMENT ON COLUMN doc_doctor.name IS '医生姓名';
+COMMENT ON COLUMN doc_doctor.avatar IS '头像地址';
+COMMENT ON COLUMN doc_doctor.title IS '医生职称';
+COMMENT ON COLUMN doc_doctor.specialty IS '擅长方向';
+COMMENT ON COLUMN doc_doctor.introduction IS '医生简介';
+COMMENT ON COLUMN doc_doctor.consult_fee IS '问诊费用';
+COMMENT ON COLUMN doc_doctor.consult_status IS '接诊状态';
+COMMENT ON COLUMN doc_doctor.rating IS '评分';
+COMMENT ON COLUMN doc_doctor.create_time IS '创建时间';
+COMMENT ON COLUMN doc_doctor.update_time IS '更新时间';
+COMMENT ON COLUMN doc_doctor.create_by IS '创建人编号';
+COMMENT ON COLUMN doc_doctor.update_by IS '更新人编号';
+COMMENT ON COLUMN doc_doctor.deleted IS '逻辑删除标识';
+
 CREATE TABLE IF NOT EXISTS doc_doctor_department (
     id BIGSERIAL PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
@@ -864,6 +882,21 @@ CREATE TABLE IF NOT EXISTS doc_schedule (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+COMMENT ON TABLE doc_schedule IS '医生排班表';
+COMMENT ON COLUMN doc_schedule.id IS '主键编号';
+COMMENT ON COLUMN doc_schedule.doctor_id IS '医生编号';
+COMMENT ON COLUMN doc_schedule.tenant_id IS '租户编号';
+COMMENT ON COLUMN doc_schedule.schedule_date IS '排班日期';
+COMMENT ON COLUMN doc_schedule.time_slot IS '排班时间段';
+COMMENT ON COLUMN doc_schedule.total_number IS '总号源数量';
+COMMENT ON COLUMN doc_schedule.remain_number IS '剩余号源数量';
+COMMENT ON COLUMN doc_schedule.status IS '排班状态';
+COMMENT ON COLUMN doc_schedule.create_time IS '创建时间';
+COMMENT ON COLUMN doc_schedule.update_time IS '更新时间';
+COMMENT ON COLUMN doc_schedule.create_by IS '创建人编号';
+COMMENT ON COLUMN doc_schedule.update_by IS '更新人编号';
+COMMENT ON COLUMN doc_schedule.deleted IS '逻辑删除标识';
+
 CREATE TABLE IF NOT EXISTS local_message (
     id BIGSERIAL PRIMARY KEY,
     topic VARCHAR(128) NOT NULL,
@@ -877,6 +910,18 @@ CREATE TABLE IF NOT EXISTS local_message (
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+COMMENT ON TABLE local_message IS '本地消息表';
+COMMENT ON COLUMN local_message.id IS '主键编号';
+COMMENT ON COLUMN local_message.topic IS '消息主题';
+COMMENT ON COLUMN local_message.body IS '消息内容';
+COMMENT ON COLUMN local_message.retry_count IS '重试次数';
+COMMENT ON COLUMN local_message.max_retry IS '最大重试次数';
+COMMENT ON COLUMN local_message.next_retry_time IS '下次重试时间';
+COMMENT ON COLUMN local_message.status IS '消息状态';
+COMMENT ON COLUMN local_message.error_msg IS '错误信息';
+COMMENT ON COLUMN local_message.create_time IS '创建时间';
+COMMENT ON COLUMN local_message.update_time IS '更新时间';
 
 COMMENT ON TABLE doc_department IS '科室信息表';
 COMMENT ON COLUMN doc_department.id IS '主键编号';

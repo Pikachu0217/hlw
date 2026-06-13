@@ -11,12 +11,12 @@ type PageSectionProps = {
 export function PageSection({ title, description, extra, children }: PageSectionProps) {
   return (
     <Card className="glass-card" extra={extra}>
-      <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space direction="vertical" size={20} className="stack-full">
         <div>
-          <Typography.Title level={3} style={{ marginBottom: 8 }}>
+          <Typography.Title level={3} className="section-title">
             {title}
           </Typography.Title>
-          <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          <Typography.Paragraph type="secondary" className="section-description">
             {description}
           </Typography.Paragraph>
         </div>

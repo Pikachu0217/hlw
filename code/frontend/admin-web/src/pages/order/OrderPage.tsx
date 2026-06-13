@@ -12,7 +12,7 @@ export function OrderPage() {
 
   return (
     <PageSection title="订单中心" description="统一查看预约、问诊和药品相关订单状态。">
-      <Space direction="vertical" size={20} style={{ width: "100%" }}>
+      <Space direction="vertical" size={20} className="stack-full">
         <Segmented
           options={["全部订单", "待支付", "待配送", "已完成"]}
           value={segment}

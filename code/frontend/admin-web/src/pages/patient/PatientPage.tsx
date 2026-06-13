@@ -3,7 +3,7 @@ import { PageSection } from "../../components/PageSection";
 
 export function PatientPage() {
   return (
-    <Space direction="vertical" size={24} style={{ width: "100%" }}>
+    <Space direction="vertical" size={24} className="stack-full">
       <PageSection title="患者档案" description="展示患者基础资料、最近问诊与健康档案摘要。">
         <Descriptions bordered column={2}>
           <Descriptions.Item label="患者姓名">王小雨</Descriptions.Item>

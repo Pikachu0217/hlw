@@ -28,7 +28,7 @@ export function ConsultPage() {
         </Col>
       </Row>
       <List
-        style={{ marginTop: 16 }}
+        className="spaced-list"
         dataSource={["李医生 - 儿科图文问诊 - 剩余 08:30", "周医生 - 内科复诊续方 - 剩余 04:50"]}
         renderItem={(item) => <List.Item>{item}</List.Item>}
       />
