@@ -21,6 +21,7 @@ public class SystemCatalogService {
     private static final Logger log = LoggerFactory.getLogger(SystemCatalogService.class);
     private static final long DEFAULT_TENANT_ID = 100L;
     private static final Set<String> MANAGED_TABLES = Set.of(
+        "sys_tenant",
         "sys_dict",
         "sys_post",
         "sys_user_role",
@@ -232,6 +233,30 @@ public class SystemCatalogService {
             WHERE ur.deleted = 0
             ORDER BY ur.id
             """);
+    }
+
+    /**
+     * 创建租户。
+     *
+     * @param command 租户创建命令
+     * @return 创建后的租户数据
+     */
+    @Transactional
+    public Map<String, Object> createTenant(Map<String, Object> command) {
+        String tenantName = requiredString(command, "tenantName", "租户名称不能为空");
+        String packageName = requiredString(command, "packageName", "套餐名称不能为空");
+        String adminName = requiredString(command, "adminName", "管理员名称不能为空");
+        String expireAt = requiredString(command, "expireAt", "到期日期不能为空");
+        String status = stringValue(command, "status", "正常");
+        log.info("创建租户，tenantName={}，packageName={}，adminName={}", tenantName, packageName, adminName);
+        Long id = nextId("sys_tenant");
+        Long tenantId = longValue(command, "tenantId", id + 100L);
+        jdbcOperations.update("""
+            INSERT INTO sys_tenant (id, tenant_id, name, tenant_name, package_name, admin_name, expire_at, status)
+            VALUES (?, ?, ?, ?, ?, ?, to_date(?, 'YYYY-MM-DD'), ?)
+            """, id, tenantId, tenantName, tenantName, packageName, adminName, expireAt, status);
+        return row("key", String.valueOf(id), "tenantId", tenantId, "tenantName", tenantName,
+            "packageName", packageName, "adminName", adminName, "expireAt", expireAt, "status", status);
     }
 
     /**
@@ -513,6 +538,26 @@ public class SystemCatalogService {
         }
         try {
             return Integer.parseInt(Objects.toString(value));
+        } catch (NumberFormatException ex) {
+            throw new BizException(400, key + "必须是数字");
+        }
+    }
+
+    /**
+     * 读取可选长整型。
+     *
+     * @param command 请求命令
+     * @param key 字段名
+     * @param defaultValue 默认值
+     * @return 字段值
+     */
+    private Long longValue(Map<String, Object> command, String key, Long defaultValue) {
+        Object value = command.get(key);
+        if (value == null || Objects.toString(value).isBlank()) {
+            return defaultValue;
+        }
+        try {
+            return Long.parseLong(Objects.toString(value));
         } catch (NumberFormatException ex) {
             throw new BizException(400, key + "必须是数字");
         }

@@ -1,5 +1,25 @@
 package com.hlw.auth.service;
 
+import java.util.Map;
+
+/**
+ * 用户仓储接口，封装认证模块需要的用户查询能力。
+ */
 public interface UserRepository {
+    /**
+     * 按登录账号查询用户。
+     *
+     * @param username 登录账号
+     * @return 登录用户，不存在返回 null
+     */
     LoginUser findByUsername(String username);
+
+    /**
+     * 按用户编号和租户编号查询用户资料。
+     *
+     * @param id 用户编号
+     * @param tenantId 租户编号
+     * @return 用户资料，不存在返回空 Map
+     */
+    Map<String, Object> findProfileById(Long id, Long tenantId);
 }

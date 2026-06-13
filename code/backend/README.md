@@ -348,6 +348,8 @@ GET /system/roles
 GET /system/menus
 ```
 
+认证资料接口已从登录令牌解析用户编号和租户编号，并回查 `sys_user` 返回登录用户资料；租户创建接口已接入 `sys_tenant`，会校验租户名称、套餐名称、管理员和到期日期后写入租户表。
+
 系统基础管理补齐引入以下接口路径：
 
 ```http
@@ -377,6 +379,8 @@ GET /doctor/schedules
 POST /doctor/schedules
 POST /doctor/appointment-fee/resolve
 ```
+
+医生管理已接入 `doc_doctor`、`doc_department`、`doc_doctor_department` 和 `doc_schedule` 表，医生创建、医生状态变更、医生科室绑定和排班创建均会写入数据库并返回当前业务记录。
 
 医生科室管理已接入 `doc_department` 和 `doc_doctor_department` 表，`POST /doctor/departments` 会写入科室基础资料，`POST /doctor/doctors/{id}/departments` 会校验医生与科室是否存在并幂等创建关联关系。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
 

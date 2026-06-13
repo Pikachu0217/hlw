@@ -8,6 +8,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcOperations;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 认证模块本地启动默认配置。
  */
@@ -72,7 +75,7 @@ public class AuthServiceConfig {
             return jdbcOperations.query("""
                     SELECT id, tenant_id, username, password, user_type
                     FROM sys_user
-                    WHERE username = ? AND deleted = 0 AND status IN ('启用', 'ACTIVE')
+                    WHERE username = ? AND deleted = 0 AND status::text IN ('1', '启用', 'ACTIVE')
                     ORDER BY id
                     LIMIT 1
                     """,
@@ -90,6 +93,32 @@ public class AuthServiceConfig {
                 },
                 username
             );
+        }
+
+        /**
+         * 根据用户编号读取登录用户资料。
+         *
+         * @param id 用户编号
+         * @param tenantId 租户编号
+         * @return 用户资料，不存在返回空 Map
+         */
+        @Override
+        public Map<String, Object> findProfileById(Long id, Long tenantId) {
+            List<Map<String, Object>> rows = jdbcOperations.queryForList("""
+                SELECT u.id::text AS key,
+                       u.id AS "userId",
+                       u.tenant_id AS "tenantId",
+                       u.username AS username,
+                       u.phone AS phone,
+                       u.user_type AS "userType",
+                       u.user_type AS "roleName",
+                       u.status::text AS status
+                FROM sys_user u
+                WHERE u.id = ? AND u.tenant_id = ? AND u.deleted = 0
+                ORDER BY u.id
+                LIMIT 1
+                """, id, tenantId);
+            return rows.isEmpty() ? Map.of() : rows.get(0);
         }
     }
 }

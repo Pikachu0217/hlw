@@ -14,4 +14,18 @@ class FakeUserRepository implements UserRepository {
     public LoginUser findByUsername(String username) {
         return users.get(username);
     }
+
+    @Override
+    public Map<String, Object> findProfileById(Long id, Long tenantId) {
+        return users.values().stream()
+            .filter(user -> user.id().equals(id) && user.tenantId().equals(tenantId))
+            .findFirst()
+            .map(user -> Map.<String, Object>of(
+                "userId", user.id(),
+                "tenantId", user.tenantId(),
+                "username", user.username(),
+                "userType", user.userType()
+            ))
+            .orElse(Map.of());
+    }
 }

@@ -91,7 +91,7 @@ public class DoctorManagementController {
      */
     @PostMapping("/doctors")
     public R<Map<String, Object>> createDoctor(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(doctorDepartmentService.createDoctor(command));
     }
 
     /**
@@ -103,7 +103,7 @@ public class DoctorManagementController {
      */
     @PutMapping("/doctors/{id}/status")
     public R<Map<String, Object>> updateDoctorStatus(@PathVariable Long id, @RequestBody Map<String, Object> command) {
-        return R.ok(Map.of("id", id, "status", command.get("status")));
+        return R.ok(doctorDepartmentService.updateDoctorStatus(id, command));
     }
 
     /**
@@ -147,7 +147,7 @@ public class DoctorManagementController {
      */
     @PostMapping("/schedules")
     public R<Map<String, Object>> createSchedule(@RequestBody Map<String, Object> command) {
-        return R.ok(command);
+        return R.ok(doctorDepartmentService.createSchedule(command));
     }
 
     /**

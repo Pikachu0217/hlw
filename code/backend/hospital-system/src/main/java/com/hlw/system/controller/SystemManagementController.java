@@ -63,8 +63,7 @@ public class SystemManagementController {
      */
     @PostMapping("/tenants")
     public R<Map<String, Object>> createTenant(@RequestBody Map<String, Object> command) {
-        log.info("创建租户，command={}", command);
-        return R.ok(command);
+        return R.ok(systemCatalogService.createTenant(command));
     }
 
     /**

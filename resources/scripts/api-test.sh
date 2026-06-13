@@ -490,7 +490,7 @@ run_all_cases() {
 
   # 系统管理接口。
   run_case "查询租户列表" "GET" "/system/tenants"
-  run_case "创建租户" "POST" "/system/tenants" "{}"
+  run_case "创建租户" "POST" "/system/tenants" "{\"tenantName\":\"接口测试医院\",\"packageName\":\"标准医疗版\",\"adminName\":\"接口管理员\",\"expireAt\":\"2026-12-31\",\"status\":\"正常\"}"
   run_case "查询后台用户列表" "GET" "/system/users"
   run_case "查询角色列表" "GET" "/system/roles"
   run_case "查询菜单列表" "GET" "/system/menus"
@@ -518,11 +518,11 @@ run_all_cases() {
   run_case "创建科室" "POST" "/doctor/departments" "{\"name\":\"接口测试科室\",\"status\":\"启用\"}"
   run_case "查询医生列表" "GET" "/doctor/doctors"
   run_case "查询医生详情" "GET" "/doctor/doctors/1"
-  run_case "创建医生" "POST" "/doctor/doctors" "{\"name\":\"接口测试医生\",\"title\":\"主治医师\",\"department\":\"全科\"}"
+  run_case "创建医生" "POST" "/doctor/doctors" "{\"name\":\"接口测试医生\",\"title\":\"主治医师\",\"department\":\"全科\",\"specialty\":\"慢病复诊\",\"consultFee\":30,\"consultStatus\":\"ONLINE\",\"status\":\"接诊中\",\"schedule\":\"2026-06-13 上午\"}"
   run_case "更新医生状态" "PUT" "/doctor/doctors/1/status" "{\"status\":\"ONLINE\"}"
   run_case "绑定医生科室" "POST" "/doctor/doctors/1/departments" "{\"departmentId\":10,\"appointmentFee\":50}"
   run_case "查询排班列表" "GET" "/doctor/schedules"
-  run_case "创建排班" "POST" "/doctor/schedules" "{\"doctorId\":1,\"slot\":\"2026-06-13 上午\"}"
+  run_case "创建排班" "POST" "/doctor/schedules" "{\"doctorId\":1,\"slot\":\"2026-06-13 上午\",\"scheduleDate\":\"2026-06-13\",\"timeSlot\":\"上午\",\"totalNumber\":30,\"remainNumber\":30}"
   run_case "计算挂号费" "POST" "/doctor/appointment-fee/resolve" "{\"title\":\"主任医师\",\"doctorFee\":80,\"departmentFee\":20}"
 
   # 预约挂号接口。

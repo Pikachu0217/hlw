@@ -131,6 +131,141 @@ public class DoctorDepartmentService {
     }
 
     /**
+     * 创建医生。
+     *
+     * @param command 医生创建命令
+     * @return 创建后的医生数据
+     */
+    @Transactional
+    public Map<String, Object> createDoctor(Map<String, Object> command) {
+        String name = requiredString(command, "name", "医生姓名不能为空");
+        String title = requiredString(command, "title", "医生职称不能为空");
+        String department = requiredString(command, "department", "所属科室不能为空");
+        String specialty = stringValue(command, "specialty", "全科诊疗");
+        String consultStatus = stringValue(command, "consultStatus", "ONLINE");
+        String status = stringValue(command, "status", "接诊中");
+        String schedule = stringValue(command, "schedule", "待排班");
+        BigDecimal consultFee = decimalValue(command, "consultFee", BigDecimal.ZERO);
+        Long userId = longValue(command, "userId", 0L);
+        log.info("创建医生，name={}，department={}，title={}", name, department, title);
+        Long id = nextSequenceValue("doc_doctor");
+        jdbcOperations.update("""
+            INSERT INTO doc_doctor (
+                id, tenant_id, user_id, name, doctor_name, title, department, specialty,
+                consult_fee, consult_status, status, schedule_desc, patient_count
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+            """, id, DEFAULT_TENANT_ID, userId, name, name, title, department, specialty,
+            consultFee, consultStatus, status, schedule);
+        return findDoctor(id);
+    }
+
+    /**
+     * 更新医生展示状态和接诊状态。
+     *
+     * @param id 医生编号
+     * @param command 状态更新命令
+     * @return 更新后的医生数据
+     */
+    @Transactional
+    public Map<String, Object> updateDoctorStatus(Long id, Map<String, Object> command) {
+        String status = requiredString(command, "status", "医生状态不能为空");
+        String displayStatus = "ONLINE".equalsIgnoreCase(status) ? "接诊中"
+            : "OFFLINE".equalsIgnoreCase(status) ? "停诊" : status;
+        log.info("更新医生状态，doctorId={}，status={}", id, status);
+        int updated = jdbcOperations.update("""
+            UPDATE doc_doctor
+            SET consult_status = ?, status = ?, update_time = CURRENT_TIMESTAMP
+            WHERE id = ? AND deleted = 0
+            """, status, displayStatus, id);
+        if (updated == 0) {
+            throw new BizException(404, "医生不存在");
+        }
+        return findDoctor(id);
+    }
+
+    /**
+     * 创建医生排班。
+     *
+     * @param command 排班创建命令
+     * @return 创建后的排班数据
+     */
+    @Transactional
+    public Map<String, Object> createSchedule(Map<String, Object> command) {
+        Long doctorId = requiredLong(command, "doctorId", "医生编号不能为空");
+        String slot = requiredString(command, "slot", "排班时段不能为空");
+        String scheduleDate = stringValue(command, "scheduleDate", java.time.LocalDate.now().toString());
+        String timeSlot = stringValue(command, "timeSlot", slot);
+        int totalNumber = intValue(command, "totalNumber", 30);
+        int remainNumber = intValue(command, "remainNumber", totalNumber);
+        log.info("创建医生排班，doctorId={}，slot={}，scheduleDate={}", doctorId, slot, scheduleDate);
+        assertExists("doc_doctor", doctorId, "医生不存在");
+        Long id = nextSequenceValue("doc_schedule");
+        jdbcOperations.update("""
+            INSERT INTO doc_schedule (
+                id, tenant_id, doctor_id, slot, schedule_date, time_slot, total_number, remain_number
+            )
+            VALUES (?, ?, ?, ?, to_date(?, 'YYYY-MM-DD'), ?, ?, ?)
+            """, id, DEFAULT_TENANT_ID, doctorId, slot, scheduleDate, timeSlot, totalNumber, remainNumber);
+        return findSchedule(id);
+    }
+
+    /**
+     * 查询医生详情。
+     *
+     * @param id 医生编号
+     * @return 医生详情
+     */
+    private Map<String, Object> findDoctor(Long id) {
+        List<Map<String, Object>> rows = jdbcOperations.queryForList("""
+            SELECT d.id AS id,
+                   d.id::text AS key,
+                   d.doctor_name AS name,
+                   d.title AS title,
+                   d.department AS department,
+                   d.specialty AS specialty,
+                   d.status AS status,
+                   d.consult_status AS "consultStatus",
+                   d.schedule_desc AS schedule,
+                   d.patient_count AS "patientCount",
+                   to_char(d.consult_fee, 'FM999999990.00') AS "consultFee"
+            FROM doc_doctor d
+            WHERE d.id = ? AND d.deleted = 0
+            """, id);
+        if (rows.isEmpty()) {
+            throw new BizException(404, "医生不存在");
+        }
+        return rows.get(0);
+    }
+
+    /**
+     * 查询排班详情。
+     *
+     * @param id 排班编号
+     * @return 排班详情
+     */
+    private Map<String, Object> findSchedule(Long id) {
+        List<Map<String, Object>> rows = jdbcOperations.queryForList("""
+            SELECT s.id AS id,
+                   s.id::text AS key,
+                   s.doctor_id AS "doctorId",
+                   COALESCE(d.doctor_name, '') AS "doctorName",
+                   s.slot AS slot,
+                   to_char(s.schedule_date, 'YYYY-MM-DD') AS "scheduleDate",
+                   s.time_slot AS "timeSlot",
+                   s.total_number AS "totalNumber",
+                   s.remain_number AS remain
+            FROM doc_schedule s
+            LEFT JOIN doc_doctor d ON d.id = s.doctor_id AND d.deleted = 0
+            WHERE s.id = ? AND s.deleted = 0
+            """, id);
+        if (rows.isEmpty()) {
+            throw new BizException(404, "排班不存在");
+        }
+        return rows.get(0);
+    }
+
+    /**
      * 刷新科室医生数量冗余字段，兼容列表展示和旧数据。
      *
      * @param departmentId 科室编号
@@ -156,7 +291,7 @@ public class DoctorDepartmentService {
      * @param message 不存在时的错误消息
      */
     private void assertExists(String tableName, Long id, String message) {
-        if (!List.of("doc_doctor", "doc_department").contains(tableName)) {
+        if (!List.of("doc_doctor", "doc_department", "doc_schedule").contains(tableName)) {
             throw new BizException(500, "医生服务表未纳入白名单");
         }
         Integer count = jdbcOperations.queryForObject(
@@ -176,7 +311,7 @@ public class DoctorDepartmentService {
      * @return 下一个主键
      */
     private Long nextSequenceValue(String tableName) {
-        if (!List.of("doc_department", "doc_doctor_department").contains(tableName)) {
+        if (!List.of("doc_department", "doc_doctor_department", "doc_doctor", "doc_schedule").contains(tableName)) {
             throw new BizException(500, "医生服务主键表未纳入白名单");
         }
         synchronizeSequence(tableName);
