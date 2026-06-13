@@ -1,10 +1,13 @@
 package com.hlw.consult.controller;
 
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.jdbc.DemoDataQuery;
+import com.hlw.consult.dto.AcceptConsultRequest;
+import com.hlw.consult.dto.CreateConsultRequest;
 import com.hlw.consult.service.ConsultWorkflowService;
+import com.hlw.consult.vo.ConsultVO;
 import com.hlw.consult.ws.ConsultMessage;
 import com.hlw.consult.ws.ConsultMessageRepository;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,8 +18,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
+/**
+ * 问诊管理控制器。
+ */
 @RestController
 @RequestMapping("/consult")
 public class ConsultController {
@@ -24,23 +29,19 @@ public class ConsultController {
 
     private final ConsultWorkflowService consultWorkflowService;
     private final ConsultMessageRepository consultMessageRepository;
-    private final DemoDataQuery demoDataQuery;
 
     /**
      * 构造问诊控制器。
      *
      * @param consultWorkflowService 问诊工作流服务
      * @param consultMessageRepository 问诊消息仓储
-     * @param demoDataQuery 演示数据查询器
      */
     public ConsultController(
         ConsultWorkflowService consultWorkflowService,
-        ConsultMessageRepository consultMessageRepository,
-        DemoDataQuery demoDataQuery
+        ConsultMessageRepository consultMessageRepository
     ) {
         this.consultWorkflowService = consultWorkflowService;
         this.consultMessageRepository = consultMessageRepository;
-        this.demoDataQuery = demoDataQuery;
     }
 
     /**
@@ -49,43 +50,32 @@ public class ConsultController {
      * @return 问诊单列表
      */
     @GetMapping("/consults")
-    public R<List<Map<String, Object>>> consults() {
+    public R<List<ConsultVO>> consults() {
         log.info("查询问诊单列表");
-        return R.ok(demoDataQuery.list("问诊单列表", """
-            SELECT id::text AS key,
-                   consult_no AS "consultNo",
-                   patient_name AS "patientName",
-                   doctor_name AS "doctorName",
-                   channel AS channel,
-                   status AS status,
-                   updated_at AS "updatedAt"
-            FROM con_consult
-            WHERE deleted = 0
-            ORDER BY id
-            """));
+        return R.ok(consultWorkflowService.listConsults());
     }
 
     /**
      * 创建问诊。
      *
-     * @param command 创建命令
+     * @param request 创建请求
      * @return 创建结果
      */
     @PostMapping("/consults")
-    public R<Map<String, Object>> createConsult(@RequestBody Map<String, Object> command) {
-        return R.ok(consultWorkflowService.createConsult(command));
+    public R<ConsultVO> createConsult(@Valid @RequestBody CreateConsultRequest request) {
+        return R.ok(consultWorkflowService.createConsult(request));
     }
 
     /**
      * 接单问诊。
      *
      * @param id 问诊编号
-     * @param command 接单命令
+     * @param request 接单请求
      * @return 接单结果
      */
     @PostMapping("/consults/{id}/accept")
-    public R<Map<String, Object>> accept(@PathVariable Long id, @RequestBody Map<String, Long> command) {
-        return R.ok(consultWorkflowService.accept(id, command));
+    public R<ConsultVO> accept(@PathVariable Long id, @RequestBody AcceptConsultRequest request) {
+        return R.ok(consultWorkflowService.accept(id, request));
     }
 
     /**
@@ -95,7 +85,7 @@ public class ConsultController {
      * @return 完成结果
      */
     @PostMapping("/consults/{id}/complete")
-    public R<Map<String, Object>> complete(@PathVariable Long id) {
+    public R<ConsultVO> complete(@PathVariable Long id) {
         return R.ok(consultWorkflowService.complete(id));
     }
 
@@ -106,7 +96,7 @@ public class ConsultController {
      * @return 延长结果
      */
     @PostMapping("/consults/{id}/extend")
-    public R<Map<String, Object>> extend(@PathVariable Long id) {
+    public R<ConsultVO> extend(@PathVariable Long id) {
         return R.ok(consultWorkflowService.extend(id));
     }
 

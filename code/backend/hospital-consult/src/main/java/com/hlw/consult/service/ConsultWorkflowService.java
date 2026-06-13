@@ -1,158 +1,139 @@
 package com.hlw.consult.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
+import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.consult.dto.AcceptConsultRequest;
+import com.hlw.consult.dto.CreateConsultRequest;
+import com.hlw.consult.entity.ConConsultEntity;
+import com.hlw.consult.entity.ConMessageEntity;
+import com.hlw.consult.mapper.ConConsultMapper;
+import com.hlw.consult.mapper.ConMessageMapper;
+import com.hlw.consult.vo.ConsultVO;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.jdbc.core.JdbcOperations;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.sql.PreparedStatement;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 /**
  * 问诊工作流服务，负责问诊创建、接单、完成和延长状态落库。
  */
 @Service
+@RequiredArgsConstructor
 public class ConsultWorkflowService {
     private static final Logger log = LoggerFactory.getLogger(ConsultWorkflowService.class);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
-    private static final long DEFAULT_TENANT_ID = 100L;
+    private static final DateTimeFormatter CONSULT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final long DEFAULT_PATIENT_ID = 1L;
     private static final long DEFAULT_DOCTOR_ID = 1L;
     private static final int DEFAULT_DURATION_LIMIT = 30;
     private static final int EXTEND_MINUTES = 15;
+    private static final String DEFAULT_CONSULT_TYPE = "IMAGE_TEXT";
+    private static final String DEFAULT_PATIENT_NAME = "赵晓岚";
+    private static final String DEFAULT_DOCTOR_NAME = "陈知衡";
+    private static final String STATUS_WAITING = "待接单";
+    private static final String STATUS_IN_PROGRESS = "咨询中";
+    private static final String STATUS_EXTENDED = "已延长";
+    private static final String STATUS_FINISHED = "已完成";
+    private static final String STATUS_CANCELLED = "已取消";
+    private static final String STATUS_TIMEOUT = "已超时";
 
-    private final JdbcOperations jdbcOperations;
+    /** 问诊单数据访问组件。 */
+    private final ConConsultMapper conConsultMapper;
+    /** 问诊消息数据访问组件。 */
+    private final ConMessageMapper conMessageMapper;
 
     /**
-     * 构造问诊工作流服务。
+     * 查询问诊单列表。
      *
-     * @param jdbcOperations JDBC 操作组件
+     * @return 问诊单展示列表
      */
-    public ConsultWorkflowService(JdbcOperations jdbcOperations) {
-        this.jdbcOperations = jdbcOperations;
+    public List<ConsultVO> listConsults() {
+        log.info("查询问诊单列表");
+        return conConsultMapper.selectList(activeConsultWrapper())
+            .stream()
+            .sorted(Comparator.comparing(ConConsultEntity::getId))
+            .map(this::toConsultVO)
+            .toList();
     }
 
     /**
      * 创建问诊单并记录首条主诉消息。
      *
-     * @param command 问诊创建命令
+     * @param request 问诊创建请求
      * @return 创建后的问诊单
      */
     @Transactional
-    public Map<String, Object> createConsult(Map<String, Object> command) {
-        Long patientId = longValue(command, "patientId", DEFAULT_PATIENT_ID);
-        Long doctorId = longValue(command, "doctorId", DEFAULT_DOCTOR_ID);
-        String consultType = stringValue(command, "type", "IMAGE_TEXT");
-        String patientName = stringValue(command, "patientName", "赵晓岚");
-        String doctorName = stringValue(command, "doctorName", "陈知衡");
-        String channel = stringValue(command, "channel", channelName(consultType));
-        String chiefComplaint = stringValue(command, "chiefComplaint", "");
-        BigDecimal feeAmount = decimalValue(command, "feeAmount", new BigDecimal("39.90"));
+    public ConsultVO createConsult(CreateConsultRequest request) {
+        ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
+        Long patientId = defaultLong(request.getPatientId(), DEFAULT_PATIENT_ID);
+        Long doctorId = defaultLong(request.getDoctorId(), DEFAULT_DOCTOR_ID);
+        String consultType = defaultIfBlank(request.getType(), DEFAULT_CONSULT_TYPE);
+        String patientName = defaultIfBlank(request.getPatientName(), DEFAULT_PATIENT_NAME);
+        String doctorName = defaultIfBlank(request.getDoctorName(), DEFAULT_DOCTOR_NAME);
+        String channel = defaultIfBlank(request.getChannel(), channelName(consultType));
+        String chiefComplaint = defaultIfBlank(request.getChiefComplaint(), "");
+        BigDecimal feeAmount = defaultDecimal(request.getFeeAmount(), new BigDecimal("39.90"));
         log.info("创建问诊单，patientId={}，doctorId={}，consultType={}", patientId, doctorId, consultType);
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        PreparedStatementCreator creator = connection -> {
-            PreparedStatement statement = connection.prepareStatement(
-                """
-                    INSERT INTO con_consult (
-                        tenant_id, patient_id, doctor_id, consult_type, consult_no, patient_name,
-                        doctor_name, channel, status, fee_amount, duration_limit, remaining_seconds, updated_at
-                    )
-                    VALUES (?, ?, ?, ?, '', ?, ?, ?, '待接单', ?, ?, ?, ?)
-                    """,
-                new String[]{"id"}
-            );
-            statement.setLong(1, DEFAULT_TENANT_ID);
-            statement.setLong(2, patientId);
-            statement.setLong(3, doctorId);
-            statement.setString(4, consultType);
-            statement.setString(5, patientName);
-            statement.setString(6, doctorName);
-            statement.setString(7, channel);
-            statement.setBigDecimal(8, feeAmount);
-            statement.setInt(9, DEFAULT_DURATION_LIMIT);
-            statement.setInt(10, DEFAULT_DURATION_LIMIT * 60);
-            statement.setString(11, currentDisplayTime());
-            return statement;
-        };
-        jdbcOperations.update(creator, keyHolder);
-        Number key = keyHolder.getKey();
-        if (key == null) {
-            throw new BizException(500, "问诊单创建后未返回主键");
-        }
-        long consultId = key.longValue();
-        String consultNo = "ZX20260613" + String.format("%04d", consultId);
-        jdbcOperations.update(
-            "UPDATE con_consult SET consult_no = ?, update_time = CURRENT_TIMESTAMP WHERE id = ?",
-            consultNo,
-            consultId
-        );
-        insertChiefComplaintMessage(consultId, patientId, chiefComplaint);
-        return row(
-            "key", String.valueOf(consultId),
-            "id", consultId,
-            "consultNo", consultNo,
-            "patientName", patientName,
-            "doctorName", doctorName,
-            "channel", channel,
-            "status", "待接单",
-            "updatedAt", currentDisplayTime()
-        );
+        ConConsultEntity entity = new ConConsultEntity();
+        entity.setPatientId(patientId);
+        entity.setDoctorId(doctorId);
+        entity.setConsultType(consultType);
+        entity.setConsultNo("");
+        entity.setPatientName(patientName);
+        entity.setDoctorName(doctorName);
+        entity.setChannel(channel);
+        entity.setStatus(STATUS_WAITING);
+        entity.setFeeAmount(feeAmount);
+        entity.setDurationLimit(DEFAULT_DURATION_LIMIT);
+        entity.setRemainingSeconds(DEFAULT_DURATION_LIMIT * 60);
+        entity.setUpdatedAt(currentDisplayTime());
+        entity.setDeleted(0);
+        conConsultMapper.insert(entity);
+        entity.setConsultNo(resolveConsultNo(entity.getId()));
+        conConsultMapper.updateById(entity);
+        insertChiefComplaintMessage(entity.getId(), patientId, chiefComplaint);
+        return toConsultVO(entity);
     }
 
     /**
      * 医生接单问诊。
      *
      * @param id 问诊编号
-     * @param command 接单命令
+     * @param request 接单请求
      * @return 接单后的问诊单
      */
     @Transactional
-    public Map<String, Object> accept(Long id, Map<String, Long> command) {
-        Long doctorId = command == null ? null : command.get("doctorId");
+    public ConsultVO accept(Long id, AcceptConsultRequest request) {
+        ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
+        ConConsultEntity consult = requireActiveConsult(id);
+        Long doctorId = request == null ? consult.getDoctorId() : defaultLong(request.getDoctorId(), consult.getDoctorId());
         log.info("医生接单问诊，consultId={}，doctorId={}", id, doctorId);
-        Map<String, Object> consult = queryConsult(id);
-        String status = Objects.toString(consult.get("status"));
-        if ("咨询中".equals(status) || "已延长".equals(status)) {
-            log.info("问诊单无需重复接单，consultId={}，status={}", id, status);
-            return row("key", String.valueOf(id), "id", id, "status", status);
+        if (STATUS_IN_PROGRESS.equals(consult.getStatus()) || STATUS_EXTENDED.equals(consult.getStatus())) {
+            log.info("问诊单无需重复接单，consultId={}，status={}", id, consult.getStatus());
+            return toConsultVO(consult);
         }
-        if (!"待接单".equals(status)) {
+        if (!STATUS_WAITING.equals(consult.getStatus())) {
             throw new BizException(409, "问诊单当前状态不允许接单");
         }
-        if (doctorId == null) {
-            doctorId = ((Number) consult.get("doctor_id")).longValue();
-        }
-        jdbcOperations.update(
-            """
-                UPDATE con_consult
-                SET doctor_id = ?,
-                    status = '咨询中',
-                    start_time = CURRENT_TIMESTAMP,
-                    duration_limit = CASE WHEN duration_limit <= 0 THEN ? ELSE duration_limit END,
-                    remaining_seconds = CASE WHEN remaining_seconds <= 0 THEN ? ELSE remaining_seconds END,
-                    updated_at = ?,
-                    update_time = CURRENT_TIMESTAMP
-                WHERE id = ? AND deleted = 0
-                """,
-            doctorId,
-            DEFAULT_DURATION_LIMIT,
-            DEFAULT_DURATION_LIMIT * 60,
-            currentDisplayTime(),
-            id
-        );
-        return row("key", String.valueOf(id), "id", id, "status", "咨询中");
+        consult.setDoctorId(doctorId);
+        consult.setStatus(STATUS_IN_PROGRESS);
+        consult.setStartTime(LocalDateTime.now());
+        consult.setDurationLimit(consult.getDurationLimit() == null || consult.getDurationLimit() <= 0 ? DEFAULT_DURATION_LIMIT : consult.getDurationLimit());
+        consult.setRemainingSeconds(consult.getRemainingSeconds() == null || consult.getRemainingSeconds() <= 0 ? DEFAULT_DURATION_LIMIT * 60 : consult.getRemainingSeconds());
+        consult.setUpdatedAt(currentDisplayTime());
+        conConsultMapper.updateById(consult);
+        return toConsultVO(consult);
     }
 
     /**
@@ -162,30 +143,23 @@ public class ConsultWorkflowService {
      * @return 完成后的问诊单
      */
     @Transactional
-    public Map<String, Object> complete(Long id) {
+    public ConsultVO complete(Long id) {
+        ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
         log.info("完成问诊，consultId={}", id);
-        String status = Objects.toString(queryConsult(id).get("status"));
-        if ("已完成".equals(status)) {
+        ConConsultEntity consult = requireActiveConsult(id);
+        if (STATUS_FINISHED.equals(consult.getStatus())) {
             log.info("问诊单无需重复完成，consultId={}", id);
-            return row("key", String.valueOf(id), "id", id, "status", status);
+            return toConsultVO(consult);
         }
-        if ("已取消".equals(status) || "已超时".equals(status)) {
+        if (STATUS_CANCELLED.equals(consult.getStatus()) || STATUS_TIMEOUT.equals(consult.getStatus())) {
             throw new BizException(409, "问诊单当前状态不允许完成");
         }
-        jdbcOperations.update(
-            """
-                UPDATE con_consult
-                SET status = '已完成',
-                    remaining_seconds = 0,
-                    end_time = CURRENT_TIMESTAMP,
-                    updated_at = ?,
-                    update_time = CURRENT_TIMESTAMP
-                WHERE id = ? AND deleted = 0
-                """,
-            currentDisplayTime(),
-            id
-        );
-        return row("key", String.valueOf(id), "id", id, "status", "已完成");
+        consult.setStatus(STATUS_FINISHED);
+        consult.setRemainingSeconds(0);
+        consult.setEndTime(LocalDateTime.now());
+        consult.setUpdatedAt(currentDisplayTime());
+        conConsultMapper.updateById(consult);
+        return toConsultVO(consult);
     }
 
     /**
@@ -195,45 +169,19 @@ public class ConsultWorkflowService {
      * @return 延长后的问诊单
      */
     @Transactional
-    public Map<String, Object> extend(Long id) {
+    public ConsultVO extend(Long id) {
+        ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
         log.info("延长问诊，consultId={}，extendMinutes={}", id, EXTEND_MINUTES);
-        String status = Objects.toString(queryConsult(id).get("status"));
-        if (!"咨询中".equals(status) && !"已延长".equals(status)) {
+        ConConsultEntity consult = requireActiveConsult(id);
+        if (!STATUS_IN_PROGRESS.equals(consult.getStatus()) && !STATUS_EXTENDED.equals(consult.getStatus())) {
             throw new BizException(409, "问诊单当前状态不允许延长");
         }
-        jdbcOperations.update(
-            """
-                UPDATE con_consult
-                SET status = '已延长',
-                    duration_limit = duration_limit + ?,
-                    remaining_seconds = remaining_seconds + ?,
-                    updated_at = ?,
-                    update_time = CURRENT_TIMESTAMP
-                WHERE id = ? AND deleted = 0
-                """,
-            EXTEND_MINUTES,
-            EXTEND_MINUTES * 60,
-            currentDisplayTime(),
-            id
-        );
-        return row("key", String.valueOf(id), "id", id, "status", "已延长", "extendMinutes", EXTEND_MINUTES);
-    }
-
-    /**
-     * 查询问诊单。
-     *
-     * @param id 问诊编号
-     * @return 问诊单数据库行
-     */
-    private Map<String, Object> queryConsult(Long id) {
-        List<Map<String, Object>> rows = jdbcOperations.queryForList(
-            "SELECT id, doctor_id, status FROM con_consult WHERE id = ? AND deleted = 0",
-            id
-        );
-        if (rows.isEmpty()) {
-            throw new BizException(404, "问诊单不存在");
-        }
-        return rows.get(0);
+        consult.setStatus(STATUS_EXTENDED);
+        consult.setDurationLimit(defaultInt(consult.getDurationLimit(), 0) + EXTEND_MINUTES);
+        consult.setRemainingSeconds(defaultInt(consult.getRemainingSeconds(), 0) + EXTEND_MINUTES * 60);
+        consult.setUpdatedAt(currentDisplayTime());
+        conConsultMapper.updateById(consult);
+        return toConsultVO(consult);
     }
 
     /**
@@ -247,72 +195,83 @@ public class ConsultWorkflowService {
         if (chiefComplaint.isBlank()) {
             return;
         }
-        jdbcOperations.update(
-            """
-                INSERT INTO con_message (tenant_id, consult_id, sender_id, sender_type, content, content_type, read_flag)
-                VALUES (?, ?, ?, 'PATIENT', ?, 'TEXT', FALSE)
-                """,
-            DEFAULT_TENANT_ID,
-            consultId,
-            patientId,
-            chiefComplaint
-        );
+        ConMessageEntity message = new ConMessageEntity();
+        message.setConsultId(consultId);
+        message.setSenderId(patientId);
+        message.setSenderType("PATIENT");
+        message.setContent(chiefComplaint);
+        message.setContentType("TEXT");
+        message.setReadFlag(false);
+        message.setIsRead(0);
+        message.setDeleted(0);
+        conMessageMapper.insert(message);
     }
 
     /**
-     * 读取可选字符串字段。
+     * 构造激活问诊查询条件。
      *
-     * @param command 请求命令
-     * @param key 字段名
-     * @param defaultValue 默认值
-     * @return 字段值
+     * @return 查询条件
      */
-    private String stringValue(Map<String, Object> command, String key, String defaultValue) {
-        Object value = command.get(key);
-        if (value == null) {
-            return defaultValue;
-        }
-        return Objects.toString(value).trim();
+    private LambdaQueryWrapper<ConConsultEntity> activeConsultWrapper() {
+        return new LambdaQueryWrapper<ConConsultEntity>().eq(ConConsultEntity::getDeleted, 0);
     }
 
     /**
-     * 读取长整型字段。
+     * 校验当前请求处于有效业务租户上下文。
      *
-     * @param command 请求命令
-     * @param key 字段名
-     * @param defaultValue 默认值
-     * @return 字段值
+     * @param message 不满足条件时的错误消息
      */
-    private Long longValue(Map<String, Object> command, String key, Long defaultValue) {
-        Object value = command.get(key);
-        if (value == null || Objects.toString(value).isBlank()) {
-            return defaultValue;
-        }
-        try {
-            return Long.parseLong(Objects.toString(value));
-        } catch (NumberFormatException ex) {
-            throw new BizException(400, key + "必须是数字");
+    private void ensureBusinessTenantContext(String message) {
+        Long tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId <= 0L || TenantContext.isPlatformRequest()) {
+            throw new BizException(403, message);
         }
     }
 
     /**
-     * 读取金额字段。
+     * 查询问诊单并校验存在。
      *
-     * @param command 请求命令
-     * @param key 字段名
-     * @param defaultValue 默认值
-     * @return 字段值
+     * @param id 问诊编号
+     * @return 问诊单实体
      */
-    private BigDecimal decimalValue(Map<String, Object> command, String key, BigDecimal defaultValue) {
-        Object value = command.get(key);
-        if (value == null || Objects.toString(value).isBlank()) {
-            return defaultValue;
+    private ConConsultEntity requireActiveConsult(Long id) {
+        ConConsultEntity entity = conConsultMapper.selectOne(new LambdaQueryWrapper<ConConsultEntity>()
+            .eq(ConConsultEntity::getDeleted, 0)
+            .eq(ConConsultEntity::getId, id)
+            .last("limit 1"));
+        if (entity == null) {
+            throw new BizException(404, "问诊单不存在");
         }
-        try {
-            return new BigDecimal(Objects.toString(value));
-        } catch (NumberFormatException ex) {
-            throw new BizException(400, key + "必须是数字");
-        }
+        return entity;
+    }
+
+    /**
+     * 转换问诊单展示对象。
+     *
+     * @param entity 问诊单实体
+     * @return 问诊单展示对象
+     */
+    private ConsultVO toConsultVO(ConConsultEntity entity) {
+        ConsultVO vo = new ConsultVO();
+        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
+        vo.setConsultNo(defaultIfBlank(entity.getConsultNo(), resolveConsultNo(entity.getId())));
+        vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));
+        vo.setDoctorName(defaultIfBlank(entity.getDoctorName(), ""));
+        vo.setChannel(defaultIfBlank(entity.getChannel(), channelName(entity.getConsultType())));
+        vo.setStatus(defaultIfBlank(entity.getStatus(), STATUS_WAITING));
+        vo.setUpdatedAt(defaultIfBlank(entity.getUpdatedAt(), ""));
+        return vo;
+    }
+
+    /**
+     * 生成问诊单号。
+     *
+     * @param id 问诊编号
+     * @return 问诊单号
+     */
+    private String resolveConsultNo(Long id) {
+        return "ZX" + LocalDate.now().format(CONSULT_DATE_FORMATTER) + String.format("%04d", id);
     }
 
     /**
@@ -338,16 +297,46 @@ public class ConsultWorkflowService {
     }
 
     /**
-     * 构造有序返回行。
+     * 设置默认字符串。
      *
-     * @param values 成对键值
-     * @return 有序 Map
+     * @param value 原始值
+     * @param defaultValue 默认值
+     * @return 处理后的字符串
      */
-    private Map<String, Object> row(Object... values) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        for (int index = 0; index < values.length; index += 2) {
-            row.put(Objects.toString(values[index]), values[index + 1]);
-        }
-        return row;
+    private String defaultIfBlank(String value, String defaultValue) {
+        return value == null || value.isBlank() ? defaultValue : value.trim();
+    }
+
+    /**
+     * 设置默认长整型。
+     *
+     * @param value 原始值
+     * @param defaultValue 默认值
+     * @return 处理后的长整型
+     */
+    private Long defaultLong(Long value, Long defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    /**
+     * 设置默认整型。
+     *
+     * @param value 原始值
+     * @param defaultValue 默认值
+     * @return 处理后的整型
+     */
+    private int defaultInt(Integer value, int defaultValue) {
+        return value == null ? defaultValue : value;
+    }
+
+    /**
+     * 设置默认金额。
+     *
+     * @param value 原始金额
+     * @param defaultValue 默认金额
+     * @return 处理后的金额
+     */
+    private BigDecimal defaultDecimal(BigDecimal value, BigDecimal defaultValue) {
+        return value == null ? defaultValue : value;
     }
 }

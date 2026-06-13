@@ -1,10 +1,21 @@
 package com.hlw.consult.ws;
 
+import org.springframework.stereotype.Component;
+
 import java.time.LocalDateTime;
 
+/**
+ * 问诊 WebSocket 消息处理器。
+ */
+@Component
 public class ConsultMessageHandler {
     private final ConsultMessageRepository messageRepository;
 
+    /**
+     * 构造问诊消息处理器。
+     *
+     * @param messageRepository 问诊消息仓储
+     */
     public ConsultMessageHandler(ConsultMessageRepository messageRepository) {
         this.messageRepository = messageRepository;
     }
@@ -33,6 +44,13 @@ public class ConsultMessageHandler {
         return json;
     }
 
+    /**
+     * 从简单 JSON 文本中提取字段值。
+     *
+     * @param json 原始 JSON 文本
+     * @param fieldName 字段名
+     * @return 字段值
+     */
     private String extractJsonValue(String json, String fieldName) {
         String marker = "\"" + fieldName + "\":\"";
         int start = json.indexOf(marker);

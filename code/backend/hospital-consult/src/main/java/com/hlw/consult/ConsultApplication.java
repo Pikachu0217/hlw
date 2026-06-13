@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 /**
  * 问诊服务启动入口。
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.hlw")
 public class ConsultApplication {
     /**
      * 启动问诊服务。
