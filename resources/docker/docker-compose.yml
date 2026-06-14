@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: hospital123
     volumes:
       - ./pgdata:/var/lib/postgresql/data
-      - ../../code/backend/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ../sql/init.sql:/docker-entrypoint-initdb.d/init.sql
   redis:
     image: redis:7-alpine
     ports:
@@ -45,6 +45,6 @@ services:
 
 # 说明：
 # 1. 该文件仅作为本地依赖服务参考，不代表仓库已经完成完整联调。
-# 2. 当前阶段数据库初始化通过 ../../code/backend/sql/init.sql 完成。
+# 2. 当前阶段数据库初始化通过 ../sql/init.sql 完成。
 # 3. 所有容器数据均持久化到 resources/docker 目录下，便于本地统一清理和备份。
 # 4. Nacos 固定使用 v2.4.1，避免 Apple Silicon / ARM64 环境下拉取 v2.3.0 失败。

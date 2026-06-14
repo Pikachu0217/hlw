@@ -11,7 +11,7 @@
 - `hospital-common/common-redis`：Redisson 分布式锁辅助服务。
 - `hospital-common/common-security`：Sa-Token 辅助工具。
 - `hospital-common/common-mq`：本地消息队列抽象与重试策略。
-- `sql/init.sql`：PostgreSQL 16 基线建库建表脚本。
+- `resources/sql/init.sql`：PostgreSQL 16 基线建库建表脚本。
 
 本阶段新增：
 
@@ -39,9 +39,6 @@
 ```text
 code/backend/
 ├── pom.xml
-├── docker-compose.yml
-├── sql/
-│   └── init.sql
 ├── hospital-common/
 │   ├── common-core/
 │   ├── common-mybatis/
@@ -85,11 +82,11 @@ MinIO Root 密码：minio123
 
 ## 初始化数据库
 
-PostgreSQL 16 启动后，在后端目录执行基线脚本：
+PostgreSQL 16 启动后，在仓库根目录执行基线脚本：
 
 ```bash
-cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
-psql -U postgres -f sql/init.sql
+cd /Users/pakachuzy/Desktop/zzz/project/hlw
+psql -U postgres -f resources/sql/init.sql
 ```
 
 脚本会创建以下逻辑库：
@@ -127,7 +124,7 @@ psql -U postgres -f sql/init.sql
 - 系统服务会优先基于 `satoken` 解析租户上下文，只有缺少令牌时才读取正数 `X-Tenant-Id` 请求头；无法识别租户时会进入隔离上下文，不再默认落到平台租户。
 - 涉及平台级租户主数据的查询与创建，会在 Service 中显式忽略租户行过滤，并且仅允许平台令牌上下文访问。
 
-`resources/sql/init.sql` 保留更完整的领域设计基线，`code/backend/sql/init.sql` 是当前本地联调使用脚本；后续新增字段、表或演示数据时需要同步维护两处口径，并为每个字段补充 `COMMENT ON COLUMN`。
+`resources/sql/init.sql` 是当前唯一数据库初始化脚本，兼作完整领域设计基线和本地联调用脚本；后续新增字段、表或演示数据时只维护这一处，并为每个字段补充 `COMMENT ON COLUMN`。
 
 ## 构建与测试
 
@@ -187,7 +184,7 @@ mvn -pl hospital-patient -am test
 - 控制器统一仅接收 DTO、执行参数校验、调用 Service 并返回 `R`。
 - Service 统一负责患者档案、健康档案、风险字段与日期字段的业务编排、租户上下文校验和 VO 转换。
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再保留 `JdbcOperations` 和内存仓储实现。
-- `pat_patient` 与 `pat_health_record` 已在 `code/backend/sql/init.sql` 与 `resources/sql/init.sql` 中同步补齐字段和列注释，后续新增字段仍需两处同时维护。
+- `pat_patient` 与 `pat_health_record` 已在 `resources/sql/init.sql` 中补齐字段和列注释，后续新增字段仍需同步维护该脚本。
 
 执行预约模块号源锁定与抢单测试：
 

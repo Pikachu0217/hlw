@@ -13,7 +13,7 @@
 ## 范围与执行规则
 
 - 将 MVP 按四个切片推进：基础设施、核心业务、处方/药品/订单、前端完善与运维验证。
-- 数据库工作必须遵循 PRD：使用 PostgreSQL 16、每个服务一个逻辑数据库，并通过 `code/backend/sql/init.sql` 完成本地初始化。
+- 数据库工作必须遵循 PRD：使用 PostgreSQL 16、每个服务一个逻辑数据库，并通过 `resources/sql/init.sql` 完成本地初始化。
 - 在可行情况下，每个后端任务都要先补测试再实现：服务层使用 JUnit，接口契约使用控制器测试，锁、队列、WebSocket 处理器使用模拟依赖的集成风格测试。
 - 每完成一个任务都要提交一次，只提交该任务实际变更的文件。
 - 保持模块边界稳定。除非任务明确要求，否则在 API 已被消费后不得在服务间搬移代码。
@@ -35,7 +35,7 @@
 - `code/backend/hospital-drug/*`：药品目录、库存、配送。
 - `code/backend/hospital-order/*`：统一订单、模拟支付、支付成功事件。
 - `code/backend/docker-compose.yml`：本地基础设施编排。
-- `code/backend/sql/init.sql`：用于本地 Docker 开发的 PostgreSQL 16 初始化 SQL。
+- `resources/sql/init.sql`：用于本地 Docker 开发的 PostgreSQL 16 初始化 SQL。
 - `code/frontend/package.json`、`pnpm-workspace.yaml`：前端工作区根配置。
 - `code/frontend/admin-web/*`：管理端 SPA。
 - `code/frontend/patient-h5/*`：患者移动端 H5。
@@ -172,7 +172,7 @@ services:
       POSTGRES_PASSWORD: hospital123
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./resources/sql/init.sql:/docker-entrypoint-initdb.d/init.sql
   redis:
     image: redis:7-alpine
     ports:
@@ -219,7 +219,7 @@ git commit -m "chore: bootstrap backend common module"
 ## 任务 2：PostgreSQL 基线表结构
 
 **文件：**
-- 创建：`code/backend/sql/init.sql`
+- 创建：`resources/sql/init.sql`
 - 测试：`code/backend/hospital-common/common-core/src/test/java/com/hlw/common/core/schema/PostgresInitSqlTest.java`
 
 - [ ] **步骤 1：编写 PostgreSQL 初始化 SQL 测试**
@@ -237,7 +237,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class PostgresInitSqlTest {
     @Test
     void postgres_init_sql_exists_inside_backend_project() throws Exception {
-        Path path = Path.of("/Users/pakachuzy/Desktop/zzz/project/hlw/code/backend/sql/init.sql");
+        Path path = Path.of("/Users/pakachuzy/Desktop/zzz/project/hlw/resources/sql/init.sql");
 
         assertThat(Files.exists(path)).isTrue();
         String sql = Files.readString(path);
@@ -258,11 +258,11 @@ cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
 mvn -pl hospital-common/common-core test -Dtest=PostgresInitSqlTest
 ```
 
-预期：由于 `code/backend/sql/init.sql` 尚不存在，测试应失败。
+预期：由于 `resources/sql/init.sql` 尚不存在，测试应失败。
 
 - [ ] **步骤 3：创建可执行的 PostgreSQL 16 基线 SQL**
 
-将 `code/backend/sql/init.sql` 编写为 PostgreSQL `psql` 引导脚本，必须创建 PRD 中定义的各服务数据库：
+将 `resources/sql/init.sql` 编写为 PostgreSQL `psql` 引导脚本，必须创建 PRD 中定义的各服务数据库：
 
 ```sql
 SELECT 'CREATE DATABASE hospital_auth'
@@ -371,7 +371,7 @@ cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
 docker compose up -d postgres
 docker compose exec -T postgres psql -U postgres -f /docker-entrypoint-initdb.d/init.sql
 mvn -pl hospital-common/common-core test -Dtest=PostgresInitSqlTest
-git add code/backend/sql/init.sql code/backend/hospital-common/common-core/src/test/java/com/hlw/common/core/schema/PostgresInitSqlTest.java
+git add resources/sql/init.sql code/backend/hospital-common/common-core/src/test/java/com/hlw/common/core/schema/PostgresInitSqlTest.java
 git commit -m "feat: add postgres hospital baseline schema"
 ```
 
@@ -1237,7 +1237,7 @@ git commit -m "feat: add patient h5 core flows"
 
 ## Backend
 - [ ] `mvn test` passes for all backend modules.
-- [ ] PostgreSQL 16 executes `code/backend/sql/init.sql`.
+- [ ] PostgreSQL 16 executes `resources/sql/init.sql`.
 - [ ] Gateway forwards authenticated requests with `X-Tenant-Id`.
 - [ ] Appointment number source cannot be oversold.
 - [ ] Convenient clinic appointment can only be grabbed once.

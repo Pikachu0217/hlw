@@ -8,9 +8,14 @@ import java.nio.file.Path;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PostgresInitSqlTest {
+    /**
+     * 校验 PostgreSQL 初始化脚本已统一放在 resources/sql 目录。
+     *
+     * @throws Exception 读取脚本失败时抛出
+     */
     @Test
     void postgres_init_sql_exists_inside_backend_project() throws Exception {
-        Path path = Path.of("/Users/pakachuzy/Desktop/zzz/project/hlw/code/backend/sql/init.sql");
+        Path path = Path.of("/Users/pakachuzy/Desktop/zzz/project/hlw/resources/sql/init.sql");
 
         assertThat(Files.exists(path)).isTrue();
         String sql = Files.readString(path);
@@ -27,5 +32,6 @@ class PostgresInitSqlTest {
         assertThat(sql).contains("INSERT INTO doc_doctor");
         assertThat(sql).contains("INSERT INTO sys_user");
         assertThat(sql).contains("COMMENT ON COLUMN drug_stock.warehouse_name");
+        assertThat(sql).contains("CREATE TABLE IF NOT EXISTS con_consult_image");
     }
 }

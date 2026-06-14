@@ -3,7 +3,7 @@
 ## 后端
 
 - [ ] `mvn test` 全量通过。
-- [ ] PostgreSQL 16 成功执行 `code/backend/sql/init.sql`。
+- [ ] PostgreSQL 16 成功执行 `resources/sql/init.sql`。
 - [ ] 网关将认证后的租户请求透传 `X-Tenant-Id`。
 - [ ] 号源锁定逻辑不会超卖。
 - [ ] 便民门诊抢单只能成功一次。
