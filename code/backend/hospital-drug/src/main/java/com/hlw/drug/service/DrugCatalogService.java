@@ -3,6 +3,7 @@ package com.hlw.drug.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.mq.core.MqProducer;
 import com.hlw.common.mq.model.MqMessage;
 import com.hlw.drug.dto.CreateDrugRequest;
@@ -319,7 +320,7 @@ public class DrugCatalogService {
      * @return 处理后的字符串
      */
     private String defaultIfBlank(String value, String defaultValue) {
-        return value == null || value.isBlank() ? defaultValue : value.trim();
+        return DefaultValueUtils.defaultIfBlank(value, defaultValue);
     }
 
     /**
@@ -330,6 +331,6 @@ public class DrugCatalogService {
      * @return 处理后的整型
      */
     private int defaultInt(Integer value, int defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 }

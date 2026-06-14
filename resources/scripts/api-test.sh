@@ -7,8 +7,8 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPORT_DIR="${HLW_API_REPORT_DIR:-${ROOT_DIR}/resources/reports/api-test}"
 BASE_URL="${HLW_API_BASE_URL:-http://127.0.0.1:9000}"
 DIRECT_MODE="${HLW_API_DIRECT_MODE:-0}"
-USERNAME="${HLW_API_USERNAME:-admin}"
-PASSWORD="${HLW_API_PASSWORD:-admin123}"
+USERNAME="${HLW_API_USERNAME:-门诊运营}"
+PASSWORD="${HLW_API_PASSWORD:-123456}"
 TENANT_HEADER="${HLW_API_TENANT_ID:-100}"
 TIMEOUT_SECONDS="${HLW_API_TIMEOUT_SECONDS:-10}"
 RUN_AT="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -104,8 +104,8 @@ print_usage() {
 可选环境变量：
   HLW_API_BASE_URL=http://127.0.0.1:9000     接口基础地址，默认走网关
   HLW_API_DIRECT_MODE=1                      启用微服务直连模式，按路径自动选择 9100-9900 端口
-  HLW_API_USERNAME=admin                     登录账号
-  HLW_API_PASSWORD=admin123                  登录密码
+  HLW_API_USERNAME=门诊运营                  登录账号
+  HLW_API_PASSWORD=123456                    登录密码
   HLW_API_TENANT_ID=100                      租户请求头
   HLW_API_TIMEOUT_SECONDS=10                 单接口超时时间
   HLW_API_REPORT_DIR=resources/reports/api-test 报告输出目录

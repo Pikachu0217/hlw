@@ -5,6 +5,7 @@ import com.hlw.auth.service.LoginCommand;
 import com.hlw.auth.service.LoginResult;
 import com.hlw.auth.vo.UserProfileVO;
 import com.hlw.common.core.domain.R;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -36,7 +37,7 @@ public class AuthController {
      * @return 登录结果
      */
     @PostMapping("/login")
-    public R<LoginResult> login(@RequestBody LoginCommand command) {
+    public R<LoginResult> login(@Valid @RequestBody LoginCommand command) {
         return R.ok(authService.login(command));
     }
 

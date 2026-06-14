@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
 import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.common.security.PasswordEncoder;
 import com.hlw.system.entity.SysConfigEntity;
 import com.hlw.system.entity.SysDictEntity;
 import com.hlw.system.entity.SysMenuEntity;
@@ -194,7 +196,8 @@ public class SystemTenantContextService {
             request.getUsername(), request.getDeptName(), request.getRoleName());
         SysUserEntity entity = new SysUserEntity();
         entity.setUsername(request.getUsername());
-        entity.setPassword(defaultIfBlank(request.getPassword(), "{noop}123456"));
+        String rawPassword = defaultIfBlank(request.getPassword(), "123456");
+        entity.setPassword(PasswordEncoder.encode(rawPassword));
         entity.setPhone(defaultIfBlank(request.getPhone(), ""));
         entity.setUserType(defaultIfBlank(request.getUserType(), "ADMIN"));
         entity.setDeptName(defaultIfBlank(request.getDeptName(), "运营部"));
@@ -810,7 +813,7 @@ public class SystemTenantContextService {
      * @return 处理后字符串
      */
     private String defaultIfBlank(String value, String defaultValue) {
-        return value == null || value.isBlank() ? defaultValue : value.trim();
+        return DefaultValueUtils.defaultIfBlank(value, defaultValue);
     }
 
     /**
@@ -821,7 +824,7 @@ public class SystemTenantContextService {
      * @return 处理后整型
      */
     private Integer defaultInt(Integer value, Integer defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 
     /**
@@ -832,7 +835,7 @@ public class SystemTenantContextService {
      * @return 处理后长整型
      */
     private Long defaultLong(Long value, Long defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 
     /**

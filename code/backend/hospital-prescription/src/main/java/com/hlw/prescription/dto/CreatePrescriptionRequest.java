@@ -1,5 +1,6 @@
 package com.hlw.prescription.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,8 +15,10 @@ public class CreatePrescriptionRequest {
     /** 问诊编号。 */
     private Long consultId;
     /** 患者编号。 */
+    @NotNull(message = "患者编号不能为空")
     private Long patientId;
     /** 医生编号。 */
+    @NotNull(message = "医生编号不能为空")
     private Long doctorId;
     /** 患者姓名。 */
     private String patientName;

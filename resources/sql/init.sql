@@ -571,8 +571,8 @@ COMMENT ON COLUMN sys_role_menu.deleted IS '逻辑删除标识';
 
 INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_name, role_name, last_login, status)
 VALUES
-    (1, 100, '门诊运营', '{noop}123456', '13800001111', 'ADMIN', '运营中心', '运营管理员', '今天 08:40', '启用'),
-    (2, 100, '药房主管', '{noop}123456', '13800002222', 'ADMIN', '药房组', '库存专员', '今天 07:58', '启用')
+    (1, 100, '门诊运营', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'ADMIN', '运营中心', '运营管理员', '今天 08:40', '启用'),
+    (2, 100, '药房主管', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800002222', 'ADMIN', '药房组', '库存专员', '今天 07:58', '启用')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_role (id, tenant_id, role_name, role_code, data_scope, member_count, status)

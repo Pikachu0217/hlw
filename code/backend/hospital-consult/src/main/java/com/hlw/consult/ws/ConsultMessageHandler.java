@@ -31,10 +31,14 @@ public class ConsultMessageHandler {
     public String handle(Long consultId, Long senderId, String json) {
         String content = extractJsonValue(json, "content");
         String contentType = extractJsonValue(json, "contentType");
+        String senderType = extractJsonValue(json, "senderType");
+        if (senderType == null || senderType.isBlank()) {
+            senderType = "PATIENT";
+        }
         ConsultMessage message = new ConsultMessage(
             consultId,
             senderId,
-            "PATIENT",
+            senderType,
             content,
             contentType,
             false,

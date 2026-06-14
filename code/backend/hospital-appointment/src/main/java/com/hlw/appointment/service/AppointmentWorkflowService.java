@@ -15,6 +15,8 @@ import com.hlw.appointment.vo.NumberSourceVO;
 import com.hlw.appointment.vo.ReleaseConfigVO;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.common.redis.lock.RedisLockService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 预约工作流服务，负责预约单、号源锁定和放号配置业务编排。
@@ -45,12 +48,12 @@ public class AppointmentWorkflowService {
     private static final String DEFAULT_CLINIC_TIME = "2026-06-13 上午";
     private static final String DEFAULT_SOURCE = "小程序";
     private static final String DEFAULT_APPOINTMENT_TYPE = "普通门诊";
-    private static final String STATUS_PENDING_PAY = "待支付";
-    private static final String STATUS_PAID = "已支付";
-    private static final String STATUS_CHECKED_IN = "已签到";
-    private static final String STATUS_COMPLETED = "已完成";
-    private static final String STATUS_CANCELLED = "已取消";
-    private static final String STATUS_GRABBED = "已接单";
+    private static final String STATUS_PENDING_PAY = AppointmentStatus.PENDING_PAY.dbValue();
+    private static final String STATUS_PAID = AppointmentStatus.PAID.dbValue();
+    private static final String STATUS_CHECKED_IN = AppointmentStatus.CHECKED_IN.dbValue();
+    private static final String STATUS_COMPLETED = AppointmentStatus.COMPLETED.dbValue();
+    private static final String STATUS_CANCELLED = AppointmentStatus.CANCELLED.dbValue();
+    private static final String STATUS_GRABBED = AppointmentStatus.GRABBED.dbValue();
     private static final String NUMBER_STATUS_AVAILABLE = "AVAILABLE";
     private static final String NUMBER_STATUS_LOCKED = "LOCKED";
     private static final String NUMBER_STATUS_USED = "USED";
@@ -64,6 +67,8 @@ public class AppointmentWorkflowService {
     private final AptNumberSourceMapper aptNumberSourceMapper;
     /** 放号配置数据访问组件。 */
     private final AptReleaseConfigMapper aptReleaseConfigMapper;
+    /** Redis 分布式锁服务。 */
+    private final RedisLockService redisLockService;
 
     /**
      * 查询预约单列表。
@@ -120,7 +125,7 @@ public class AppointmentWorkflowService {
         entity.setDoctorName(defaultIfBlank(request.getDoctorName(), DEFAULT_DOCTOR_NAME));
         entity.setClinicTime(defaultIfBlank(request.getTimeSlot(), DEFAULT_CLINIC_TIME));
         entity.setSource(defaultIfBlank(request.getSource(), DEFAULT_SOURCE));
-        entity.setStatus(STATUS_PENDING_PAY);
+        entity.setStatus(AppointmentStatus.PENDING_PAY.dbValue());
         entity.setFeeAmount(defaultDecimal(request.getFeeAmount(), new BigDecimal("30")));
         entity.setDeleted(0);
         aptAppointmentMapper.insert(entity);
@@ -206,7 +211,7 @@ public class AppointmentWorkflowService {
     }
 
     /**
-     * 锁定一个可用号源。
+     * 使用 Redis 分布式锁锁定一个可用号源。
      *
      * @param scheduleId 排班编号
      * @return 锁定后的号源
@@ -214,20 +219,31 @@ public class AppointmentWorkflowService {
     @Transactional
     public NumberSourceVO lockNumberSource(Long scheduleId) {
         ensureBusinessTenantContext("预约模块操作缺少有效租户上下文");
-        log.info("锁定号源，scheduleId={}", scheduleId);
-        AptNumberSourceEntity entity = requireFirstAvailableNumberSource(scheduleId);
-        int updated = aptNumberSourceMapper.update(null, new LambdaUpdateWrapper<AptNumberSourceEntity>()
-            .eq(AptNumberSourceEntity::getId, entity.getId())
-            .eq(AptNumberSourceEntity::getStatus, NUMBER_STATUS_AVAILABLE)
-            .eq(AptNumberSourceEntity::getDeleted, 0)
-            .set(AptNumberSourceEntity::getStatus, NUMBER_STATUS_LOCKED)
-            .set(AptNumberSourceEntity::getLockTime, LocalDateTime.now()));
-        if (updated == 0) {
-            throw new BizException(409, "号源已被锁定");
+        String lockKey = "hlw:lock:number:" + scheduleId;
+        log.info("尝试获取号源分布式锁，scheduleId={}", scheduleId);
+        try {
+            if (!redisLockService.tryLock(lockKey, 5, 10, TimeUnit.SECONDS)) {
+                throw new BizException(409, "号源锁定繁忙，请稍后重试");
+            }
+            AptNumberSourceEntity entity = requireFirstAvailableNumberSource(scheduleId);
+            int updated = aptNumberSourceMapper.update(null, new LambdaUpdateWrapper<AptNumberSourceEntity>()
+                .eq(AptNumberSourceEntity::getId, entity.getId())
+                .eq(AptNumberSourceEntity::getStatus, NUMBER_STATUS_AVAILABLE)
+                .eq(AptNumberSourceEntity::getDeleted, 0)
+                .set(AptNumberSourceEntity::getStatus, NUMBER_STATUS_LOCKED)
+                .set(AptNumberSourceEntity::getLockTime, LocalDateTime.now()));
+            if (updated == 0) {
+                throw new BizException(409, "号源已被锁定");
+            }
+            entity.setStatus(NUMBER_STATUS_LOCKED);
+            entity.setLockTime(LocalDateTime.now());
+            return toNumberSourceVO(entity);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BizException(409, "号源锁定被中断");
+        } finally {
+            redisLockService.unlock(lockKey);
         }
-        entity.setStatus(NUMBER_STATUS_LOCKED);
-        entity.setLockTime(LocalDateTime.now());
-        return toNumberSourceVO(entity);
     }
 
     /**
@@ -443,7 +459,7 @@ public class AppointmentWorkflowService {
      * @return 处理后的字符串
      */
     private String defaultIfBlank(String value, String defaultValue) {
-        return value == null || value.isBlank() ? defaultValue : value;
+        return DefaultValueUtils.defaultIfBlank(value, defaultValue);
     }
 
     /**
@@ -454,7 +470,7 @@ public class AppointmentWorkflowService {
      * @return 处理后的长整型
      */
     private Long defaultLong(Long value, Long defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 
     /**
@@ -465,7 +481,7 @@ public class AppointmentWorkflowService {
      * @return 处理后的整型
      */
     private Integer defaultInt(Integer value, Integer defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 
     /**
@@ -476,6 +492,6 @@ public class AppointmentWorkflowService {
      * @return 处理后的金额
      */
     private BigDecimal defaultDecimal(BigDecimal value, BigDecimal defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 }

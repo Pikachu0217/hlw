@@ -6,11 +6,29 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class TenantHeaderGatewayFilterTest {
     @Test
-    void token_tenant_is_forwarded_as_header() {
-        TenantHeaderGatewayFilter filter = new TenantHeaderGatewayFilter(token -> 100L);
+    void null_token_returns_null_tenant() {
+        DefaultTokenTenantResolver resolver = new DefaultTokenTenantResolver("test-secret-key-not-for-production");
 
-        String tenantHeader = filter.resolveTenantHeader("test-token-1");
+        Long tenantId = resolver.resolveTenantId(null);
 
-        assertThat(tenantHeader).isEqualTo("100");
+        assertThat(tenantId).isNull();
+    }
+
+    @Test
+    void invalid_token_returns_null() {
+        DefaultTokenTenantResolver resolver = new DefaultTokenTenantResolver("test-secret-key-not-for-production");
+
+        Long tenantId = resolver.resolveTenantId("invalid-token");
+
+        assertThat(tenantId).isNull();
+    }
+
+    @Test
+    void blank_token_returns_null() {
+        DefaultTokenTenantResolver resolver = new DefaultTokenTenantResolver("test-secret-key-not-for-production");
+
+        Long tenantId = resolver.resolveTenantId("");
+
+        assertThat(tenantId).isNull();
     }
 }

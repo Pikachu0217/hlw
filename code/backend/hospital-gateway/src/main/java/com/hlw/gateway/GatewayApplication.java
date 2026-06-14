@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 /**
  * 网关服务启动入口。
  */
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = "com.hlw")
 public class GatewayApplication {
     /**
      * 启动网关服务。

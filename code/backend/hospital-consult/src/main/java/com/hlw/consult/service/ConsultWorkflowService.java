@@ -3,6 +3,7 @@ package com.hlw.consult.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.consult.dto.AcceptConsultRequest;
 import com.hlw.consult.dto.CreateConsultRequest;
 import com.hlw.consult.entity.ConConsultEntity;
@@ -304,7 +305,7 @@ public class ConsultWorkflowService {
      * @return 处理后的字符串
      */
     private String defaultIfBlank(String value, String defaultValue) {
-        return value == null || value.isBlank() ? defaultValue : value.trim();
+        return DefaultValueUtils.defaultIfBlank(value, defaultValue);
     }
 
     /**
@@ -315,7 +316,7 @@ public class ConsultWorkflowService {
      * @return 处理后的长整型
      */
     private Long defaultLong(Long value, Long defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 
     /**
@@ -326,7 +327,7 @@ public class ConsultWorkflowService {
      * @return 处理后的整型
      */
     private int defaultInt(Integer value, int defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 
     /**
@@ -337,6 +338,6 @@ public class ConsultWorkflowService {
      * @return 处理后的金额
      */
     private BigDecimal defaultDecimal(BigDecimal value, BigDecimal defaultValue) {
-        return value == null ? defaultValue : value;
+        return DefaultValueUtils.defaultIfNull(value, defaultValue);
     }
 }

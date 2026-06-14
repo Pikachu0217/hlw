@@ -1,7 +1,9 @@
 package com.hlw.gateway.config;
 
+import com.hlw.gateway.filter.DefaultTokenTenantResolver;
 import com.hlw.gateway.filter.TenantHeaderGatewayFilter;
 import com.hlw.gateway.filter.TokenTenantResolver;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,12 +24,13 @@ public class GatewayFilterConfig {
     }
 
     /**
-     * 创建本地演示令牌租户解析器。
+     * 创建 JWT 令牌租户解析器。
      *
+     * @param jwtSecret JWT 签名密钥
      * @return 租户解析器
      */
     @Bean
-    public TokenTenantResolver tokenTenantResolver() {
-        return token -> token == null || token.isBlank() ? null : 100L;
+    public TokenTenantResolver tokenTenantResolver(@Value("${hlw.jwt.secret}") String jwtSecret) {
+        return new DefaultTokenTenantResolver(jwtSecret);
     }
 }

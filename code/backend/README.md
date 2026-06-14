@@ -9,14 +9,14 @@
 - `hospital-common/common-core`：统一响应、分页模型、业务异常、租户上下文。
 - `hospital-common/common-mybatis`：MyBatis-Plus 多租户拦截器配置。
 - `hospital-common/common-redis`：Redisson 分布式锁辅助服务。
-- `hospital-common/common-security`：Sa-Token 辅助工具。
+- `hospital-common/common-security`：Sa-Token 辅助工具、JWT 签发解析、BCrypt 密码编码和统一租户上下文过滤器。
 - `hospital-common/common-mq`：本地消息队列抽象与重试策略。
 - `resources/sql/init.sql`：PostgreSQL 16 基线建库建表脚本。
 
 本阶段新增：
 
-- `hospital-gateway`：网关租户请求头透传过滤器。
-- `hospital-auth`：登录服务与认证资料接口已改造为 MyBatis Plus + VO 分层实现。
+- `hospital-gateway`：网关租户请求头透传过滤器，会基于 JWT 登录令牌生成可信 `X-Tenant-Id`。
+- `hospital-auth`：登录服务与认证资料接口已改造为 MyBatis Plus + VO 分层实现，登录令牌改为 JWT，密码校验改为 BCrypt。
 - `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-doctor`：医生、科室、医生科室绑定、排班和挂号费规则已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-patient`：患者档案、健康档案、风险等级、身份证与就诊信息已改造为 MyBatis Plus + DTO/VO 分层实现。
@@ -123,6 +123,25 @@ psql -U postgres -f resources/sql/init.sql
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再在系统模块中保留 `JdbcOperations` 直查实现。
 - 系统服务会优先基于 `satoken` 解析租户上下文，只有缺少令牌时才读取正数 `X-Tenant-Id` 请求头；无法识别租户时会进入隔离上下文，不再默认落到平台租户。
 - 涉及平台级租户主数据的查询与创建，会在 Service 中显式忽略租户行过滤，并且仅允许平台令牌上下文访问。
+
+## 认证与租户上下文
+
+当前认证链路约定如下：
+
+- 登录接口 `POST /auth/login` 读取 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
+- 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
+- 网关只信任 `satoken` 登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `X-Tenant-Id` 并重新写入可信租户头。
+- 登录接口属于公开接口，允许携带正数 `X-Tenant-Id` 完成租户内账号登录。
+- 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，令牌无效或租户缺失时进入隔离租户 `-1`。
+
+认证与租户相关环境变量：
+
+```bash
+HLW_JWT_SECRET=至少32字节的JWT签名密钥
+HLW_API_USERNAME=门诊运营
+HLW_API_PASSWORD=123456
+HLW_API_TENANT_ID=100
+```
 
 `resources/sql/init.sql` 是当前唯一数据库初始化脚本，兼作完整领域设计基线和本地联调用脚本；后续新增字段、表或演示数据时只维护这一处，并为每个字段补充 `COMMENT ON COLUMN`。
 
