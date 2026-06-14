@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BACKEND_DIR="${ROOT_DIR}/code/backend"
 FRONTEND_DIR="${ROOT_DIR}/code/frontend"
 RUNTIME_DIR="${ROOT_DIR}/.runtime"
@@ -14,6 +14,7 @@ MENU_BACKEND_MODULES="${MENU_BACKEND_MODULES:-hospital-appointment hospital-auth
 FRONTEND_APPS="${FRONTEND_APPS:-admin-web patient-h5}"
 MENU_FRONTEND_APPS="${MENU_FRONTEND_APPS:-admin-web patient-h5}"
 SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-local}"
+BACKEND_ARTIFACTS_READY=0
 
 # 输出脚本用法，帮助开发者快速确认启停命令。
 print_usage() {
@@ -21,12 +22,12 @@ print_usage() {
 互联网医院一键启停脚本
 
 用法：
-  ./scripts/service.sh            进入交互式菜单
-  ./scripts/service.sh start      启动前端和后端
-  ./scripts/service.sh stop       停止前端和后端
-  ./scripts/service.sh restart    重启前端和后端
-  ./scripts/service.sh status     查看进程状态
-  ./scripts/service.sh logs       查看日志文件位置
+  ./resources/scripts/service.sh            进入交互式菜单
+  ./resources/scripts/service.sh start      启动前端和后端
+  ./resources/scripts/service.sh stop       停止前端和后端
+  ./resources/scripts/service.sh restart    重启前端和后端
+  ./resources/scripts/service.sh status     查看进程状态
+  ./resources/scripts/service.sh logs       查看日志文件位置
 
 可选环境变量：
   BACKEND_MODULES="hospital-gateway hospital-auth"  指定后端模块
@@ -98,7 +99,8 @@ start_process() {
   echo "正在启动：${service_name}"
   (
     cd "${work_dir}"
-    nohup bash -c "${command}" >>"${log_file}" 2>&1 &
+    echo "执行命令：${command}" >>"${log_file}"
+    nohup bash -c "${command}" </dev/null >>"${log_file}" 2>&1 &
     echo $! >"${pid_file}"
   )
   echo "启动完成：${service_name}，pid=$(cat "${pid_file}")，日志=${log_file}"
@@ -165,12 +167,33 @@ is_backend_module_runnable() {
   return 0
 }
 
+# 准备后端运行依赖，避免单模块启动读取到过期本地依赖或残留 target 类。
+prepare_backend_artifacts() {
+  if [ "${BACKEND_ARTIFACTS_READY}" = "1" ]; then
+    return 0
+  fi
+
+  echo "正在准备后端运行依赖"
+  (
+    cd "${BACKEND_DIR}"
+    mvn -Dmaven.test.skip=true clean install
+    for module in ${BACKEND_MODULES}; do
+      if is_backend_module_runnable "${module}"; then
+        mvn -f "${module}/pom.xml" -Dmaven.test.skip=true package spring-boot:repackage
+      fi
+    done
+  )
+  BACKEND_ARTIFACTS_READY=1
+  echo "后端运行依赖准备完成"
+}
+
 # 启动指定后端模块。
 start_backend_module() {
   local module="$1"
 
   if is_backend_module_runnable "${module}"; then
-    start_process "${module}" "${BACKEND_DIR}" "exec mvn -f ${module}/pom.xml spring-boot:run -Dspring-boot.run.profiles=${SPRING_PROFILES_ACTIVE}"
+    prepare_backend_artifacts
+    start_process "${module}" "${BACKEND_DIR}" "exec java -jar ${module}/target/${module}-0.0.1-SNAPSHOT.jar --spring.profiles.active=${SPRING_PROFILES_ACTIVE}"
   fi
 }
 
@@ -216,13 +239,13 @@ frontend_command() {
 
   case "${app_name}" in
     admin-web)
-      echo "pnpm dev:admin"
+      echo "exec pnpm dev:admin"
       ;;
     patient-h5)
-      echo "pnpm dev:patient"
+      echo "exec pnpm dev:patient"
       ;;
     *)
-      echo "pnpm --filter ${app_name} dev"
+      echo "exec pnpm --filter ${app_name} dev"
       ;;
   esac
 }
