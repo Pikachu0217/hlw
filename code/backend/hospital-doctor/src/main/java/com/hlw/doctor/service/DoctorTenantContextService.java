@@ -290,9 +290,9 @@ public class DoctorTenantContextService {
      */
     private void refreshDepartmentDoctorCount(Long departmentId) {
         DocDepartmentEntity department = requireActiveDepartment(departmentId);
-        int doctorCount = (int) docDoctorDepartmentMapper.selectCount(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
+        int doctorCount = Math.toIntExact(docDoctorDepartmentMapper.selectCount(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
             .eq(DocDoctorDepartmentEntity::getDeleted, 0)
-            .eq(DocDoctorDepartmentEntity::getDepartmentId, departmentId));
+            .eq(DocDoctorDepartmentEntity::getDepartmentId, departmentId)));
         department.setDoctorCount(doctorCount);
         docDepartmentMapper.updateById(department);
     }

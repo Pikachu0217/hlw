@@ -671,9 +671,9 @@ public class SystemTenantContextService {
      */
     private void refreshRoleMemberCount(Long roleId) {
         SysRoleEntity role = requireActiveRole(roleId);
-        int count = (int) sysUserRoleMapper.selectCount(new LambdaQueryWrapper<SysUserRoleEntity>()
+        int count = Math.toIntExact(sysUserRoleMapper.selectCount(new LambdaQueryWrapper<SysUserRoleEntity>()
             .eq(SysUserRoleEntity::getDeleted, 0)
-            .eq(SysUserRoleEntity::getRoleId, roleId));
+            .eq(SysUserRoleEntity::getRoleId, roleId)));
         role.setMemberCount(count);
         sysRoleMapper.updateById(role);
     }
