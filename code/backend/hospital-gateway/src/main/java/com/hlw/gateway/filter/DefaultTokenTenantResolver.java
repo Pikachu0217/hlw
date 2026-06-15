@@ -4,6 +4,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +14,7 @@ import java.security.Key;
 /**
  * 默认登录令牌租户解析器，负责从 JWT 中解析租户编号。
  */
+@Slf4j
 public class DefaultTokenTenantResolver implements TokenTenantResolver {
     private final Key secretKey;
     private final String tokenPrefix;
@@ -39,7 +42,7 @@ public class DefaultTokenTenantResolver implements TokenTenantResolver {
     @Override
     public Long resolveTenantId(String token) {
         String rawToken = resolveRawToken(token);
-        if (rawToken == null || rawToken.isBlank()) {
+        if (!StringUtils.hasText(rawToken)) {
             return null;
         }
         try {
@@ -51,6 +54,7 @@ public class DefaultTokenTenantResolver implements TokenTenantResolver {
             Object tenantId = claims.get("tenantId");
             return tenantId instanceof Number ? ((Number) tenantId).longValue() : null;
         } catch (JwtException e) {
+            log.error("Failed to parse JWT token: {}", token, e);
             return null;
         }
     }

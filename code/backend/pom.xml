@@ -12,10 +12,10 @@
     </parent>
 
     <groupId>com.hlw</groupId>
-    <artifactId>hospital-backend</artifactId>
+    <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>hospital-backend</name>
+    <name>backend</name>
 
     <modules>
         <module>hospital-common</module>

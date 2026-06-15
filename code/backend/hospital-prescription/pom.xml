@@ -6,7 +6,7 @@
 
     <parent>
         <groupId>com.hlw</groupId>
-        <artifactId>hospital-backend</artifactId>
+        <artifactId>backend</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
@@ -42,10 +42,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
+
     </dependencies>
 </project>

@@ -24,7 +24,7 @@ public class GatewayFilterConfig {
             TokenTenantResolver tokenTenantResolver,
             GatewayAuthProperties gatewayAuthProperties
     ) {
-        return new TenantHeaderGatewayFilter(tokenTenantResolver, gatewayAuthProperties.getPublicPaths());
+        return new TenantHeaderGatewayFilter(tokenTenantResolver, gatewayAuthProperties);
     }
 
     /**

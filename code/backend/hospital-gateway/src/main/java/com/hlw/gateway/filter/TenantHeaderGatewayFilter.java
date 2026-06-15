@@ -1,34 +1,36 @@
 package com.hlw.gateway.filter;
 
+import com.hlw.gateway.config.GatewayAuthProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * 租户请求头网关过滤器，负责基于登录令牌设置可信租户头。
  */
+@Slf4j
 public class TenantHeaderGatewayFilter implements GlobalFilter {
-    private static final String AUTHORIZATION_HEADER = "Authorization";
 
     private final TokenTenantResolver tokenTenantResolver;
-    private final Set<String> publicPaths;
+    private final GatewayAuthProperties gatewayAuthProperties;
 
     /**
      * 构造租户请求头网关过滤器。
      *
      * @param tokenTenantResolver 登录令牌租户解析器
-     * @param publicPaths 公开接口路径前缀
+     * @param gatewayAuthProperties 网关认证配置属性
      */
-    public TenantHeaderGatewayFilter(TokenTenantResolver tokenTenantResolver, List<String> publicPaths) {
+    public TenantHeaderGatewayFilter(TokenTenantResolver tokenTenantResolver, GatewayAuthProperties gatewayAuthProperties) {
         this.tokenTenantResolver = tokenTenantResolver;
-        this.publicPaths = new LinkedHashSet<>(publicPaths == null ? List.of() : publicPaths);
+        this.gatewayAuthProperties = gatewayAuthProperties;
     }
 
     /**
@@ -40,6 +42,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        String AUTHORIZATION_HEADER = gatewayAuthProperties.getTokenName();
         ServerHttpRequest request = exchange.getRequest();
         String token = request.getHeaders().getFirst(AUTHORIZATION_HEADER);
         boolean publicPath = isPublicPath(request);
@@ -88,6 +91,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      */
     private boolean isPublicPath(ServerHttpRequest request) {
         String path = request.getURI().getPath();
+        LinkedHashSet<String> publicPaths = new LinkedHashSet<>(gatewayAuthProperties.getPublicPaths() == null ? List.of() : gatewayAuthProperties.getPublicPaths());
         return publicPaths.stream()
                 .filter(publicPath -> publicPath != null && !publicPath.isBlank())
                 .map(String::trim)
@@ -102,13 +106,14 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      */
     private String resolvePublicTenantHeader(ServerHttpRequest request) {
         String tenantHeader = request.getHeaders().getFirst("X-Tenant-Id");
-        if (tenantHeader == null || tenantHeader.isBlank()) {
+        if (!StringUtils.hasText(tenantHeader)) {
             return null;
         }
         try {
             long tenantId = Long.parseLong(tenantHeader.trim());
             return tenantId > 0 ? String.valueOf(tenantId) : null;
         } catch (NumberFormatException e) {
+            log.error("Invalid X-Tenant-Id header: {}", tenantHeader, e);
             return null;
         }
     }
