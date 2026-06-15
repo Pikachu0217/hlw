@@ -1,22 +1,13 @@
 package com.hlw.gateway.filter;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import lombok.extern.slf4j.Slf4j;
+import com.hlw.common.core.tenant.TenantJwtResolver;
 import org.springframework.util.StringUtils;
-
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
 
 /**
  * 默认登录令牌租户解析器，负责从 JWT 中解析租户编号。
  */
-@Slf4j
 public class DefaultTokenTenantResolver implements TokenTenantResolver {
-    private final Key secretKey;
+    private final String jwtSecret;
     private final String tokenPrefix;
 
     /**
@@ -26,10 +17,7 @@ public class DefaultTokenTenantResolver implements TokenTenantResolver {
      * @param tokenPrefix 登录令牌前缀
      */
     public DefaultTokenTenantResolver(String jwtSecret, String tokenPrefix) {
-        this.secretKey = new SecretKeySpec(
-                jwtSecret.getBytes(StandardCharsets.UTF_8),
-                SignatureAlgorithm.HS256.getJcaName()
-        );
+        this.jwtSecret = jwtSecret;
         this.tokenPrefix = tokenPrefix == null ? "" : tokenPrefix.trim();
     }
 
@@ -45,18 +33,7 @@ public class DefaultTokenTenantResolver implements TokenTenantResolver {
         if (!StringUtils.hasText(rawToken)) {
             return null;
         }
-        try {
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(secretKey)
-                    .build()
-                    .parseClaimsJws(rawToken)
-                    .getBody();
-            Object tenantId = claims.get("tenantId");
-            return tenantId instanceof Number ? ((Number) tenantId).longValue() : null;
-        } catch (JwtException e) {
-            log.error("Failed to parse JWT token: {}", token, e);
-            return null;
-        }
+        return TenantJwtResolver.resolveTenantId(rawToken, jwtSecret);
     }
 
     /**
@@ -71,7 +48,7 @@ public class DefaultTokenTenantResolver implements TokenTenantResolver {
         }
         String trimmed = token.trim();
         String prefixWithSpace = tokenPrefix + " ";
-        if (trimmed.regionMatches(true, 0, prefixWithSpace, 0, prefixWithSpace.length())) {
+        if (!tokenPrefix.isBlank() && trimmed.regionMatches(true, 0, prefixWithSpace, 0, prefixWithSpace.length())) {
             return trimmed.substring(prefixWithSpace.length()).trim();
         }
         return trimmed;

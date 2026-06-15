@@ -52,7 +52,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
                 .build();
 
         Long tenantId = resolveTenantId(token);
-        if (tenantId != null && tenantId > 0) {
+        if (tenantId != null && tenantId >= 0) {
             cleaned = cleaned.mutate()
                     .header("X-Tenant-Id", String.valueOf(tenantId))
                     .build();
@@ -65,7 +65,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
             }
         }
 
-        if (!publicPath && tenantId == null) {
+        if (!publicPath && (tenantId == null || tenantId < 0)) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }

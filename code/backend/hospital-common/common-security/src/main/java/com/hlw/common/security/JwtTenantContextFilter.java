@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +19,7 @@ import java.io.IOException;
  * 所有业务模块共用此过滤器。
  */
 @Component
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class JwtTenantContextFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(JwtTenantContextFilter.class);
     private static final Long ISOLATED_TENANT_ID = -1L;
@@ -54,18 +56,18 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
         Long tenantId;
         boolean platformRequest = false;
 
-        if (token != null && !token.isBlank()) {
-            tenantId = TenantJwtParser.resolveTenantId(token, jwtSecret);
-            platformRequest = tenantId != null && tenantId == 0L;
-        } else if (tenantHeader != null && !tenantHeader.isBlank()) {
+        if (tenantHeader != null && !tenantHeader.isBlank()) {
             try {
                 long parsed = Long.parseLong(tenantHeader.trim());
-                tenantId = parsed > 0 ? parsed : ISOLATED_TENANT_ID;
+                tenantId = parsed >= 0 ? parsed : ISOLATED_TENANT_ID;
                 platformRequest = tenantId == 0L;
             } catch (NumberFormatException e) {
                 log.warn("解析租户请求头失败，tenantHeader={}", tenantHeader);
                 tenantId = ISOLATED_TENANT_ID;
             }
+        } else if (token != null && !token.isBlank()) {
+            tenantId = TenantJwtParser.resolveTenantId(token, jwtSecret);
+            platformRequest = tenantId != null && tenantId == 0L;
         } else {
             tenantId = ISOLATED_TENANT_ID;
         }
