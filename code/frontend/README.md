@@ -143,7 +143,7 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 - `/system/permissions`
 - `/doctor/departments`
 
-管理端登录页会在未登录状态调用 `GET /system/tenants` 获取正常租户选项，并在 `POST /auth/login` 请求体和请求头中携带租户编号，确保后台账号按租户隔离登录。
+管理端登录页会在未登录状态调用 `GET /system/tenants` 获取所有未删除租户选项，并在 `POST /auth/login` 请求体和请求头中携带租户编号，确保后台账号按租户隔离登录。
 
 系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。用户、角色、菜单、字典、岗位、权限码页面均已接入新增弹窗；提交后调用对应 `POST /system/*` 接口并刷新列表。
 

@@ -123,13 +123,13 @@ psql -U postgres -f resources/sql/init.sql
 - Service 统一负责系统管理业务编排、关系绑定校验和 VO 转换。
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再在系统模块中保留 `JdbcOperations` 直查实现。
 - 系统服务会优先基于 `satoken` 解析租户上下文，只有缺少令牌时才读取正数 `X-Tenant-Id` 请求头；无法识别租户时会进入隔离上下文，不再默认落到平台租户。
-- 涉及平台级租户主数据的创建，会在 Service 中显式忽略租户行过滤，并且仅允许平台令牌上下文访问；登录前租户选择只公开查询正常租户的基础展示信息。
+- 涉及平台级租户主数据的创建，会在 Service 中显式忽略租户行过滤，并且仅允许平台令牌上下文访问；登录前租户选择接口不鉴权，公开查询所有未删除租户的基础展示信息。
 
 ## 认证与租户上下文
 
 当前认证链路约定如下：
 
-- 登录页可在未登录状态通过 `GET /system/tenants` 读取正常租户选项，用于选择管理端登录租户。
+- 登录页可在未登录状态通过 `GET /system/tenants` 读取所有未删除租户选项，用于选择管理端登录租户。
 - 登录接口 `POST /auth/login` 读取请求体中的 `tenantId`、`username` 和 `password`，按租户编号和账号查询认证库 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
 - 网关只信任 `satoken` 登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `X-Tenant-Id` 并重新写入可信租户头。

@@ -565,9 +565,7 @@ public class SystemTenantContextService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<SysTenantEntity> publicTenantWrapper() {
-        return new LambdaQueryWrapper<SysTenantEntity>()
-            .eq(SysTenantEntity::getDeleted, 0)
-            .eq(SysTenantEntity::getStatus, DEFAULT_TENANT_STATUS);
+        return new LambdaQueryWrapper<SysTenantEntity>().eq(SysTenantEntity::getDeleted, 0);
     }
 
     /**
