@@ -17,15 +17,18 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use((config) => {
   const token = readSaToken();
   const tenantId = readTenantId();
+  const isLoginRequest = config.url === '/auth/login';
 
-  if (token) {
+  if (token && !isLoginRequest) {
     config.headers = AxiosHeaders.from(config.headers);
     config.headers.set('satoken', token);
   }
 
   if (tenantId > 0) {
     config.headers = AxiosHeaders.from(config.headers);
-    config.headers.set('X-Tenant-Id', String(tenantId));
+    if (!config.headers.has('X-Tenant-Id')) {
+      config.headers.set('X-Tenant-Id', String(tenantId));
+    }
   }
 
   console.info('[api] 发起请求', config.method?.toUpperCase(), config.url);

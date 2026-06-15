@@ -47,10 +47,10 @@ public class AuthService {
             log.warn("用户登录认证失败，登录命令为空");
             throw new BizException(400, "登录参数不能为空");
         }
-        log.info("用户登录认证开始，username={}", command.username());
-        LoginUser user = userRepository.findByUsername(command.username());
+        log.info("用户登录认证开始，tenantId={}，username={}", command.tenantId(), command.username());
+        LoginUser user = userRepository.findByTenantIdAndUsername(command.tenantId(), command.username());
         if (user == null || !matches(command.password(), user.password())) {
-            log.warn("用户登录认证失败，username={}", command.username());
+            log.warn("用户登录认证失败，tenantId={}，username={}", command.tenantId(), command.username());
             throw new BizException(401, "用户名或密码错误");
         }
         String token = tokenIssuer.issue(user);

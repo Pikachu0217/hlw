@@ -7,12 +7,13 @@ import com.hlw.auth.vo.UserProfileVO;
  */
 public interface UserRepository {
     /**
-     * 按登录账号查询用户。
+     * 按租户编号和登录账号查询用户。
      *
+     * @param tenantId 租户编号
      * @param username 登录账号
      * @return 登录用户，不存在返回 null
      */
-    LoginUser findByUsername(String username);
+    LoginUser findByTenantIdAndUsername(Long tenantId, String username);
 
     /**
      * 按用户编号和租户编号查询用户资料。

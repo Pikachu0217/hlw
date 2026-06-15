@@ -13,8 +13,9 @@ class FakeUserRepository implements UserRepository {
     }
 
     @Override
-    public LoginUser findByUsername(String username) {
-        return users.get(username);
+    public LoginUser findByTenantIdAndUsername(Long tenantId, String username) {
+        LoginUser user = users.get(username);
+        return user != null && user.tenantId().equals(tenantId) ? user : null;
     }
 
     @Override

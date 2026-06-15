@@ -118,7 +118,7 @@ public class SystemTenantContextService {
         List<SysTenantEntity> tenantEntities = TenantContext.isPlatformRequest()
             ? InterceptorIgnoreHelper.execute(ignoreTenantLine(), () -> sysTenantMapper.selectList(platformTenantWrapper()))
             : currentTenantId == null || currentTenantId <= 0L
-                ? List.of()
+                ? InterceptorIgnoreHelper.execute(ignoreTenantLine(), () -> sysTenantMapper.selectList(publicTenantWrapper()))
                 : sysTenantMapper.selectList(new LambdaQueryWrapper<SysTenantEntity>()
                     .eq(SysTenantEntity::getDeleted, 0)
                     .eq(SysTenantEntity::getTenantId, currentTenantId));
@@ -557,6 +557,17 @@ public class SystemTenantContextService {
      */
     private LambdaQueryWrapper<SysTenantEntity> activeTenantWrapper() {
         return new LambdaQueryWrapper<SysTenantEntity>().eq(SysTenantEntity::getDeleted, 0);
+    }
+
+    /**
+     * 构造登录页可公开展示的租户查询条件。
+     *
+     * @return 查询条件
+     */
+    private LambdaQueryWrapper<SysTenantEntity> publicTenantWrapper() {
+        return new LambdaQueryWrapper<SysTenantEntity>()
+            .eq(SysTenantEntity::getDeleted, 0)
+            .eq(SysTenantEntity::getStatus, DEFAULT_TENANT_STATUS);
     }
 
     /**

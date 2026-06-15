@@ -14,7 +14,7 @@ class AuthServiceTest {
         users.save(new LoginUser(1L, 100L, "admin", PasswordEncoder.encode("admin123"), "ADMIN"));
         AuthService service = new AuthService(users, new FakeTokenIssuer(), TEST_JWT_SECRET);
 
-        LoginResult result = service.login(new LoginCommand("admin", "admin123"));
+        LoginResult result = service.login(new LoginCommand(100L, "admin", "admin123"));
 
         assertThat(result.token()).isEqualTo("test-token-1");
         assertThat(result.tenantId()).isEqualTo(100L);
@@ -28,7 +28,7 @@ class AuthServiceTest {
         AuthService service = new AuthService(users, new FakeTokenIssuer(), TEST_JWT_SECRET);
 
         try {
-            service.login(new LoginCommand("admin", "wrong"));
+            service.login(new LoginCommand(100L, "admin", "wrong"));
             assertThat(true).as("Expected BizException was not thrown").isFalse();
         } catch (Exception e) {
             assertThat(e.getMessage()).contains("用户名或密码错误");

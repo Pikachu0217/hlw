@@ -198,12 +198,25 @@ COMMENT ON COLUMN sys_permission.create_by IS '创建人编号';
 COMMENT ON COLUMN sys_permission.update_by IS '更新人编号';
 COMMENT ON COLUMN sys_permission.deleted IS '逻辑删除标识';
 
+ALTER TABLE sys_user ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
+ALTER TABLE sys_user ALTER COLUMN status SET DEFAULT '启用';
+
+INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, status)
+VALUES
+    (1, 100, '门诊运营', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'ADMIN', '启用'),
+    (2, 100, '药房主管', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800002222', 'ADMIN', '启用')
+ON CONFLICT DO NOTHING;
+
 \connect hospital_system
 
 CREATE TABLE IF NOT EXISTS sys_tenant (
     id BIGSERIAL PRIMARY KEY,
     tenant_id BIGINT NOT NULL DEFAULT 0,
     name VARCHAR(128) NOT NULL,
+    tenant_name VARCHAR(128) NOT NULL DEFAULT '',
+    package_name VARCHAR(128) NOT NULL DEFAULT '',
+    admin_name VARCHAR(64) NOT NULL DEFAULT '',
+    expire_at DATE,
     logo VARCHAR(512),
     address VARCHAR(512),
     phone VARCHAR(32),
@@ -420,11 +433,21 @@ ALTER TABLE sys_user_role ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN s
 ALTER TABLE sys_user_role ALTER COLUMN status SET DEFAULT '启用';
 ALTER TABLE sys_role_menu ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
 ALTER TABLE sys_role_menu ALTER COLUMN status SET DEFAULT '启用';
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS tenant_name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS package_name VARCHAR(128) NOT NULL DEFAULT '';
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS admin_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS expire_at DATE;
+ALTER TABLE sys_tenant ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '正常' WHEN status::text = '0' THEN '停用' ELSE status::text END;
+ALTER TABLE sys_tenant ALTER COLUMN status SET DEFAULT '正常';
 
 COMMENT ON TABLE sys_tenant IS '租户信息表';
 COMMENT ON COLUMN sys_tenant.id IS '主键编号';
 COMMENT ON COLUMN sys_tenant.tenant_id IS '租户编号';
 COMMENT ON COLUMN sys_tenant.name IS '租户名称';
+COMMENT ON COLUMN sys_tenant.tenant_name IS '租户展示名称';
+COMMENT ON COLUMN sys_tenant.package_name IS '套餐名称';
+COMMENT ON COLUMN sys_tenant.admin_name IS '管理员名称';
+COMMENT ON COLUMN sys_tenant.expire_at IS '到期日期';
 COMMENT ON COLUMN sys_tenant.logo IS '租户标识地址';
 COMMENT ON COLUMN sys_tenant.address IS '租户地址';
 COMMENT ON COLUMN sys_tenant.phone IS '联系电话';
@@ -568,6 +591,11 @@ COMMENT ON COLUMN sys_role_menu.update_time IS '更新时间';
 COMMENT ON COLUMN sys_role_menu.create_by IS '创建人编号';
 COMMENT ON COLUMN sys_role_menu.update_by IS '更新人编号';
 COMMENT ON COLUMN sys_role_menu.deleted IS '逻辑删除标识';
+
+INSERT INTO sys_tenant (id, tenant_id, name, tenant_name, package_name, admin_name, expire_at, status)
+VALUES
+    (1, 100, '明亮互联网医院', '明亮互联网医院', '标准医疗版', '门诊运营', '2026-12-31', '正常')
+ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_name, role_name, last_login, status)
 VALUES

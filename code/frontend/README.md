@@ -31,6 +31,8 @@
 - `drug`
 - `order`
 
+管理端登录页已接入登录前租户选择，会调用公开租户列表接口加载可登录租户，并在提交认证时携带租户编号。
+
 管理端 `tenant` 页面已接入租户新增弹窗；`doctor` 页面已接入新增医生、医生状态切换和医生排班创建操作，`doctor/departments` 页面已接入新增科室弹窗，提交后会刷新后端列表数据；`patient` 页面已接入患者档案创建、患者资料更新和健康档案创建操作，并同步展示患者详情与档案列表。
 
 `patient-h5` 当前已覆盖以下页面骨架：
@@ -140,6 +142,8 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 - `/system/posts`
 - `/system/permissions`
 - `/doctor/departments`
+
+管理端登录页会在未登录状态调用 `GET /system/tenants` 获取正常租户选项，并在 `POST /auth/login` 请求体和请求头中携带租户编号，确保后台账号按租户隔离登录。
 
 系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。用户、角色、菜单、字典、岗位、权限码页面均已接入新增弹窗；提交后调用对应 `POST /system/*` 接口并刷新列表。
 

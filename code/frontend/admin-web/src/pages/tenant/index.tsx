@@ -7,6 +7,7 @@ import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface TenantRecord {
   key: string;
+  tenantId: number;
   tenantName: string;
   packageName: string;
   adminName: string;

@@ -482,6 +482,12 @@ body {
   color: #6d8798;
 }
 
+.login-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 @media (max-width: 960px) {
   .admin-sider {
     display: none;

@@ -331,7 +331,7 @@ run_login_case() {
   local name="认证登录"
   local method="POST"
   local path="/auth/login"
-  local body="{\"username\":\"${USERNAME}\",\"password\":\"${PASSWORD}\"}"
+  local body="{\"tenantId\":${TENANT_HEADER},\"username\":\"${USERNAME}\",\"password\":\"${PASSWORD}\"}"
   local response_file
   local meta_file
   local started_at

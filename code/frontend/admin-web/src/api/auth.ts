@@ -13,6 +13,7 @@ interface LoginResponse {
 }
 
 export interface LoginPayload {
+  tenantId: number;
   username: string;
   password: string;
 }
@@ -38,8 +39,10 @@ const roleNameMap: Record<string, string> = {
  * @return 登录快照
  */
 export async function loginAdmin(payload: LoginPayload): Promise<AdminLoginSnapshot> {
-  console.info('[auth] 请求后端登录接口', payload.username);
-  const response = await apiClient.post<ApiResult<LoginResponse>>('/auth/login', payload);
+  console.info('[auth] 请求后端登录接口', payload.username, payload.tenantId);
+  const response = await apiClient.post<ApiResult<LoginResponse>>('/auth/login', payload, {
+    headers: { 'X-Tenant-Id': String(payload.tenantId) },
+  });
   const result = response.data.data;
 
   return {

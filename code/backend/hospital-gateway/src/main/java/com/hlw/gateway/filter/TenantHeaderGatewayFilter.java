@@ -2,6 +2,7 @@ package com.hlw.gateway.filter;
 
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
@@ -15,6 +16,9 @@ import java.util.Set;
 public class TenantHeaderGatewayFilter implements GlobalFilter {
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/auth/login"
+    );
+    private static final Set<String> PUBLIC_GET_PATHS = Set.of(
+            "/system/tenants"
     );
 
     private final TokenTenantResolver tokenTenantResolver;
@@ -37,10 +41,9 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        String path = exchange.getRequest().getURI().getPath();
-
         ServerHttpRequest request = exchange.getRequest();
         String token = request.getHeaders().getFirst("satoken");
+        boolean publicPath = isPublicPath(request);
 
         ServerHttpRequest cleaned = request.mutate()
                 .headers(headers -> headers.remove("X-Tenant-Id"))
@@ -51,7 +54,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
             cleaned = cleaned.mutate()
                     .header("X-Tenant-Id", String.valueOf(tenantId))
                     .build();
-        } else if (isPublicPath(path)) {
+        } else if (publicPath) {
             String tenantHeader = resolvePublicTenantHeader(request);
             if (tenantHeader != null) {
                 cleaned = cleaned.mutate()
@@ -60,7 +63,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
             }
         }
 
-        if (!isPublicPath(path) && tenantId == null) {
+        if (!publicPath && tenantId == null) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
@@ -79,13 +82,18 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
     }
 
     /**
-     * 判断是否公开路径。
+     * 判断是否公开接口。
      *
-     * @param path 请求路径
-     * @return 是否公开路径
+     * @param request 当前请求
+     * @return 是否公开接口
      */
-    private boolean isPublicPath(String path) {
-        return PUBLIC_PATHS.stream().anyMatch(path::startsWith);
+    private boolean isPublicPath(ServerHttpRequest request) {
+        String path = request.getURI().getPath();
+        if (PUBLIC_PATHS.stream().anyMatch(path::startsWith)) {
+            return true;
+        }
+        return HttpMethod.GET.equals(request.getMethod())
+                && PUBLIC_GET_PATHS.stream().anyMatch(path::startsWith);
     }
 
     /**

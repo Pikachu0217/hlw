@@ -17,15 +17,17 @@ public class MybatisUserRepository implements UserRepository {
     private final AuthUserMapper authUserMapper;
 
     /**
-     * 按登录账号查询用户。
+     * 按租户编号和登录账号查询用户。
      *
+     * @param tenantId 租户编号
      * @param username 登录账号
      * @return 登录用户，不存在返回 null
      */
     @Override
-    public LoginUser findByUsername(String username) {
+    public LoginUser findByTenantIdAndUsername(Long tenantId, String username) {
         AuthUserEntity entity = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUserEntity>()
             .eq(AuthUserEntity::getDeleted, 0)
+            .eq(AuthUserEntity::getTenantId, tenantId)
             .eq(AuthUserEntity::getUsername, username)
             .in(AuthUserEntity::getStatus, "1", "启用", "ACTIVE")
             .orderByAsc(AuthUserEntity::getId)
