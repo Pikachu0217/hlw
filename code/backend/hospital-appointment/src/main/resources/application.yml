@@ -30,7 +30,7 @@ spring:
     password: ${hlw.rabbitmq.password}
 
 server:
-  port: 9600
+  port: 19600
 
 mybatis-plus:
   configuration:

@@ -65,7 +65,7 @@ code/frontend/
 
 - 管理端使用 React 18、TypeScript、Vite、Ant Design。
 - 患者端使用 React 18、TypeScript、Vite、Ant Design Mobile、Zustand。
-- 两个应用都需要统一支持 `satoken` 认证头透传。
+- 两个应用都需要统一支持 `Authorization: Bearer <token>` 认证头透传。
 - 当前阶段只搭建 MVP 骨架和页面结构，不在本文档中承诺已完成的真实联调或构建结果。
 
 ## 常用命令
@@ -119,8 +119,8 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 
 | 应用 | 启动命令 | 本地端口 |
 | --- | --- | ---: |
-| `admin-web` | `pnpm dev:admin` | 3200 |
-| `patient-h5` | `pnpm dev:patient` | 3300 |
+| `admin-web` | `pnpm dev:admin` | 13200 |
+| `patient-h5` | `pnpm dev:patient` | 13300 |
 
 脚本运行时会在仓库根目录生成 `.runtime/pids` 和 `.runtime/logs`，分别保存进程 pid 与服务日志。
 

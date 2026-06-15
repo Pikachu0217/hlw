@@ -77,16 +77,16 @@
 
 ```
 internet-hospital/
-├── hospital-gateway/              # API 网关服务 (端口 9000)
-├── hospital-auth/                 # 认证服务 (端口 9100)
-├── hospital-system/               # 系统服务 (端口 9200)
-├── hospital-patient/              # 患者服务 (端口 9300)
-├── hospital-doctor/               # 医生服务 (端口 9400)
-├── hospital-consult/              # 问诊服务 (端口 9500)
-├── hospital-appointment/          # 预约挂号服务 (端口 9600)
-├── hospital-prescription/         # 处方服务 (端口 9700)
-├── hospital-drug/                 # 药品服务 (端口 9800)
-├── hospital-order/                # 订单服务 (端口 9900)
+├── hospital-gateway/              # API 网关服务 (端口 19000)
+├── hospital-auth/                 # 认证服务 (端口 19100)
+├── hospital-system/               # 系统服务 (端口 19200)
+├── hospital-patient/              # 患者服务 (端口 19300)
+├── hospital-doctor/               # 医生服务 (端口 19400)
+├── hospital-consult/              # 问诊服务 (端口 19500)
+├── hospital-appointment/          # 预约挂号服务 (端口 19600)
+├── hospital-prescription/         # 处方服务 (端口 19700)
+├── hospital-drug/                 # 药品服务 (端口 19800)
+├── hospital-order/                # 订单服务 (端口 19900)
 └── hospital-common/               # 公共模块
     ├── common-core/               # 通用工具、异常、常量、DTO
     ├── common-mybatis/            # MyBatis 配置、多租户插件

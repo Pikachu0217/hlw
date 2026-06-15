@@ -2,9 +2,10 @@ import axios, { AxiosError, AxiosHeaders } from 'axios';
 import {
   clearAuthSnapshot,
   emitAuthExpiredEvent,
-  readSaToken,
+  readAuthToken,
   readTenantId,
 } from '@/utils/auth-storage';
+import { AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN_PREFIX } from '@/api/auth-header';
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
@@ -15,13 +16,13 @@ export const apiClient = axios.create({
  * 注册请求拦截器，统一注入登录令牌与租户请求头。
  */
 apiClient.interceptors.request.use((config) => {
-  const token = readSaToken();
+  const token = readAuthToken();
   const tenantId = readTenantId();
   const isLoginRequest = config.url === '/auth/login';
 
   if (token && !isLoginRequest) {
     config.headers = AxiosHeaders.from(config.headers);
-    config.headers.set('satoken', token);
+    config.headers.set(AUTHORIZATION_HEADER, `${AUTHORIZATION_TOKEN_PREFIX} ${token}`);
   }
 
   if (tenantId > 0) {
@@ -51,7 +52,7 @@ apiClient.interceptors.response.use(
   },
   (error: AxiosError) => {
     if (error.response?.status === 401) {
-      console.warn('[api] satoken 已失效，准备跳转登录页');
+      console.warn('[api] 登录令牌已失效，准备跳转登录页');
       clearAuthSnapshot();
       emitAuthExpiredEvent('接口返回 401，登录态已失效');
 

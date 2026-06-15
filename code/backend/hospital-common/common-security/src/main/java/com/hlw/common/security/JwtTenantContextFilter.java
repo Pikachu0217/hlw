@@ -49,7 +49,7 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
         String tenantHeader = request.getHeader("X-Tenant-Id");
-        String token = request.getHeader("satoken");
+        String token = BearerTokenResolver.resolve(request.getHeader(BearerTokenResolver.AUTHORIZATION_HEADER));
 
         Long tenantId;
         boolean platformRequest = false;

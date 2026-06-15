@@ -115,13 +115,63 @@ public class SystemTenantContextService {
     public List<TenantVO> listTenants() {
         log.info("查询租户列表");
         Long currentTenantId = TenantContext.getTenantId();
-        List<SysTenantEntity> tenantEntities = TenantContext.isPlatformRequest()
-            ? InterceptorIgnoreHelper.execute(ignoreTenantLine(), () -> sysTenantMapper.selectList(platformTenantWrapper()))
-            : currentTenantId == null || currentTenantId <= 0L
-                ? InterceptorIgnoreHelper.execute(ignoreTenantLine(), () -> sysTenantMapper.selectList(publicTenantWrapper()))
-                : sysTenantMapper.selectList(new LambdaQueryWrapper<SysTenantEntity>()
-                    .eq(SysTenantEntity::getDeleted, 0)
-                    .eq(SysTenantEntity::getTenantId, currentTenantId));
+        List<SysTenantEntity> tenantEntities;
+
+        if (TenantContext.isPlatformRequest()) {
+            log.info("平台上下文查询全部未删除租户");
+            tenantEntities = listAllUndeletedTenants();
+        } else if (isPublicTenantQuery(currentTenantId)) {
+            log.info("公开租户列表查询全部未删除租户");
+            tenantEntities = listAllUndeletedTenants();
+        } else {
+            log.info("租户上下文查询当前租户，tenantId={}", currentTenantId);
+            tenantEntities = listCurrentTenant(currentTenantId);
+        }
+
+        return toTenantVOList(tenantEntities);
+    }
+
+    /**
+     * 判断当前请求是否为登录前公开租户查询。
+     *
+     * @param currentTenantId 当前租户编号
+     * @return 是否公开查询
+     */
+    private boolean isPublicTenantQuery(Long currentTenantId) {
+        return currentTenantId == null || currentTenantId <= 0L;
+    }
+
+    /**
+     * 查询全部未删除租户，供平台上下文和登录前公开选择使用。
+     *
+     * @return 未删除租户列表
+     */
+    private List<SysTenantEntity> listAllUndeletedTenants() {
+        return InterceptorIgnoreHelper.execute(
+            ignoreTenantLine(),
+            () -> sysTenantMapper.selectList(publicTenantWrapper())
+        );
+    }
+
+    /**
+     * 查询当前租户上下文对应的租户。
+     *
+     * @param currentTenantId 当前租户编号
+     * @return 当前租户列表
+     */
+    private List<SysTenantEntity> listCurrentTenant(Long currentTenantId) {
+        return sysTenantMapper.selectList(new LambdaQueryWrapper<SysTenantEntity>()
+            .eq(SysTenantEntity::getDeleted, 0)
+            .eq(SysTenantEntity::getTenantId, currentTenantId));
+    }
+
+    /**
+     * 转换并排序租户展示列表。
+     *
+     * @param tenantEntities 租户实体列表
+     * @return 租户展示列表
+     */
+    private List<TenantVO> toTenantVOList(List<SysTenantEntity> tenantEntities) {
         return tenantEntities
             .stream()
             .sorted(Comparator.comparing(SysTenantEntity::getId))

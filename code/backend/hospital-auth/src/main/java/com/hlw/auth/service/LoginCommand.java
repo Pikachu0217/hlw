@@ -1,8 +1,6 @@
 package com.hlw.auth.service;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 
 /**
  * 登录命令，承载账号密码认证参数。
@@ -11,7 +9,16 @@ import jakarta.validation.constraints.Positive;
  * @param username 登录账号
  * @param password 登录密码
  */
-public record LoginCommand(@NotNull(message = "租户不能为空") @Positive(message = "租户编号必须大于0") Long tenantId,
+public record LoginCommand(Long tenantId,
                            @NotBlank(message = "用户名不能为空") String username,
                            @NotBlank(message = "密码不能为空") String password) {
+    /**
+     * 使用指定租户编号创建新的登录命令。
+     *
+     * @param resolvedTenantId 已解析租户编号
+     * @return 登录命令
+     */
+    public LoginCommand withTenantId(Long resolvedTenantId) {
+        return new LoginCommand(resolvedTenantId, username, password);
+    }
 }

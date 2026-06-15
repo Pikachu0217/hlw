@@ -21,7 +21,7 @@ export function ProfilePage() {
       <div className="hero-card">
         <Tag color="primary">患者档案</Tag>
         <div className="hero-title">{patientName}</div>
-        <div className="hero-copy">默认已注入本地 satoken，用于访问患者服务接口。</div>
+        <div className="hero-copy">默认已注入本地登录令牌，用于访问患者服务接口。</div>
       </div>
       <SectionCard title="常用功能">
         <List>

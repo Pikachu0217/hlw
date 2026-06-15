@@ -48,6 +48,6 @@ Java 17 / Spring Boot / Maven 多模块后端 + React 18 / TypeScript / Vite / A
 cd code/backend && mvn -Dmaven.test.skip=true clean install
 
 # 前端启动
-cd code/frontend && pnpm dev:admin   # 管理端 :3200
-cd code/frontend && pnpm dev:patient # 患者端 :3300
+cd code/frontend && pnpm dev:admin   # 管理端 :13200
+cd code/frontend && pnpm dev:patient # 患者端 :13300
 ```

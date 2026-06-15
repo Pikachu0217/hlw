@@ -2,34 +2,33 @@ package com.hlw.gateway.filter;
 
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
  * 租户请求头网关过滤器，负责基于登录令牌设置可信租户头。
  */
 public class TenantHeaderGatewayFilter implements GlobalFilter {
-    private static final Set<String> PUBLIC_PATHS = Set.of(
-            "/auth/login"
-    );
-    private static final Set<String> PUBLIC_GET_PATHS = Set.of(
-            "/system/tenants"
-    );
+    private static final String AUTHORIZATION_HEADER = "Authorization";
 
     private final TokenTenantResolver tokenTenantResolver;
+    private final Set<String> publicPaths;
 
     /**
      * 构造租户请求头网关过滤器。
      *
      * @param tokenTenantResolver 登录令牌租户解析器
+     * @param publicPaths 公开接口路径前缀
      */
-    public TenantHeaderGatewayFilter(TokenTenantResolver tokenTenantResolver) {
+    public TenantHeaderGatewayFilter(TokenTenantResolver tokenTenantResolver, List<String> publicPaths) {
         this.tokenTenantResolver = tokenTenantResolver;
+        this.publicPaths = new LinkedHashSet<>(publicPaths == null ? List.of() : publicPaths);
     }
 
     /**
@@ -42,7 +41,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-        String token = request.getHeaders().getFirst("satoken");
+        String token = request.getHeaders().getFirst(AUTHORIZATION_HEADER);
         boolean publicPath = isPublicPath(request);
 
         ServerHttpRequest cleaned = request.mutate()
@@ -89,11 +88,10 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      */
     private boolean isPublicPath(ServerHttpRequest request) {
         String path = request.getURI().getPath();
-        if (PUBLIC_PATHS.stream().anyMatch(path::startsWith)) {
-            return true;
-        }
-        return HttpMethod.GET.equals(request.getMethod())
-                && PUBLIC_GET_PATHS.stream().anyMatch(path::startsWith);
+        return publicPaths.stream()
+                .filter(publicPath -> publicPath != null && !publicPath.isBlank())
+                .map(String::trim)
+                .anyMatch(path::startsWith);
     }
 
     /**

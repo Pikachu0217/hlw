@@ -2,6 +2,7 @@ package com.hlw.auth.service;
 
 import com.hlw.auth.vo.UserProfileVO;
 import com.hlw.common.core.exception.BizException;
+import com.hlw.common.security.BearerTokenResolver;
 import com.hlw.common.security.JwtUtil;
 import com.hlw.common.security.PasswordEncoder;
 import io.jsonwebtoken.Claims;
@@ -47,10 +48,11 @@ public class AuthService {
             log.warn("用户登录认证失败，登录命令为空");
             throw new BizException(400, "登录参数不能为空");
         }
-        log.info("用户登录认证开始，tenantId={}，username={}", command.tenantId(), command.username());
-        LoginUser user = userRepository.findByTenantIdAndUsername(command.tenantId(), command.username());
+        Long tenantId = requireLoginTenantId(command.tenantId());
+        log.info("用户登录认证开始，tenantId={}，username={}", tenantId, command.username());
+        LoginUser user = userRepository.findByTenantIdAndUsername(tenantId, command.username());
         if (user == null || !matches(command.password(), user.password())) {
-            log.warn("用户登录认证失败，tenantId={}，username={}", command.tenantId(), command.username());
+            log.warn("用户登录认证失败，tenantId={}，username={}", tenantId, command.username());
             throw new BizException(401, "用户名或密码错误");
         }
         String token = tokenIssuer.issue(user);
@@ -89,17 +91,32 @@ public class AuthService {
     }
 
     /**
+     * 校验登录租户编号。
+     *
+     * @param tenantId 租户编号
+     * @return 有效租户编号
+     */
+    private Long requireLoginTenantId(Long tenantId) {
+        if (tenantId == null || tenantId <= 0L) {
+            log.warn("用户登录认证失败，租户编号无效，tenantId={}", tenantId);
+            throw new BizException(400, "租户不能为空");
+        }
+        return tenantId;
+    }
+
+    /**
      * 从 JWT 令牌中解析用户编号和租户编号。
      *
      * @param token 登录令牌
      * @return 令牌主体
      */
     private TokenPrincipal parseToken(String token) {
-        if (token == null || token.isBlank()) {
+        String rawToken = BearerTokenResolver.resolve(token);
+        if (rawToken == null || rawToken.isBlank()) {
             throw new BizException(401, "登录令牌不能为空");
         }
         try {
-            Claims claims = JwtUtil.parse(token, jwtSecret);
+            Claims claims = JwtUtil.parse(rawToken, jwtSecret);
             Object userId = claims.get("userId");
             Object tenantId = claims.get("tenantId");
             if (!(userId instanceof Number) || !(tenantId instanceof Number)) {

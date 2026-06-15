@@ -1,6 +1,8 @@
 package com.hlw.auth.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
+import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
 import com.hlw.auth.entity.AuthUserEntity;
 import com.hlw.auth.mapper.AuthUserMapper;
 import com.hlw.auth.vo.UserProfileVO;
@@ -25,13 +27,17 @@ public class MybatisUserRepository implements UserRepository {
      */
     @Override
     public LoginUser findByTenantIdAndUsername(Long tenantId, String username) {
-        AuthUserEntity entity = authUserMapper.selectOne(new LambdaQueryWrapper<AuthUserEntity>()
+        LambdaQueryWrapper<AuthUserEntity> queryWrapper = new LambdaQueryWrapper<AuthUserEntity>()
             .eq(AuthUserEntity::getDeleted, 0)
             .eq(AuthUserEntity::getTenantId, tenantId)
             .eq(AuthUserEntity::getUsername, username)
             .in(AuthUserEntity::getStatus, "1", "启用", "ACTIVE")
             .orderByAsc(AuthUserEntity::getId)
-            .last("limit 1"));
+            .last("limit 1");
+        AuthUserEntity entity = InterceptorIgnoreHelper.execute(
+            ignoreTenantLine(),
+            () -> authUserMapper.selectOne(queryWrapper)
+        );
         if (entity == null) {
             return null;
         }
@@ -71,5 +77,14 @@ public class MybatisUserRepository implements UserRepository {
         vo.setRoleName(entity.getUserType());
         vo.setStatus(entity.getStatus());
         return vo;
+    }
+
+    /**
+     * 构造忽略租户行拦截策略。
+     *
+     * @return 忽略策略
+     */
+    private IgnoreStrategy ignoreTenantLine() {
+        return IgnoreStrategy.builder().tenantLine(true).build();
     }
 }

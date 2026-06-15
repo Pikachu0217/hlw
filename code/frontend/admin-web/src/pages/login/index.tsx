@@ -86,7 +86,7 @@ function LoginPage() {
             <Typography.Title level={3} className="login-card__title">
               登录管理台
             </Typography.Title>
-            <Typography.Text className="login-card__subtitle">租户、账号和密码会提交到后端认证服务并写入 satoken。</Typography.Text>
+            <Typography.Text className="login-card__subtitle">租户、账号和密码会提交到后端认证服务并写入登录令牌。</Typography.Text>
           </div>
         </Space>
         <Form<LoginFormValues>

@@ -26,7 +26,7 @@ spring:
         service: ${spring.application.name}
 
 server:
-  port: 9200
+  port: 19200
 
 mybatis-plus:
   configuration:

@@ -122,7 +122,7 @@ psql -U postgres -f resources/sql/init.sql
 - 控制器统一仅接收 DTO、执行参数校验、调用 Service 并返回 `R`。
 - Service 统一负责系统管理业务编排、关系绑定校验和 VO 转换。
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再在系统模块中保留 `JdbcOperations` 直查实现。
-- 系统服务会优先基于 `satoken` 解析租户上下文，只有缺少令牌时才读取正数 `X-Tenant-Id` 请求头；无法识别租户时会进入隔离上下文，不再默认落到平台租户。
+- 系统服务会优先基于 `Authorization: Bearer <token>` 解析租户上下文，只有缺少令牌时才读取正数 `X-Tenant-Id` 请求头；无法识别租户时会进入隔离上下文，不再默认落到平台租户。
 - 涉及平台级租户主数据的创建，会在 Service 中显式忽略租户行过滤，并且仅允许平台令牌上下文访问；登录前租户选择接口不鉴权，公开查询所有未删除租户的基础展示信息。
 
 ## 认证与租户上下文
@@ -130,10 +130,11 @@ psql -U postgres -f resources/sql/init.sql
 当前认证链路约定如下：
 
 - 登录页可在未登录状态通过 `GET /system/tenants` 读取所有未删除租户选项，用于选择管理端登录租户。
-- 登录接口 `POST /auth/login` 读取请求体中的 `tenantId`、`username` 和 `password`，按租户编号和账号查询认证库 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
+- 登录接口 `POST /auth/login` 优先读取网关透传的 `X-Tenant-Id`，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 查询认证库 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
-- 网关只信任 `satoken` 登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `X-Tenant-Id` 并重新写入可信租户头。
-- 登录接口属于公开接口，允许携带正数 `X-Tenant-Id` 辅助网关透传租户上下文，后端认证仍以请求体 `tenantId` 作为账号查询条件。
+- 网关只信任 `Authorization: Bearer <token>` 登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `X-Tenant-Id` 并重新写入可信租户头。
+- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenants`；登录令牌前缀由 `hlw.gateway.token-prefix` 配置读取，默认值为 `Bearer`。
+- 登录接口属于公开接口，允许携带正数 `X-Tenant-Id` 辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
 - 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，令牌无效或租户缺失时进入隔离租户 `-1`。
 
 认证与租户相关环境变量：
@@ -353,16 +354,16 @@ PRD 规划端口：
 
 | 模块 | 端口 | 当前状态 |
 | --- | ---: | --- |
-| `hospital-gateway` | 9000 | 已建模块骨架 |
-| `hospital-auth` | 9100 | 已建模块骨架 |
-| `hospital-system` | 9200 | 已建模块骨架 |
-| `hospital-patient` | 9300 | 已建模块骨架 |
-| `hospital-doctor` | 9400 | 已建模块骨架 |
-| `hospital-consult` | 9500 | 已建模块骨架 |
-| `hospital-appointment` | 9600 | 已建模块骨架 |
-| `hospital-prescription` | 9700 | 已建模块骨架 |
-| `hospital-drug` | 9800 | 已建模块骨架 |
-| `hospital-order` | 9900 | 已建模块骨架 |
+| `hospital-gateway` | 19000 | 已建模块骨架 |
+| `hospital-auth` | 19100 | 已建模块骨架 |
+| `hospital-system` | 19200 | 已建模块骨架 |
+| `hospital-patient` | 19300 | 已建模块骨架 |
+| `hospital-doctor` | 19400 | 已建模块骨架 |
+| `hospital-consult` | 19500 | 已建模块骨架 |
+| `hospital-appointment` | 19600 | 已建模块骨架 |
+| `hospital-prescription` | 19700 | 已建模块骨架 |
+| `hospital-drug` | 19800 | 已建模块骨架 |
+| `hospital-order` | 19900 | 已建模块骨架 |
 
 当某个服务模块变为可启动模块时，必须补充：
 
@@ -554,7 +555,7 @@ drug.shipped
 网关租户透传规则：
 
 ```text
-请求头：satoken: <token>
+请求头：Authorization: Bearer <token>
 转发头：X-Tenant-Id: <token 中解析出的租户 ID>
 ```
 

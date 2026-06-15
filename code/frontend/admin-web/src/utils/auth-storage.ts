@@ -5,7 +5,7 @@ export interface AuthSnapshot {
   tenantId: number;
 }
 
-const TOKEN_KEY = 'satoken';
+const TOKEN_KEY = 'hlw-admin-auth-token';
 const PROFILE_KEY = 'hlw-admin-profile';
 const TENANT_ID_KEY = 'hlw-admin-tenant-id';
 
@@ -65,9 +65,9 @@ export function clearAuthSnapshot(): void {
 /**
  * 读取当前登录令牌。
  *
- * @return satoken 令牌
+ * @return 登录令牌
  */
-export function readSaToken(): string {
+export function readAuthToken(): string {
   return window.localStorage.getItem(TOKEN_KEY) ?? '';
 }
 

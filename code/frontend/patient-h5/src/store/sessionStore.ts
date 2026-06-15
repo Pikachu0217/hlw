@@ -8,7 +8,7 @@ type SessionState = {
 };
 
 export const useSessionStore = create<SessionState>((set) => ({
-  token: "satoken-demo-2-100",
+  token: "demo-token-2-100",
   patientName: "王小雨",
   setToken: (token) => set({ token }),
   setPatientName: (patientName) => set({ patientName })

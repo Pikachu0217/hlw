@@ -26,14 +26,15 @@ spring:
         service: ${spring.application.name}
 
 server:
-  port: 9100
+  port: 19100
 
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
 sa-token:
-  token-name: satoken
+  token-name: Authorization
+  token-prefix: Bearer
   timeout: ${hlw.sa-token.timeout}
   active-timeout: ${hlw.sa-token.active-timeout}
   is-share: true

@@ -5,7 +5,7 @@ set -o pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPORT_DIR="${HLW_API_REPORT_DIR:-${ROOT_DIR}/resources/reports/api-test}"
-BASE_URL="${HLW_API_BASE_URL:-http://127.0.0.1:9000}"
+BASE_URL="${HLW_API_BASE_URL:-http://127.0.0.1:19000}"
 DIRECT_MODE="${HLW_API_DIRECT_MODE:-0}"
 USERNAME="${HLW_API_USERNAME:-门诊运营}"
 PASSWORD="${HLW_API_PASSWORD:-123456}"
@@ -38,31 +38,31 @@ resolve_base_url() {
 
   case "${path}" in
     /auth/*)
-      printf '%s' "${HLW_AUTH_BASE_URL:-http://127.0.0.1:9100}"
+      printf '%s' "${HLW_AUTH_BASE_URL:-http://127.0.0.1:19100}"
       ;;
     /system/*)
-      printf '%s' "${HLW_SYSTEM_BASE_URL:-http://127.0.0.1:9200}"
+      printf '%s' "${HLW_SYSTEM_BASE_URL:-http://127.0.0.1:19200}"
       ;;
     /patient/*)
-      printf '%s' "${HLW_PATIENT_BASE_URL:-http://127.0.0.1:9300}"
+      printf '%s' "${HLW_PATIENT_BASE_URL:-http://127.0.0.1:19300}"
       ;;
     /doctor/*)
-      printf '%s' "${HLW_DOCTOR_BASE_URL:-http://127.0.0.1:9400}"
+      printf '%s' "${HLW_DOCTOR_BASE_URL:-http://127.0.0.1:19400}"
       ;;
     /consult/*|/ws/consult/*)
-      printf '%s' "${HLW_CONSULT_BASE_URL:-http://127.0.0.1:9500}"
+      printf '%s' "${HLW_CONSULT_BASE_URL:-http://127.0.0.1:19500}"
       ;;
     /appointment/*)
-      printf '%s' "${HLW_APPOINTMENT_BASE_URL:-http://127.0.0.1:9600}"
+      printf '%s' "${HLW_APPOINTMENT_BASE_URL:-http://127.0.0.1:19600}"
       ;;
     /prescription/*)
-      printf '%s' "${HLW_PRESCRIPTION_BASE_URL:-http://127.0.0.1:9700}"
+      printf '%s' "${HLW_PRESCRIPTION_BASE_URL:-http://127.0.0.1:19700}"
       ;;
     /drug/*)
-      printf '%s' "${HLW_DRUG_BASE_URL:-http://127.0.0.1:9800}"
+      printf '%s' "${HLW_DRUG_BASE_URL:-http://127.0.0.1:19800}"
       ;;
     /order/*)
-      printf '%s' "${HLW_ORDER_BASE_URL:-http://127.0.0.1:9900}"
+      printf '%s' "${HLW_ORDER_BASE_URL:-http://127.0.0.1:19900}"
       ;;
     *)
       printf '%s' "${BASE_URL}"
@@ -77,7 +77,7 @@ target_description() {
     return
   fi
 
-  printf '微服务直连：auth=9100, system=9200, patient=9300, doctor=9400, consult=9500, appointment=9600, prescription=9700, drug=9800, order=9900'
+  printf '微服务直连：auth=19100, system=19200, patient=19300, doctor=19400, consult=19500, appointment=19600, prescription=19700, drug=19800, order=19900'
 }
 
 # 获取当前毫秒时间戳，用于计算接口耗时。
@@ -102,8 +102,8 @@ print_usage() {
   ./resources/scripts/api-test.sh
 
 可选环境变量：
-  HLW_API_BASE_URL=http://127.0.0.1:9000     接口基础地址，默认走网关
-  HLW_API_DIRECT_MODE=1                      启用微服务直连模式，按路径自动选择 9100-9900 端口
+  HLW_API_BASE_URL=http://127.0.0.1:19000     接口基础地址，默认走网关
+  HLW_API_DIRECT_MODE=1                      启用微服务直连模式，按路径自动选择 19100-19900 端口
   HLW_API_USERNAME=门诊运营                  登录账号
   HLW_API_PASSWORD=123456                    登录密码
   HLW_API_TENANT_ID=100                      租户请求头
@@ -165,7 +165,7 @@ else:
 PY
 }
 
-# 从登录响应中提取 satoken，供后续接口携带。
+# 从登录响应中提取登录令牌，供后续接口通过 Authorization Bearer 携带。
 extract_token() {
   local body="$1"
 
@@ -292,7 +292,7 @@ run_case() {
   )
 
   if [ -n "${token}" ]; then
-    curl_args=(--header "satoken: ${token}" "${curl_args[@]}")
+    curl_args=(--header "Authorization: Bearer ${token}" "${curl_args[@]}")
   fi
 
   if [ -n "${body}" ]; then
