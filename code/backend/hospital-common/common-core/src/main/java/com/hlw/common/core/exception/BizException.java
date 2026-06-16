@@ -1,6 +1,12 @@
 package com.hlw.common.core.exception;
 
+import lombok.Getter;
+
+@Getter
 public class BizException extends RuntimeException {
+    /**
+     * 业务错误码
+     */
     private final int code;
 
     public BizException(String message) {
@@ -12,12 +18,4 @@ public class BizException extends RuntimeException {
         this.code = code;
     }
 
-    /**
-     * 获取业务错误码。
-     *
-     * @return 业务错误码
-     */
-    public int getCode() {
-        return code;
-    }
 }

@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * @Date 2026/6/16 16:01
  * @Created by pakachuzy
- * @Description 用户状态枚举
+ * @Description 用户类型枚举
  */
 @Getter
 @AllArgsConstructor
@@ -17,6 +17,6 @@ public enum UserTypeEnum {
     NURSE(4, "护士"),
     PATIENT(5, "患者"),
     ;
-    private Integer userType;
-    private String desc;
+    private final Integer userType;
+    private final String desc;
 }

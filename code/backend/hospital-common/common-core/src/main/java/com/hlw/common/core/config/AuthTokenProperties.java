@@ -1,5 +1,7 @@
 package com.hlw.common.core.config;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -8,73 +10,22 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConfigurationProperties(prefix = "hlw.auth")
+@Getter
+@Setter
 public class AuthTokenProperties {
     /**
      * 登录令牌请求头名称。
      */
-    private String tokenName = "Authorization";
+    private String tokenName;
 
     /**
      * 登录令牌前缀。
      */
-    private String tokenPrefix = "Bearer";
+    private String tokenPrefix;
 
     /**
      * 网关透传的可信租户请求头名称。
      */
-    private String tenantHeaderName = "X-Tenant-Id";
+    private String tenantHeaderName;
 
-    /**
-     * 获取登录令牌请求头名称。
-     *
-     * @return 登录令牌请求头名称
-     */
-    public String getTokenName() {
-        return tokenName;
-    }
-
-    /**
-     * 设置登录令牌请求头名称。
-     *
-     * @param tokenName 登录令牌请求头名称
-     */
-    public void setTokenName(String tokenName) {
-        this.tokenName = tokenName;
-    }
-
-    /**
-     * 获取登录令牌前缀。
-     *
-     * @return 登录令牌前缀
-     */
-    public String getTokenPrefix() {
-        return tokenPrefix;
-    }
-
-    /**
-     * 设置登录令牌前缀。
-     *
-     * @param tokenPrefix 登录令牌前缀
-     */
-    public void setTokenPrefix(String tokenPrefix) {
-        this.tokenPrefix = tokenPrefix;
-    }
-
-    /**
-     * 获取可信租户请求头名称。
-     *
-     * @return 可信租户请求头名称
-     */
-    public String getTenantHeaderName() {
-        return tenantHeaderName;
-    }
-
-    /**
-     * 设置可信租户请求头名称。
-     *
-     * @param tenantHeaderName 可信租户请求头名称
-     */
-    public void setTenantHeaderName(String tenantHeaderName) {
-        this.tenantHeaderName = tenantHeaderName;
-    }
 }

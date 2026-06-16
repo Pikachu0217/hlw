@@ -21,8 +21,6 @@ public class BaseEntity {
     /** 主键编号。 */
     @TableId(type = IdType.AUTO)
     private Long id;
-    /** 租户编号。 */
-    private Long tenantId;
     /** 创建时间。 */
     private LocalDateTime createTime;
     /** 更新时间。 */
@@ -31,6 +29,8 @@ public class BaseEntity {
     private Long createBy;
     /** 更新人编号。 */
     private Long updateBy;
+    /** 租户编号。 */
+    private Long tenantId;
     /** 逻辑删除标识。 */
     @TableLogic
     private Integer deleted;

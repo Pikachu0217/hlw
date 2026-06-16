@@ -14,6 +14,6 @@ public enum CommonStatusEnum {
     ENABLED("0", "启用"),
     DISABLED("1", "禁用"),
     ;
-    private String status;
-    private String desc;
+    private final String status;
+    private final String desc;
 }

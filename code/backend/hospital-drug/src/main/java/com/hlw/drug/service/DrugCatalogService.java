@@ -146,7 +146,7 @@ public class DrugCatalogService {
         delivery.setStatus(STATUS_SHIPPED);
         delivery.setShipTime(LocalDateTime.now());
         drugDeliveryMapper.updateById(delivery);
-        mqProducer.publish(new MqMessage("drug.shipped", "{\"deliveryId\":" + deliveryId + "}", 0, 0, 3));
+        mqProducer.publish(new MqMessage("drug.shipped", "{\"deliveryId\":" + deliveryId + "}", 0, 3));
         log.info("药品配送事件已发布，deliveryId={}", deliveryId);
         return toDeliveryShipVO(delivery);
     }

@@ -159,7 +159,7 @@ public class PrescriptionWorkflowService {
         entity.setAuditRemark(remark);
         entity.setAuditTime(LocalDateTime.now());
         prePrescriptionMapper.updateById(entity);
-        mqProducer.publish(new MqMessage("prescription.audited", "{\"prescriptionId\":" + id + "}", 0, 0, 3));
+        mqProducer.publish(new MqMessage("prescription.audited", "{\"prescriptionId\":" + id + "}", 0, 3));
         return toPrescriptionVO(entity);
     }
 

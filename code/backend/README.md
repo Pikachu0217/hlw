@@ -8,7 +8,7 @@
 
 - `hospital-common/common-core`：统一响应、分页模型、业务异常、租户上下文和 JWT 租户解析工具。
 - `hospital-common/common-mybatis`：MyBatis-Plus 多租户拦截器配置。
-- `hospital-common/common-redis`：Redisson 分布式锁辅助服务。
+- `hospital-common/common-redis`：Redis 通用工具服务与 Redisson 分布式锁辅助服务。
 - `hospital-common/common-security`：Sa-Token 辅助工具、JWT 签发解析、BCrypt 密码编码和统一租户上下文过滤器。
 - `hospital-common/common-mq`：本地消息队列抽象与重试策略。
 - `resources/sql/init.sql`：PostgreSQL 16 基线建库建表脚本。
@@ -109,6 +109,8 @@ psql -U postgres -f resources/sql/init.sql
 - `hospital_order`
 
 每个服务库包含本服务业务表，并包含一张 `local_message` 表，用于本地队列兜底。`common-mq` 在服务上下文存在 `JdbcOperations` 时会优先将本地消息写入该表；没有数据库上下文的单元测试场景保留内存存储。
+
+`common-redis` 当前提供 `RedisService` 通用工具能力，覆盖字符串、对象 JSON、Hash、Set、List、ZSet、过期时间、扫描、删除和基于请求标识的轻量分布式锁释放；复杂锁场景继续使用 Redisson 封装。
 
 `hospital_system` 当前已补齐基础管理表：
 

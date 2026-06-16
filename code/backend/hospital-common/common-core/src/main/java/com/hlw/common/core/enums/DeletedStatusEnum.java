@@ -11,9 +11,9 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum DeletedStatusEnum {
-    DELETED(1, "已删除"),
     NOT_DELETED(0, "未删除"),
+    DELETED(1, "已删除"),
     ;
-    private Integer type;
-    private String desc;
+    private final Integer type;
+    private final String desc;
 }

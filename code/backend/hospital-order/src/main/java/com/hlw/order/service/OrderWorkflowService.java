@@ -122,7 +122,7 @@ public class OrderWorkflowService {
         order.setPayMethod(payMethod);
         order.setPayTime(LocalDateTime.now());
         ordOrderMapper.updateById(order);
-        mqProducer.publish(new MqMessage("order.paid", "{\"orderId\":" + id + "}", 0, 0, 3));
+        mqProducer.publish(new MqMessage("order.paid", "{\"orderId\":" + id + "}", 0, 3));
         return toOrderVO(order);
     }
 

@@ -1,9 +1,18 @@
 package com.hlw.common.core.tenant;
 
+/**
+ * 租户上下文工具类，用于在多线程环境下存储和获取当前线程的租户信息
+ * 使用ThreadLocal实现线程隔离，确保每个线程的租户信息独立存储
+ */
 public final class TenantContext {
+    // 使用ThreadLocal存储当前线程的租户ID
     private static final ThreadLocal<Long> HOLDER = new ThreadLocal<>();
+    // 使用ThreadLocal存储当前线程是否为平台请求的标记
     private static final ThreadLocal<Boolean> PLATFORM_HOLDER = new ThreadLocal<>();
 
+    /**
+     * 私有构造方法，防止实例化工具类
+     */
     private TenantContext() {
     }
 

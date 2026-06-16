@@ -15,7 +15,7 @@ public final class MqRetryPolicy {
      * @return 下一次重试延迟
      */
     public static Duration nextDelay(MqMessage message) {
-        long seconds = (long) Math.pow(2, Math.max(0, message.retryCount()));
+        long seconds = (long) Math.pow(2, Math.max(0, message.getRetryCount()));
         return Duration.ofSeconds(seconds);
     }
 }

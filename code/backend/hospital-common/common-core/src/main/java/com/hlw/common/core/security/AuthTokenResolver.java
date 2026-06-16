@@ -1,5 +1,7 @@
 package com.hlw.common.core.security;
 
+import org.springframework.util.StringUtils;
+
 /**
  * 公共登录令牌解析器，统一从请求头值中剥离配置化令牌前缀。
  */
@@ -18,7 +20,7 @@ public final class AuthTokenResolver {
      * @return 原始登录令牌，缺少令牌时返回 null
      */
     public static String resolve(String tokenHeader, String tokenPrefix) {
-        if (tokenHeader == null || tokenHeader.isBlank()) {
+        if (!StringUtils.hasText(tokenHeader)) {
             return null;
         }
         String trimmedToken = tokenHeader.trim();
