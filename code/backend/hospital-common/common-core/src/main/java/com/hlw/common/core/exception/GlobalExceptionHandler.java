@@ -1,7 +1,6 @@
-package com.hlw.system.controller;
+package com.hlw.common.core.exception;
 
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.exception.BizException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;
@@ -11,11 +10,15 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 /**
- * 系统服务异常处理器，统一返回业务异常和未知异常。
+ * 全局异常处理器，统一返回业务异常、参数校验异常与未知异常。
+ * <p>
+ * 由 common-core 提供，所有业务模块在扫描 {@code com.hlw} 包时自动生效；
+ * 如需覆盖，可在模块内自定义 {@code @RestControllerAdvice} 并通过 {@code @Order} 优先生效。
+ * </p>
  */
 @RestControllerAdvice
-public class SystemExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(SystemExceptionHandler.class);
+public class GlobalExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * 处理业务异常。
@@ -25,7 +28,7 @@ public class SystemExceptionHandler {
      */
     @ExceptionHandler(BizException.class)
     public R<Void> handleBizException(BizException exception) {
-        log.warn("系统管理业务异常，code={}，message={}", exception.getCode(), exception.getMessage());
+        log.warn("业务异常，code={}，message={}", exception.getCode(), exception.getMessage());
         return R.fail(exception.getCode(), exception.getMessage());
     }
 
@@ -49,7 +52,7 @@ public class SystemExceptionHandler {
         if (exception instanceof MethodArgumentTypeMismatchException methodArgumentTypeMismatchException) {
             message = methodArgumentTypeMismatchException.getName() + "参数格式不正确";
         }
-        log.warn("系统管理参数校验异常，message={}", message);
+        log.warn("参数校验异常，message={}", message);
         return R.fail(400, message);
     }
 
@@ -61,7 +64,7 @@ public class SystemExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public R<Void> handleException(Exception exception) {
-        log.error("系统管理未知异常", exception);
+        log.error("系统服务未知异常", exception);
         return R.fail(500, "系统服务暂不可用");
     }
 }
