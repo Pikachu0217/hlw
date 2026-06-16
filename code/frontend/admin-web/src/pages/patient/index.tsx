@@ -8,7 +8,7 @@ import {
   fetchPatientDetail,
   fetchPatients,
   updatePatient,
-} from '@/api/patient';
+} from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 

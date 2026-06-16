@@ -1,6 +1,6 @@
 import { Button, Form, Input, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createTenant, deleteTenant, fetchTenants, updateTenant } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
@@ -15,28 +15,6 @@ export interface TenantRecord {
   status: string;
 }
 
-const columns: ColumnsType<TenantRecord> = [
-  { title: '租户名称', dataIndex: 'tenantName' },
-  { title: '套餐版本', dataIndex: 'packageName' },
-  { title: '管理员', dataIndex: 'adminName' },
-  { title: '到期时间', dataIndex: 'expireAt' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '正常' ? 'green' : 'blue'}>{value}</Tag> },
-  {
-    title: '操作',
-    key: 'actions',
-    render: (_: unknown, record: TenantRecord) => (
-      <Space size="small">
-        <Button type="link" size="small" onClick={() => handleEdit(record)}>
-          编辑
-        </Button>
-        <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-          删除
-        </Button>
-      </Space>
-    ),
-  },
-];
-
 function TenantPage() {
   const { records, loading, refresh } = useModuleRecords(fetchTenants, '租户');
   const [form] = Form.useForm();
@@ -45,7 +23,7 @@ function TenantPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<TenantRecord | null>(null);
   const [editForm] = Form.useForm();
-  const warningCount = records.filter((record) => record.status !== '正常').length;
+  const warningCount = records.filter((record) => record.status !== '0').length;
 
   const handleCreate = async () => {
     const values = await form.validateFields();
@@ -76,10 +54,14 @@ function TenantPage() {
   };
 
   const handleUpdate = async () => {
+    const target = editingRecord;
+    if (!target) {
+      return;
+    }
     const values = await editForm.validateFields();
     setSubmitting(true);
     try {
-      await updateTenant(editingRecord!.key, values);
+      await updateTenant(target.key, values);
       message.success('租户更新成功');
       setEditOpen(false);
       editForm.resetFields();
@@ -111,6 +93,35 @@ function TenantPage() {
     });
   };
 
+  const columns = useMemo<ColumnsType<TenantRecord>>(
+    () => [
+      { title: '租户名称', dataIndex: 'tenantName' },
+      { title: '套餐版本', dataIndex: 'packageName' },
+      { title: '管理员', dataIndex: 'adminName' },
+      { title: '到期时间', dataIndex: 'expireAt' },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        render: (value: string) => <Tag color={value === '0' ? 'green' : 'blue'}>{value === '0' ? '正常' : '停用'}</Tag>,
+      },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_: unknown, record: TenantRecord) => (
+          <Space size="small">
+            <Button type="link" size="small" onClick={() => handleEdit(record)}>
+              编辑
+            </Button>
+            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+              删除
+            </Button>
+          </Space>
+        ),
+      },
+    ],
+    [],
+  );
+
   return (
     <>
       <ModulePage<TenantRecord>
@@ -139,7 +150,7 @@ function TenantPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ packageName: '标准医疗版', status: '正常' }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ packageName: '标准医疗版', status: '0' }}>
           <Form.Item name="tenantName" label="租户名称" rules={[{ required: true, message: '请输入租户名称' }]}>
             <Input placeholder="请输入租户名称" />
           </Form.Item>
@@ -155,8 +166,8 @@ function TenantPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '正常', value: '正常' },
-                { label: '续费跟进', value: '续费跟进' },
+                { label: '正常', value: '0' },
+                { label: '停用', value: '1' },
               ]}
             />
           </Form.Item>
@@ -190,9 +201,8 @@ function TenantPage() {
           <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]}>
             <Select
               options={[
-                { label: '正常', value: '正常' },
-                { label: '续费跟进', value: '续费跟进' },
-                { label: '已过期', value: '已过期' },
+                { label: '正常', value: '0' },
+                { label: '停用', value: '1' },
               ]}
             />
           </Form.Item>

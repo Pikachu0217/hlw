@@ -1,7 +1,8 @@
-import { Card, Col, List, Row, Table, Tag, Typography } from 'antd';
+import { Card, Col, List, Row, Table, Tag } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useEffect, useState } from 'react';
 import { fetchAppointments, fetchConsults, fetchOrders } from '@/api/modules';
+import { MetricCard } from '@/components/MetricCard';
 import PageHero from '@/components/PageHero';
 
 interface DashboardTask {
@@ -73,11 +74,7 @@ function DashboardPage() {
       <Row gutter={[18, 18]}>
         {metrics.map(([label, value, hint]) => (
           <Col key={label} xs={24} md={8}>
-            <Card className="metric-card" bordered={false}>
-              <span className="metric-card__label">{label}</span>
-              <strong className="metric-card__value">{value}</strong>
-              <Typography.Text className="metric-card__hint">{hint}</Typography.Text>
-            </Card>
+            <MetricCard title={label} value={value} note={hint} />
           </Col>
         ))}
       </Row>

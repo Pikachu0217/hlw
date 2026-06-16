@@ -1,9 +1,11 @@
 import { apiClient } from '@/api/client';
 import type { AppointmentRecord } from '@/pages/appointment';
 import type { ConsultRecord } from '@/pages/consult';
+import type { DoctorRecord } from '@/pages/doctor/components/DoctorList';
 import type { DrugRecord } from '@/pages/drug';
 import type { DepartmentRecord } from '@/pages/doctor/departments';
 import type { OrderRecord } from '@/pages/order';
+import type { HealthRecord, PatientRecord } from '@/pages/patient';
 import type { PrescriptionRecord } from '@/pages/prescription';
 import type { ConfigRecord } from '@/pages/system/configs';
 import type { DictRecord } from '@/pages/system/dicts';
@@ -194,6 +196,44 @@ export interface PayOrderPayload {
   payMethod?: string;
 }
 
+export interface CreatePatientPayload {
+  patientName: string;
+  gender: string;
+  age: number;
+  phone: string;
+  riskLevel?: string;
+  idCard?: string;
+  birthday?: string;
+  address?: string;
+  lastVisit?: string;
+}
+
+export interface UpdatePatientPayload extends CreatePatientPayload {}
+
+export interface CreateHealthRecordPayload {
+  patientId: number;
+  title: string;
+  summary: string;
+  allergies?: string;
+  history?: string;
+  diagnosis?: string;
+  remark?: string;
+}
+
+interface BackendDoctor {
+  id: number;
+  key?: string;
+  name: string;
+  title: string;
+  department: string;
+  specialty: string;
+  status: string;
+  consultStatus: string;
+  schedule: string;
+  patientCount: number;
+  consultFee: string;
+}
+
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
 async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
   console.info(`[admin-module] 查询${moduleName}列表`, url);
@@ -201,9 +241,30 @@ async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T
   return response.data.data;
 }
 
+// 分页接口默认拉取首页 500 条以兼容当前“拉全量”UX，后续接入真正分页 UI 时再下调 pageSize。
+// 该上限与后端 PaginationInnerInterceptor.setMaxLimit(500L) 保持一致。
+interface BackendPageResult<T> {
+  records: T[];
+  total: number;
+  pageNum: number;
+  pageSize: number;
+}
+
+async function fetchModulePage<T>(
+  url: string,
+  moduleName: string,
+  params?: { pageNum?: number; pageSize?: number; keyword?: string },
+): Promise<T[]> {
+  console.info(`[admin-module] 查询${moduleName}列表（分页）`, url, params);
+  const response = await apiClient.get<ApiResult<BackendPageResult<T>>>(url, {
+    params: { pageNum: 1, pageSize: 500, ...params },
+  });
+  return response.data.data.records;
+}
+
 // 查询租户列表。
 export function fetchTenants(): Promise<TenantRecord[]> {
-  return fetchModuleRecords<TenantRecord>('/system/tenants', '租户');
+  return fetchModulePage<TenantRecord>('/system/tenants', '租户');
 }
 
 // 创建租户。
@@ -228,7 +289,7 @@ export async function deleteTenant(id: string): Promise<void> {
 
 // 查询后台用户列表。
 export function fetchUsers(): Promise<UserRecord[]> {
-  return fetchModuleRecords<UserRecord>('/system/users', '用户');
+  return fetchModulePage<UserRecord>('/system/users', '用户');
 }
 
 // 创建后台用户。
@@ -240,7 +301,7 @@ export async function createUser(payload: CreateUserPayload): Promise<UserRecord
 
 // 查询角色列表。
 export function fetchRoles(): Promise<RoleRecord[]> {
-  return fetchModuleRecords<RoleRecord>('/system/roles', '角色');
+  return fetchModulePage<RoleRecord>('/system/roles', '角色');
 }
 
 // 创建角色。
@@ -252,7 +313,7 @@ export async function createRole(payload: CreateRolePayload): Promise<RoleRecord
 
 // 查询菜单列表。
 export function fetchMenus(): Promise<MenuRecord[]> {
-  return fetchModuleRecords<MenuRecord>('/system/menus', '菜单');
+  return fetchModulePage<MenuRecord>('/system/menus', '菜单');
 }
 
 // 创建菜单。
@@ -264,7 +325,7 @@ export async function createMenu(payload: CreateMenuPayload): Promise<MenuRecord
 
 // 查询字典列表。
 export function fetchDicts(): Promise<DictRecord[]> {
-  return fetchModuleRecords<DictRecord>('/system/dicts', '字典');
+  return fetchModulePage<DictRecord>('/system/dicts', '字典');
 }
 
 // 创建字典项。
@@ -276,12 +337,12 @@ export async function createDict(payload: CreateDictPayload): Promise<DictRecord
 
 // 查询系统参数配置列表。
 export function fetchConfigs(): Promise<ConfigRecord[]> {
-  return fetchModuleRecords<ConfigRecord>('/system/configs', '参数配置');
+  return fetchModulePage<ConfigRecord>('/system/configs', '参数配置');
 }
 
 // 查询岗位列表。
 export function fetchPosts(): Promise<PostRecord[]> {
-  return fetchModuleRecords<PostRecord>('/system/posts', '岗位');
+  return fetchModulePage<PostRecord>('/system/posts', '岗位');
 }
 
 // 创建岗位。
@@ -293,7 +354,7 @@ export async function createPost(payload: CreatePostPayload): Promise<PostRecord
 
 // 查询权限码列表。
 export function fetchPermissions(): Promise<PermissionRecord[]> {
-  return fetchModuleRecords<PermissionRecord>('/system/permissions', '权限码');
+  return fetchModulePage<PermissionRecord>('/system/permissions', '权限码');
 }
 
 // 创建权限码。
@@ -482,5 +543,76 @@ export async function createOrder(payload: CreateOrderPayload): Promise<OrderRec
 export async function payOrder(id: string, payload: PayOrderPayload): Promise<OrderRecord> {
   console.info('[admin-module] 支付订单', id, payload);
   const response = await apiClient.post<ApiResult<OrderRecord>>(`/order/orders/${id}/pay`, payload);
+  return response.data.data;
+}
+
+// 查询医生列表，并适配表格 rowKey。
+export async function fetchDoctors(): Promise<DoctorRecord[]> {
+  const doctors = await fetchModuleRecords<BackendDoctor>('/doctor/doctors', '医生');
+  return doctors.map((doctor) => ({
+    id: doctor.id,
+    key: doctor.key ?? String(doctor.id),
+    name: doctor.name,
+    title: doctor.title,
+    department: doctor.department,
+    specialty: doctor.specialty,
+    status: doctor.status,
+    consultStatus: doctor.consultStatus,
+    schedule: doctor.schedule,
+    patientCount: doctor.patientCount,
+    consultFee: doctor.consultFee,
+  }));
+}
+
+// 查询患者列表。
+export async function fetchPatients(): Promise<PatientRecord[]> {
+  const patients = await fetchModuleRecords<PatientRecord>('/patient/patients', '患者');
+  return patients.map((patient) => ({
+    ...patient,
+    key: patient.key ?? String(patient.id),
+  }));
+}
+
+// 查询患者详情。
+export async function fetchPatientDetail(id: number): Promise<PatientRecord> {
+  console.info('[admin-module] 查询患者详情', id);
+  const response = await apiClient.get<ApiResult<PatientRecord>>(`/patient/patients/${id}`);
+  const patient = response.data.data;
+  return {
+    ...patient,
+    key: patient.key ?? String(patient.id),
+  };
+}
+
+// 创建患者档案。
+export async function createPatient(payload: CreatePatientPayload): Promise<PatientRecord> {
+  console.info('[admin-module] 创建患者档案', payload);
+  const response = await apiClient.post<ApiResult<PatientRecord>>('/patient/patients', payload);
+  return response.data.data;
+}
+
+// 更新患者档案。
+export async function updatePatient(id: number, payload: UpdatePatientPayload): Promise<PatientRecord> {
+  console.info('[admin-module] 更新患者档案', id, payload);
+  const response = await apiClient.put<ApiResult<PatientRecord>>(`/patient/patients/${id}`, payload);
+  return response.data.data;
+}
+
+// 查询健康档案列表。
+export async function fetchHealthRecords(patientId?: number): Promise<HealthRecord[]> {
+  console.info('[admin-module] 查询健康档案列表', patientId);
+  const response = await apiClient.get<ApiResult<HealthRecord[]>>('/patient/health-records', {
+    params: patientId ? { patientId } : undefined,
+  });
+  return response.data.data.map((record) => ({
+    ...record,
+    key: record.key ?? String(record.id),
+  }));
+}
+
+// 创建健康档案。
+export async function createHealthRecord(payload: CreateHealthRecordPayload): Promise<HealthRecord> {
+  console.info('[admin-module] 创建健康档案', payload);
+  const response = await apiClient.post<ApiResult<HealthRecord>>('/patient/health-records', payload);
   return response.data.data;
 }

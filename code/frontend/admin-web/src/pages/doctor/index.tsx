@@ -1,53 +1,19 @@
-import { Card, Col, Form, Input, InputNumber, Modal, Row, Select, Spin, Typography, message } from 'antd';
-import { useEffect, useState } from 'react';
-import { fetchDoctors } from '@/api/doctor';
-import { createDoctor, createDoctorSchedule, updateDoctorStatus } from '@/api/modules';
+import { Col, Form, Input, InputNumber, Modal, Row, Select, Spin, message } from 'antd';
+import { useState } from 'react';
+import { createDoctor, createDoctorSchedule, fetchDoctors, updateDoctorStatus } from '@/api/modules';
+import { MetricCard } from '@/components/MetricCard';
 import PageHero from '@/components/PageHero';
 import DoctorList, { type DoctorRecord } from '@/pages/doctor/components/DoctorList';
+import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 function DoctorPage() {
-  const [doctors, setDoctors] = useState<DoctorRecord[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { records: doctors, loading, refresh: refreshDoctors } = useModuleRecords(fetchDoctors, '医生');
   const [doctorOpen, setDoctorOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorRecord | null>(null);
   const [doctorForm] = Form.useForm();
   const [scheduleForm] = Form.useForm();
-
-  const refreshDoctors = () => {
-    setLoading(true);
-    fetchDoctors()
-      .then(setDoctors)
-      .catch(() => {
-        message.warning('医生服务暂不可用，请稍后重试');
-      })
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    let ignore = false;
-    setLoading(true);
-
-    fetchDoctors()
-      .then((records) => {
-        if (!ignore) {
-          setDoctors(records);
-        }
-      })
-      .catch(() => {
-        message.warning('医生服务暂不可用，请稍后重试');
-      })
-      .finally(() => {
-        if (!ignore) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
 
   const handleCreateDoctor = async () => {
     const values = await doctorForm.validateFields();
@@ -114,16 +80,12 @@ function DoctorPage() {
         <PageHero eyebrow="医生管理" title="医生名录与排班概览" description="医生模块采用独立可复用的 DoctorList 组件。" badgeText="DoctorList 已抽离" />
         <Row gutter={[18, 18]}>
           {[
-            ['医生总数', String(doctors.length), '来自后端医生接口'],
-            ['接诊医生', String(doctors.filter((doctor) => doctor.consultStatus === 'ONLINE').length), '按接诊状态实时统计'],
-            ['今日接诊量', String(doctors.reduce((sum, doctor) => sum + doctor.patientCount, 0)), '汇总当前医生接诊数'],
-          ].map(([label, value, hint]) => (
-            <Col key={label} xs={24} md={8}>
-              <Card className="metric-card" bordered={false}>
-                <span className="metric-card__label">{label}</span>
-                <strong className="metric-card__value">{value}</strong>
-                <Typography.Text className="metric-card__hint">{hint}</Typography.Text>
-              </Card>
+            { title: '医生总数', value: String(doctors.length), note: '来自后端医生接口' },
+            { title: '接诊医生', value: String(doctors.filter((doctor) => doctor.consultStatus === 'ONLINE').length), note: '按接诊状态实时统计' },
+            { title: '今日接诊量', value: String(doctors.reduce((sum, doctor) => sum + doctor.patientCount, 0)), note: '汇总当前医生接诊数' },
+          ].map((item) => (
+            <Col key={item.title} xs={24} md={8}>
+              <MetricCard title={item.title} value={item.value} note={item.note} />
             </Col>
           ))}
         </Row>
