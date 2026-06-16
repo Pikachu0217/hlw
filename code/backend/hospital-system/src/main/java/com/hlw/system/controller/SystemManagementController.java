@@ -1,5 +1,7 @@
 package com.hlw.system.controller;
 
+import com.hlw.common.core.domain.PageQuery;
+import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.domain.R;
 import com.hlw.system.dto.BindRoleMenuRequest;
 import com.hlw.system.dto.BindUserRoleRequest;
@@ -12,7 +14,15 @@ import com.hlw.system.dto.CreateTenantRequest;
 import com.hlw.system.dto.CreateUserRequest;
 import com.hlw.system.dto.UpdateConfigRequest;
 import com.hlw.system.dto.UpdateTenantRequest;
-import com.hlw.system.service.SystemTenantContextService;
+import com.hlw.system.service.AuthorizationService;
+import com.hlw.system.service.ConfigService;
+import com.hlw.system.service.DictService;
+import com.hlw.system.service.MenuService;
+import com.hlw.system.service.PermissionService;
+import com.hlw.system.service.PostService;
+import com.hlw.system.service.RoleService;
+import com.hlw.system.service.TenantService;
+import com.hlw.system.service.UserService;
 import com.hlw.system.vo.ConfigVO;
 import com.hlw.system.vo.DictVO;
 import com.hlw.system.vo.MenuVO;
@@ -25,6 +35,7 @@ import com.hlw.system.vo.TenantVO;
 import com.hlw.system.vo.UserRoleVO;
 import com.hlw.system.vo.UserVO;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -43,29 +54,39 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/system")
+@RequiredArgsConstructor
 public class SystemManagementController {
     private static final Logger log = LoggerFactory.getLogger(SystemManagementController.class);
 
-    private final SystemTenantContextService systemTenantContextService;
+    /** 租户聚合服务。 */
+    private final TenantService tenantService;
+    /** 后台用户聚合服务。 */
+    private final UserService userService;
+    /** 角色聚合服务。 */
+    private final RoleService roleService;
+    /** 菜单聚合服务。 */
+    private final MenuService menuService;
+    /** 字典聚合服务。 */
+    private final DictService dictService;
+    /** 参数配置聚合服务。 */
+    private final ConfigService configService;
+    /** 岗位聚合服务。 */
+    private final PostService postService;
+    /** 权限码聚合服务。 */
+    private final PermissionService permissionService;
+    /** 授权聚合服务，负责用户角色与角色菜单两类绑定。 */
+    private final AuthorizationService authorizationService;
 
     /**
-     * 构造系统管理控制器。
+     * 分页查询租户列表。
      *
-     * @param systemTenantContextService 系统管理服务
-     */
-    public SystemManagementController(SystemTenantContextService systemTenantContextService) {
-        this.systemTenantContextService = systemTenantContextService;
-    }
-
-    /**
-     * 查询租户列表。
-     *
-     * @return 租户列表
+     * @param query 分页查询参数
+     * @return 租户分页结果
      */
     @GetMapping("/tenants")
-    public R<List<TenantVO>> tenants() {
+    public R<PageResult<TenantVO>> tenants(PageQuery query) {
         log.info("查询租户列表");
-        return R.ok(systemTenantContextService.listTenants());
+        return R.ok(tenantService.listTenants(query));
     }
 
     /**
@@ -76,7 +97,7 @@ public class SystemManagementController {
      */
     @PostMapping("/tenants")
     public R<TenantVO> createTenant(@Valid @RequestBody CreateTenantRequest request) {
-        return R.ok(systemTenantContextService.createTenant(request));
+        return R.ok(tenantService.createTenant(request));
     }
 
     /**
@@ -88,7 +109,7 @@ public class SystemManagementController {
     @GetMapping("/tenants/{id}")
     public R<TenantVO> tenantDetail(@PathVariable Long id) {
         log.info("查询租户详情，id={}", id);
-        return R.ok(systemTenantContextService.getTenant(id));
+        return R.ok(tenantService.getTenant(id));
     }
 
     /**
@@ -101,7 +122,7 @@ public class SystemManagementController {
     @PutMapping("/tenants/{id}")
     public R<TenantVO> updateTenant(@PathVariable Long id, @Valid @RequestBody UpdateTenantRequest request) {
         log.info("更新租户，id={}", id);
-        return R.ok(systemTenantContextService.updateTenant(id, request));
+        return R.ok(tenantService.updateTenant(id, request));
     }
 
     /**
@@ -113,18 +134,19 @@ public class SystemManagementController {
     @DeleteMapping("/tenants/{id}")
     public R<Void> deleteTenant(@PathVariable Long id) {
         log.info("删除租户，id={}", id);
-        systemTenantContextService.deleteTenant(id);
+        tenantService.deleteTenant(id);
         return R.ok(null);
     }
 
     /**
-     * 查询后台用户列表。
+     * 分页查询后台用户列表。
      *
-     * @return 后台用户列表
+     * @param query 分页查询参数
+     * @return 后台用户分页结果
      */
     @GetMapping("/users")
-    public R<List<UserVO>> users() {
-        return R.ok(systemTenantContextService.listUsers());
+    public R<PageResult<UserVO>> users(PageQuery query) {
+        return R.ok(userService.listUsers(query));
     }
 
     /**
@@ -135,17 +157,18 @@ public class SystemManagementController {
      */
     @PostMapping("/users")
     public R<UserVO> createUser(@Valid @RequestBody CreateUserRequest request) {
-        return R.ok(systemTenantContextService.createUser(request));
+        return R.ok(userService.createUser(request));
     }
 
     /**
-     * 查询角色列表。
+     * 分页查询角色列表。
      *
-     * @return 角色列表
+     * @param query 分页查询参数
+     * @return 角色分页结果
      */
     @GetMapping("/roles")
-    public R<List<RoleVO>> roles() {
-        return R.ok(systemTenantContextService.listRoles());
+    public R<PageResult<RoleVO>> roles(PageQuery query) {
+        return R.ok(roleService.listRoles(query));
     }
 
     /**
@@ -156,17 +179,18 @@ public class SystemManagementController {
      */
     @PostMapping("/roles")
     public R<RoleVO> createRole(@Valid @RequestBody CreateRoleRequest request) {
-        return R.ok(systemTenantContextService.createRole(request));
+        return R.ok(roleService.createRole(request));
     }
 
     /**
-     * 查询菜单列表。
+     * 分页查询菜单列表。
      *
-     * @return 菜单列表
+     * @param query 分页查询参数
+     * @return 菜单分页结果
      */
     @GetMapping("/menus")
-    public R<List<MenuVO>> menus() {
-        return R.ok(systemTenantContextService.listMenus());
+    public R<PageResult<MenuVO>> menus(PageQuery query) {
+        return R.ok(menuService.listMenus(query));
     }
 
     /**
@@ -177,17 +201,18 @@ public class SystemManagementController {
      */
     @PostMapping("/menus")
     public R<MenuVO> createMenu(@Valid @RequestBody CreateMenuRequest request) {
-        return R.ok(systemTenantContextService.createMenu(request));
+        return R.ok(menuService.createMenu(request));
     }
 
     /**
-     * 查询字典列表。
+     * 分页查询字典列表。
      *
-     * @return 字典列表
+     * @param query 分页查询参数
+     * @return 字典分页结果
      */
     @GetMapping("/dicts")
-    public R<List<DictVO>> dicts() {
-        return R.ok(systemTenantContextService.listDicts());
+    public R<PageResult<DictVO>> dicts(PageQuery query) {
+        return R.ok(dictService.listDicts(query));
     }
 
     /**
@@ -198,17 +223,18 @@ public class SystemManagementController {
      */
     @PostMapping("/dicts")
     public R<DictVO> createDict(@Valid @RequestBody CreateDictRequest request) {
-        return R.ok(systemTenantContextService.createDict(request));
+        return R.ok(dictService.createDict(request));
     }
 
     /**
-     * 查询系统参数配置列表。
+     * 分页查询系统参数配置列表。
      *
-     * @return 系统参数配置列表
+     * @param query 分页查询参数
+     * @return 系统参数配置分页结果
      */
     @GetMapping("/configs")
-    public R<List<ConfigVO>> configs() {
-        return R.ok(systemTenantContextService.listConfigs());
+    public R<PageResult<ConfigVO>> configs(PageQuery query) {
+        return R.ok(configService.listConfigs(query));
     }
 
     /**
@@ -220,17 +246,18 @@ public class SystemManagementController {
      */
     @PutMapping("/configs/{id}")
     public R<ConfigVO> updateConfig(@PathVariable Long id, @Valid @RequestBody UpdateConfigRequest request) {
-        return R.ok(systemTenantContextService.updateConfig(id, request));
+        return R.ok(configService.updateConfig(id, request));
     }
 
     /**
-     * 查询岗位列表。
+     * 分页查询岗位列表。
      *
-     * @return 岗位列表
+     * @param query 分页查询参数
+     * @return 岗位分页结果
      */
     @GetMapping("/posts")
-    public R<List<PostVO>> posts() {
-        return R.ok(systemTenantContextService.listPosts());
+    public R<PageResult<PostVO>> posts(PageQuery query) {
+        return R.ok(postService.listPosts(query));
     }
 
     /**
@@ -241,17 +268,18 @@ public class SystemManagementController {
      */
     @PostMapping("/posts")
     public R<PostVO> createPost(@Valid @RequestBody CreatePostRequest request) {
-        return R.ok(systemTenantContextService.createPost(request));
+        return R.ok(postService.createPost(request));
     }
 
     /**
-     * 查询权限码列表。
+     * 分页查询权限码列表。
      *
-     * @return 权限码列表
+     * @param query 分页查询参数
+     * @return 权限码分页结果
      */
     @GetMapping("/permissions")
-    public R<List<PermissionVO>> permissions() {
-        return R.ok(systemTenantContextService.listPermissions());
+    public R<PageResult<PermissionVO>> permissions(PageQuery query) {
+        return R.ok(permissionService.listPermissions(query));
     }
 
     /**
@@ -262,7 +290,7 @@ public class SystemManagementController {
      */
     @PostMapping("/permissions")
     public R<PermissionVO> createPermission(@Valid @RequestBody CreatePermissionRequest request) {
-        return R.ok(systemTenantContextService.createPermission(request));
+        return R.ok(permissionService.createPermission(request));
     }
 
     /**
@@ -272,7 +300,7 @@ public class SystemManagementController {
      */
     @GetMapping("/user-roles")
     public R<List<UserRoleVO>> userRoles() {
-        return R.ok(systemTenantContextService.listUserRoles());
+        return R.ok(authorizationService.listUserRoles());
     }
 
     /**
@@ -283,7 +311,7 @@ public class SystemManagementController {
      */
     @PostMapping("/user-roles")
     public R<RelationBindingVO> bindUserRole(@Valid @RequestBody BindUserRoleRequest request) {
-        return R.ok(systemTenantContextService.bindUserRole(request));
+        return R.ok(authorizationService.bindUserRole(request));
     }
 
     /**
@@ -293,7 +321,7 @@ public class SystemManagementController {
      */
     @GetMapping("/role-menus")
     public R<List<RoleMenuVO>> roleMenus() {
-        return R.ok(systemTenantContextService.listRoleMenus());
+        return R.ok(authorizationService.listRoleMenus());
     }
 
     /**
@@ -304,6 +332,6 @@ public class SystemManagementController {
      */
     @PostMapping("/role-menus")
     public R<RelationBindingVO> bindRoleMenu(@Valid @RequestBody BindRoleMenuRequest request) {
-        return R.ok(systemTenantContextService.bindRoleMenu(request));
+        return R.ok(authorizationService.bindRoleMenu(request));
     }
 }

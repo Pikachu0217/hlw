@@ -67,7 +67,8 @@ public class FeignUserRepository implements UserRepository {
         vo.setUsername(data.getUsername());
         vo.setPhone(data.getPhone());
         vo.setUserType(data.getUserType());
-        vo.setRoleName(data.getUserType());
+        // TODO: 待 role 子系统提供真实角色名查询
+        vo.setRoleName(null);
         vo.setStatus(data.getStatus());
         return vo;
     }

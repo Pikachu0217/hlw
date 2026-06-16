@@ -57,7 +57,7 @@ public class InternalUserService {
     public InternalUserVO findByIdAndTenantId(Long id, Long tenantId) {
         log.info("内部查询用户资料，id={}，tenantId={}", id, tenantId);
         LambdaQueryWrapper<SysUserEntity> queryWrapper = new LambdaQueryWrapper<SysUserEntity>()
-            .eq(SysUserEntity::getDeleted, 0)
+            .eq(SysUserEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
             .eq(SysUserEntity::getId, id)
             .eq(SysUserEntity::getTenantId, tenantId)
             .last("limit 1");

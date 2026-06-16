@@ -1,0 +1,37 @@
+package com.hlw.system.service.converter;
+
+import com.hlw.system.entity.SysRoleEntity;
+import com.hlw.system.vo.RoleVO;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+
+import java.time.format.DateTimeFormatter;
+
+/**
+ * 角色实体到展示对象的转换器。成员数量由调用方传入，避免转换器触发额外的 Mapper 查询。
+ */
+@Component
+@RequiredArgsConstructor
+public class RoleConverter {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    /**
+     * 转换为角色展示对象。
+     *
+     * @param entity 角色实体
+     * @param memberCount 成员数量
+     * @return 角色展示对象
+     */
+    public RoleVO toRoleVO(SysRoleEntity entity, Integer memberCount) {
+        RoleVO vo = new RoleVO();
+        vo.setKey(String.valueOf(entity.getId()));
+        vo.setRoleName(entity.getRoleName());
+        vo.setRoleCode(entity.getRoleCode());
+        vo.setDataScope(entity.getDataScope());
+        vo.setMemberCount(memberCount);
+        vo.setUpdatedAt(entity.getUpdateTime() == null ? "-" : entity.getUpdateTime().format(DATE_TIME_FORMATTER));
+        vo.setStatus(entity.getStatus());
+        return vo;
+    }
+}
