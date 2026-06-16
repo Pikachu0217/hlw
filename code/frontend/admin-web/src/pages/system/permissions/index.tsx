@@ -19,7 +19,7 @@ const columns: ColumnsType<PermissionRecord> = [
   { title: '权限编码', dataIndex: 'permissionCode' },
   { title: '资源类型', dataIndex: 'resourceType' },
   { title: '关联菜单', dataIndex: 'menuName' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color="green">{value}</Tag> },
+  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
 ];
 
 function PermissionsPage() {
@@ -71,7 +71,7 @@ function PermissionsPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ resourceType: '按钮', status: '启用' }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ resourceType: '按钮', status: '0' }}>
           <Form.Item name="permissionName" label="权限名称" rules={[{ required: true, message: '请输入权限名称' }]}>
             <Input placeholder="请输入权限名称" />
           </Form.Item>
@@ -93,8 +93,8 @@ function PermissionsPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '启用' },
-                { label: '停用', value: '停用' },
+                { label: '启用', value: '0' },
+                { label: '禁用', value: '1' },
               ]}
             />
           </Form.Item>

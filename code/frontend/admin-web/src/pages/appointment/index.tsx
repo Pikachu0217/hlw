@@ -378,7 +378,7 @@ function AppointmentPage() {
             scheduleId: currentScheduleId,
             releaseAt: '2026-06-13 08:00:00',
             releaseCount: 10,
-            status: '启用',
+            status: '0',
           }}
         >
           <Form.Item name="scheduleId" label="排班编号" rules={[{ required: true, message: '请输入排班编号' }]}>
@@ -393,8 +393,8 @@ function AppointmentPage() {
           <Form.Item name="status" label="配置状态">
             <Select
               options={[
-                { label: '启用', value: '启用' },
-                { label: '停用', value: '停用' },
+                { label: '启用', value: '0' },
+                { label: '禁用', value: '1' },
               ]}
             />
           </Form.Item>

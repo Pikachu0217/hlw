@@ -19,7 +19,7 @@ const columns: ColumnsType<PostRecord> = [
   { title: '岗位编码', dataIndex: 'postCode' },
   { title: '排序', dataIndex: 'sort' },
   { title: '备注', dataIndex: 'remark' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color="green">{value}</Tag> },
+  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
 ];
 
 function PostsPage() {
@@ -52,7 +52,7 @@ function PostsPage() {
         description="维护运营、药房、客服等岗位，并为用户绑定岗位提供基础数据。"
         metrics={[
           { label: '岗位数', value: String(records.length), hint: '来自后端岗位接口' },
-          { label: '启用岗位', value: String(records.filter((record) => record.status === '启用').length), hint: '按状态实时统计' },
+          { label: '启用岗位', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
           { label: '编码覆盖', value: String(records.filter((record) => record.postCode).length), hint: '用于权限和人员编排' },
         ]}
         columns={columns}
@@ -71,7 +71,7 @@ function PostsPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ sort: 0, status: '启用' }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ sort: 0, status: '0' }}>
           <Form.Item name="postName" label="岗位名称" rules={[{ required: true, message: '请输入岗位名称' }]}>
             <Input placeholder="请输入岗位名称" />
           </Form.Item>
@@ -84,8 +84,8 @@ function PostsPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '启用' },
-                { label: '停用', value: '停用' },
+                { label: '启用', value: '0' },
+                { label: '禁用', value: '1' },
               ]}
             />
           </Form.Item>

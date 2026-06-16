@@ -18,7 +18,7 @@ const columns: ColumnsType<DepartmentRecord> = [
   { title: '科室名称', dataIndex: 'name' },
   { title: '医生数量', dataIndex: 'doctorCount' },
   { title: '候诊状态', dataIndex: 'queue' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '启用' ? 'green' : 'default'}>{value}</Tag> },
+  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
 ];
 
 function DepartmentsPage() {
@@ -71,7 +71,7 @@ function DepartmentsPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ status: '启用', queue: '当前等候 0 人', sort: 0 }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ status: '0', queue: '当前等候 0 人', sort: 0 }}>
           <Form.Item name="name" label="科室名称" rules={[{ required: true, message: '请输入科室名称' }]}>
             <Input placeholder="请输入科室名称" />
           </Form.Item>
@@ -84,8 +84,8 @@ function DepartmentsPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '启用' },
-                { label: '停用', value: '停用' },
+                { label: '启用', value: '0' },
+                { label: '禁用', value: '1' },
               ]}
             />
           </Form.Item>

@@ -21,7 +21,7 @@ const columns: ColumnsType<UserRecord> = [
   { title: '角色', dataIndex: 'roleName' },
   { title: '联系电话', dataIndex: 'phone' },
   { title: '最近登录', dataIndex: 'lastLogin' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color="green">{value}</Tag> },
+  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
 ];
 
 function UsersPage() {
@@ -53,7 +53,7 @@ function UsersPage() {
         title="后台用户清单"
         description="沉淀账号、角色、部门和登录信息。"
         metrics={[
-          { label: '启用账号', value: String(records.filter((record) => record.status === '启用').length), hint: '来自后端用户接口' },
+          { label: '启用账号', value: String(records.filter((record) => record.status === '0').length), hint: '来自后端用户接口' },
           { label: '用户总数', value: String(records.length), hint: '覆盖当前后台账号' },
           { label: '业务组', value: String(new Set(records.map((record) => record.deptName)).size), hint: '按部门字段实时统计' },
         ]}
@@ -73,7 +73,7 @@ function UsersPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ userType: 'ADMIN', status: '启用', deptName: '运营部', roleName: '系统管理员' }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ userType: 'ADMIN', status: '0', deptName: '运营部', roleName: '系统管理员' }}>
           <Form.Item name="username" label="账号名称" rules={[{ required: true, message: '请输入账号名称' }]}>
             <Input placeholder="请输入账号名称" />
           </Form.Item>
@@ -98,8 +98,8 @@ function UsersPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '启用' },
-                { label: '停用', value: '停用' },
+                { label: '启用', value: '0' },
+                { label: '禁用', value: '1' },
               ]}
             />
           </Form.Item>

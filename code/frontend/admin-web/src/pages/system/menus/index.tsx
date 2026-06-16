@@ -19,7 +19,7 @@ const columns: ColumnsType<MenuRecord> = [
   { title: '类型', dataIndex: 'menuType' },
   { title: '权限标识', dataIndex: 'permission' },
   { title: '路由路径', dataIndex: 'routePath' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color="green">{value}</Tag> },
+  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
 ];
 
 function MenusPage() {
@@ -52,7 +52,7 @@ function MenusPage() {
         description="把路由、权限标识与按钮位关系先搭好。"
         metrics={[
           { label: '菜单节点', value: String(records.length), hint: '来自后端菜单接口' },
-          { label: '启用菜单', value: String(records.filter((record) => record.status === '启用').length), hint: '按状态实时统计' },
+          { label: '启用菜单', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
           { label: '权限标识', value: String(records.filter((record) => record.permission).length), hint: '覆盖当前返回菜单' },
         ]}
         columns={columns}
@@ -71,7 +71,7 @@ function MenusPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ menuType: '菜单', parentId: 0, sort: 0, status: '启用' }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ menuType: '菜单', parentId: 0, sort: 0, status: '0' }}>
           <Form.Item name="menuName" label="菜单名称" rules={[{ required: true, message: '请输入菜单名称' }]}>
             <Input placeholder="请输入菜单名称" />
           </Form.Item>
@@ -99,8 +99,8 @@ function MenusPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '启用' },
-                { label: '停用', value: '停用' },
+                { label: '启用', value: '0' },
+                { label: '禁用', value: '1' },
               ]}
             />
           </Form.Item>

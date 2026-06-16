@@ -18,7 +18,7 @@ const columns: ColumnsType<ConfigRecord> = [
   { title: '配置值', dataIndex: 'configValue' },
   { title: '配置类型', dataIndex: 'configType' },
   { title: '备注', dataIndex: 'remark' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color="green">{value}</Tag> },
+  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
 ];
 
 function ConfigsPage() {
@@ -32,7 +32,7 @@ function ConfigsPage() {
       metrics={[
         { label: '配置项', value: String(records.length), hint: '来自后端配置接口' },
         { label: '配置类型', value: String(new Set(records.map((record) => record.configType)).size), hint: '按配置类型聚合' },
-        { label: '启用配置', value: String(records.filter((record) => record.status === '启用').length), hint: '按状态实时统计' },
+        { label: '启用配置', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
       ]}
       columns={columns}
       dataSource={records}

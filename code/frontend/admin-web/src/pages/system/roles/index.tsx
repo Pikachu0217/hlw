@@ -19,7 +19,7 @@ const columns: ColumnsType<RoleRecord> = [
   { title: '数据范围', dataIndex: 'dataScope' },
   { title: '成员数', dataIndex: 'memberCount' },
   { title: '更新时间', dataIndex: 'updatedAt' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color="green">{value}</Tag> },
+  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
 ];
 
 function RolesPage() {
@@ -54,7 +54,7 @@ function RolesPage() {
         metrics={[
           { label: '角色数', value: String(records.length), hint: '来自后端角色接口' },
           { label: '成员数', value: String(memberCount), hint: '汇总当前角色成员' },
-          { label: '启用角色', value: String(records.filter((record) => record.status === '启用').length), hint: '按状态实时统计' },
+          { label: '启用角色', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
         ]}
         columns={columns}
         dataSource={records}
@@ -72,7 +72,7 @@ function RolesPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ dataScope: '本租户数据', status: '启用' }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ dataScope: '本租户数据', status: '0' }}>
           <Form.Item name="roleName" label="角色名称" rules={[{ required: true, message: '请输入角色名称' }]}>
             <Input placeholder="请输入角色名称" />
           </Form.Item>
@@ -91,8 +91,8 @@ function RolesPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '启用' },
-                { label: '停用', value: '停用' },
+                { label: '启用', value: '0' },
+                { label: '禁用', value: '1' },
               ]}
             />
           </Form.Item>

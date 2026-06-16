@@ -21,7 +21,7 @@ const columns: ColumnsType<DictRecord> = [
   { title: '字典键值', dataIndex: 'dictValue' },
   { title: '排序', dataIndex: 'sort' },
   { title: '备注', dataIndex: 'remark' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color="green">{value}</Tag> },
+  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
 ];
 
 function DictsPage() {
@@ -56,7 +56,7 @@ function DictsPage() {
         metrics={[
           { label: '字典项', value: String(records.length), hint: '来自后端字典接口' },
           { label: '字典类型', value: String(dictTypeCount), hint: '按 dictType 聚合' },
-          { label: '启用项', value: String(records.filter((record) => record.status === '启用').length), hint: '按状态实时统计' },
+          { label: '启用项', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
         ]}
         columns={columns}
         dataSource={records}
@@ -74,7 +74,7 @@ function DictsPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ sort: 0, status: '启用' }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ sort: 0, status: '0' }}>
           <Form.Item name="dictType" label="字典类型" rules={[{ required: true, message: '请输入字典类型' }]}>
             <Input placeholder="例如：user_status" />
           </Form.Item>
@@ -90,8 +90,8 @@ function DictsPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '启用' },
-                { label: '停用', value: '停用' },
+                { label: '启用', value: '0' },
+                { label: '禁用', value: '1' },
               ]}
             />
           </Form.Item>
