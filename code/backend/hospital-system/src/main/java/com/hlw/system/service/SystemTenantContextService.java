@@ -28,6 +28,7 @@ import com.hlw.system.dto.CreateRoleRequest;
 import com.hlw.system.dto.CreateTenantRequest;
 import com.hlw.system.dto.CreateUserRequest;
 import com.hlw.system.dto.UpdateConfigRequest;
+import com.hlw.system.dto.UpdateTenantRequest;
 import com.hlw.system.mapper.SysConfigMapper;
 import com.hlw.system.mapper.SysDictMapper;
 import com.hlw.system.mapper.SysMenuMapper;
@@ -202,6 +203,54 @@ public class SystemTenantContextService {
         assertTenantIdNotExists(entity.getTenantId());
         InterceptorIgnoreHelper.execute(ignoreTenantLine(), () -> sysTenantMapper.insert(entity));
         return toTenantVO(entity);
+    }
+
+    /**
+     * 查询租户详情。
+     *
+     * @param id 租户主键编号
+     * @return 租户展示对象
+     */
+    public TenantVO getTenant(Long id) {
+        ensurePlatformContext("只有平台上下文允许查询租户详情");
+        log.info("查询租户详情，id={}", id);
+        return toTenantVO(requireActiveTenant(id));
+    }
+
+    /**
+     * 更新租户信息。
+     *
+     * @param id 租户主键编号
+     * @param request 更新租户请求
+     * @return 更新后的租户展示对象
+     */
+    @Transactional
+    public TenantVO updateTenant(Long id, UpdateTenantRequest request) {
+        ensurePlatformContext("只有平台上下文允许更新租户");
+        log.info("更新租户，id={}，tenantName={}", id, request.getTenantName());
+        SysTenantEntity entity = requireActiveTenant(id);
+        entity.setTenantName(request.getTenantName());
+        entity.setName(request.getTenantName());
+        entity.setPackageName(request.getPackageName());
+        entity.setAdminName(request.getAdminName());
+        entity.setExpireAt(parseDate(request.getExpireAt()));
+        entity.setStatus(request.getStatus());
+        InterceptorIgnoreHelper.execute(ignoreTenantLine(), () -> sysTenantMapper.updateById(entity));
+        return toTenantVO(entity);
+    }
+
+    /**
+     * 删除租户。
+     *
+     * @param id 租户主键编号
+     */
+    @Transactional
+    public void deleteTenant(Long id) {
+        ensurePlatformContext("只有平台上下文允许删除租户");
+        log.info("删除租户，id={}", id);
+        SysTenantEntity entity = requireActiveTenant(id);
+        entity.setDeleted(1);
+        InterceptorIgnoreHelper.execute(ignoreTenantLine(), () -> sysTenantMapper.updateById(entity));
     }
 
     /**
@@ -823,6 +872,25 @@ public class SystemTenantContextService {
             .eq(SysUserEntity::getDeleted, 0)
             .eq(SysUserEntity::getId, userId)
             .last("limit 1")), "用户不存在");
+    }
+
+    /**
+     * 校验租户处于可用状态。
+     *
+     * @param id 租户主键编号
+     * @return 租户实体
+     */
+    private SysTenantEntity requireActiveTenant(Long id) {
+        return requireEntity(
+            InterceptorIgnoreHelper.execute(
+                ignoreTenantLine(),
+                () -> sysTenantMapper.selectOne(new LambdaQueryWrapper<SysTenantEntity>()
+                    .eq(SysTenantEntity::getDeleted, 0)
+                    .eq(SysTenantEntity::getId, id)
+                    .last("limit 1"))
+            ),
+            "租户不存在"
+        );
     }
 
     /**

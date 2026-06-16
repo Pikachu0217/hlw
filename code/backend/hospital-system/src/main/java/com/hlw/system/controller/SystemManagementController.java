@@ -11,6 +11,7 @@ import com.hlw.system.dto.CreateRoleRequest;
 import com.hlw.system.dto.CreateTenantRequest;
 import com.hlw.system.dto.CreateUserRequest;
 import com.hlw.system.dto.UpdateConfigRequest;
+import com.hlw.system.dto.UpdateTenantRequest;
 import com.hlw.system.service.SystemTenantContextService;
 import com.hlw.system.vo.ConfigVO;
 import com.hlw.system.vo.DictVO;
@@ -26,6 +27,7 @@ import com.hlw.system.vo.UserVO;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -75,6 +77,44 @@ public class SystemManagementController {
     @PostMapping("/tenants")
     public R<TenantVO> createTenant(@Valid @RequestBody CreateTenantRequest request) {
         return R.ok(systemTenantContextService.createTenant(request));
+    }
+
+    /**
+     * 查询租户详情。
+     *
+     * @param id 租户编号
+     * @return 租户详情
+     */
+    @GetMapping("/tenants/{id}")
+    public R<TenantVO> tenantDetail(@PathVariable Long id) {
+        log.info("查询租户详情，id={}", id);
+        return R.ok(systemTenantContextService.getTenant(id));
+    }
+
+    /**
+     * 更新租户信息。
+     *
+     * @param id 租户编号
+     * @param request 更新租户请求
+     * @return 更新后的租户
+     */
+    @PutMapping("/tenants/{id}")
+    public R<TenantVO> updateTenant(@PathVariable Long id, @Valid @RequestBody UpdateTenantRequest request) {
+        log.info("更新租户，id={}", id);
+        return R.ok(systemTenantContextService.updateTenant(id, request));
+    }
+
+    /**
+     * 删除租户。
+     *
+     * @param id 租户编号
+     * @return 删除结果
+     */
+    @DeleteMapping("/tenants/{id}")
+    public R<Void> deleteTenant(@PathVariable Long id) {
+        log.info("删除租户，id={}", id);
+        systemTenantContextService.deleteTenant(id);
+        return R.ok(null);
     }
 
     /**

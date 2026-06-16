@@ -19,6 +19,9 @@ import java.util.List;
 @Slf4j
 public class TenantHeaderGatewayFilter implements GlobalFilter {
 
+    /** 仅允许服务间直连访问的内部接口前缀，网关一律拒绝。 */
+    private static final String INTERNAL_PATH_PREFIX = "/system/internal/";
+
     private final TokenTenantResolver tokenTenantResolver;
     private final GatewayAuthProperties gatewayAuthProperties;
     private final AuthTokenProperties authTokenProperties;
@@ -50,6 +53,11 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
+        if (isInternalPath(request)) {
+            log.warn("拒绝外部访问内部接口，path={}", request.getURI().getPath());
+            exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
+            return exchange.getResponse().setComplete();
+        }
         String token = request.getHeaders().getFirst(authTokenProperties.getTokenName());
         boolean publicPath = isPublicPath(request);
 
@@ -87,6 +95,17 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      */
     private Long resolveTenantId(String token) {
         return tokenTenantResolver.resolveTenantId(token);
+    }
+
+    /**
+     * 判断请求是否落在仅服务间直连允许访问的内部接口前缀上。
+     *
+     * @param request 当前请求
+     * @return 是否内部接口
+     */
+    private boolean isInternalPath(ServerHttpRequest request) {
+        String path = request.getURI().getPath();
+        return path != null && path.startsWith(INTERNAL_PATH_PREFIX);
     }
 
     /**

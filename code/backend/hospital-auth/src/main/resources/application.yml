@@ -7,17 +7,6 @@ spring:
     import:
       - optional:nacos:hlw-common-auth.yml?group=${HLW_NACOS_GROUP:DEFAULT_GROUP}
       - optional:nacos:hospital-auth.yml?group=${HLW_NACOS_GROUP:DEFAULT_GROUP}
-  datasource:
-    url: ${hlw.datasource.url}
-    username: ${hlw.datasource.username}
-    password: ${hlw.datasource.password}
-    driver-class-name: org.postgresql.Driver
-  data:
-    redis:
-      host: ${hlw.redis.host}
-      port: ${hlw.redis.port}
-      password: ${hlw.redis.password}
-      database: ${hlw.redis.database}
   cloud:
     nacos:
       server-addr: ${HLW_NACOS_SERVER_ADDR:127.0.0.1:8848}
@@ -37,18 +26,6 @@ spring:
 
 server:
   port: 19100
-
-mybatis-plus:
-  configuration:
-    map-underscore-to-camel-case: true
-
-sa-token:
-  token-name: ${hlw.auth.token-name:Authorization}
-  token-prefix: ${hlw.auth.token-prefix:Bearer}
-  timeout: ${hlw.sa-token.timeout}
-  active-timeout: ${hlw.sa-token.active-timeout}
-  is-share: true
-  is-log: false
 
 management:
   endpoints:
@@ -76,15 +53,3 @@ hlw:
     group: ${HLW_NACOS_GROUP:DEFAULT_GROUP}
     username: ${HLW_NACOS_USERNAME:nacos}
     password: ${HLW_NACOS_PASSWORD}
-  datasource:
-    url: ${HLW_DB_URL}
-    username: ${HLW_DB_USERNAME}
-    password: ${HLW_DB_PASSWORD}
-  redis:
-    host: ${HLW_REDIS_HOST}
-    port: ${HLW_REDIS_PORT}
-    password: ${HLW_REDIS_PASSWORD:}
-    database: ${HLW_REDIS_DATABASE:0}
-  sa-token:
-    timeout: ${HLW_SA_TOKEN_TIMEOUT:2592000}
-    active-timeout: ${HLW_SA_TOKEN_ACTIVE_TIMEOUT:-1}

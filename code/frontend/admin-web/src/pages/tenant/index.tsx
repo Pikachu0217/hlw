@@ -1,7 +1,7 @@
-import { Form, Input, Modal, Select, Tag, message } from 'antd';
+import { Button, Form, Input, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
-import { createTenant, fetchTenants } from '@/api/modules';
+import { createTenant, deleteTenant, fetchTenants, updateTenant } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
@@ -21,6 +21,20 @@ const columns: ColumnsType<TenantRecord> = [
   { title: '管理员', dataIndex: 'adminName' },
   { title: '到期时间', dataIndex: 'expireAt' },
   { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '正常' ? 'green' : 'blue'}>{value}</Tag> },
+  {
+    title: '操作',
+    key: 'actions',
+    render: (_: unknown, record: TenantRecord) => (
+      <Space size="small">
+        <Button type="link" size="small" onClick={() => handleEdit(record)}>
+          编辑
+        </Button>
+        <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+          删除
+        </Button>
+      </Space>
+    ),
+  },
 ];
 
 function TenantPage() {
@@ -28,6 +42,9 @@ function TenantPage() {
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<TenantRecord | null>(null);
+  const [editForm] = Form.useForm();
   const warningCount = records.filter((record) => record.status !== '正常').length;
 
   const handleCreate = async () => {
@@ -44,6 +61,54 @@ function TenantPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (record: TenantRecord) => {
+    setEditingRecord(record);
+    editForm.setFieldsValue({
+      tenantName: record.tenantName,
+      packageName: record.packageName,
+      adminName: record.adminName,
+      expireAt: record.expireAt,
+      status: record.status,
+    });
+    setEditOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    const values = await editForm.validateFields();
+    setSubmitting(true);
+    try {
+      await updateTenant(editingRecord!.key, values);
+      message.success('租户更新成功');
+      setEditOpen(false);
+      editForm.resetFields();
+      setEditingRecord(null);
+      refresh();
+    } catch {
+      message.warning('租户更新失败，请检查接口或稍后重试');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = (record: TenantRecord) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除租户"${record.tenantName}"吗？此操作不可恢复。`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteTenant(record.key);
+          message.success('租户删除成功');
+          refresh();
+        } catch {
+          message.warning('租户删除失败，请稍后重试');
+        }
+      },
+    });
   };
 
   return (
@@ -92,6 +157,42 @@ function TenantPage() {
               options={[
                 { label: '正常', value: '正常' },
                 { label: '续费跟进', value: '续费跟进' },
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        title="编辑租户"
+        open={editOpen}
+        confirmLoading={submitting}
+        onOk={handleUpdate}
+        onCancel={() => {
+          setEditOpen(false);
+          setEditingRecord(null);
+          editForm.resetFields();
+        }}
+        destroyOnClose
+      >
+        <Form form={editForm} layout="vertical" className="module-form">
+          <Form.Item name="tenantName" label="租户名称" rules={[{ required: true, message: '请输入租户名称' }]}>
+            <Input placeholder="请输入租户名称" />
+          </Form.Item>
+          <Form.Item name="packageName" label="套餐版本" rules={[{ required: true, message: '请输入套餐版本' }]}>
+            <Input placeholder="例如：标准医疗版" />
+          </Form.Item>
+          <Form.Item name="adminName" label="管理员" rules={[{ required: true, message: '请输入管理员名称' }]}>
+            <Input placeholder="请输入管理员名称" />
+          </Form.Item>
+          <Form.Item name="expireAt" label="到期日期" rules={[{ required: true, message: '请输入到期日期' }]}>
+            <Input placeholder="例如：2026-12-31" />
+          </Form.Item>
+          <Form.Item name="status" label="状态" rules={[{ required: true, message: '请选择状态' }]}>
+            <Select
+              options={[
+                { label: '正常', value: '正常' },
+                { label: '续费跟进', value: '续费跟进' },
+                { label: '已过期', value: '已过期' },
               ]}
             />
           </Form.Item>

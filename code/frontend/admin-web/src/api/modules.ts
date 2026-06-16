@@ -213,6 +213,19 @@ export async function createTenant(payload: CreateTenantPayload): Promise<Tenant
   return response.data.data;
 }
 
+// 更新租户信息。
+export async function updateTenant(id: string, payload: CreateTenantPayload): Promise<TenantRecord> {
+  console.info('[admin-module] 更新租户', id, payload);
+  const response = await apiClient.put<ApiResult<TenantRecord>>(`/system/tenants/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除租户。
+export async function deleteTenant(id: string): Promise<void> {
+  console.info('[admin-module] 删除租户', id);
+  await apiClient.delete(`/system/tenants/${id}`);
+}
+
 // 查询后台用户列表。
 export function fetchUsers(): Promise<UserRecord[]> {
   return fetchModuleRecords<UserRecord>('/system/users', '用户');
