@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     dept_name VARCHAR(64) NOT NULL DEFAULT '',
     role_name VARCHAR(64) NOT NULL DEFAULT '',
     last_login VARCHAR(64) NOT NULL DEFAULT '',
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS sys_role (
     role_code VARCHAR(64) NOT NULL,
     data_scope VARCHAR(64) NOT NULL DEFAULT '本租户数据',
     member_count INTEGER NOT NULL DEFAULT 0,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS sys_menu (
     permission VARCHAR(128) NOT NULL,
     route_path VARCHAR(128) NOT NULL,
     sort INTEGER NOT NULL DEFAULT 0,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS sys_dict (
     dict_type VARCHAR(64) NOT NULL,
     dict_label VARCHAR(128) NOT NULL,
     dict_value VARCHAR(128) NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     sort INTEGER NOT NULL DEFAULT 0,
     remark VARCHAR(512),
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS sys_config (
     config_key VARCHAR(128) NOT NULL,
     config_value TEXT,
     config_type VARCHAR(64) NOT NULL DEFAULT '业务参数',
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     remark VARCHAR(512),
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS sys_post (
     post_name VARCHAR(64) NOT NULL,
     post_code VARCHAR(64) NOT NULL,
     sort INTEGER NOT NULL DEFAULT 0,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     remark VARCHAR(512),
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS sys_user_post (
     tenant_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     post_id BIGINT NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS sys_permission (
     permission_code VARCHAR(128) NOT NULL,
     resource_type VARCHAR(32) NOT NULL,
     menu_id BIGINT,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS sys_user_role (
     tenant_id BIGINT NOT NULL,
     user_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -186,7 +186,7 @@ CREATE TABLE IF NOT EXISTS sys_role_menu (
     tenant_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
     menu_id BIGINT NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -211,45 +211,21 @@ CREATE TABLE IF NOT EXISTS local_message (
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS dept_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS role_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS last_login VARCHAR(64) NOT NULL DEFAULT '';
-ALTER TABLE sys_user ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_user ALTER COLUMN status SET DEFAULT '启用';
 ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS role_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS role_code VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS data_scope VARCHAR(64) NOT NULL DEFAULT '本租户数据';
 ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS member_count INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE sys_role ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_role ALTER COLUMN status SET DEFAULT '启用';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS parent_id BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS menu_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS menu_type VARCHAR(32) NOT NULL DEFAULT '菜单';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS permission VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS route_path VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS sort INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT '启用';
-ALTER TABLE sys_menu ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_menu ALTER COLUMN status SET DEFAULT '启用';
-ALTER TABLE sys_dict ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_dict ALTER COLUMN status SET DEFAULT '启用';
-ALTER TABLE sys_config ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT '启用';
-ALTER TABLE sys_config ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_config ALTER COLUMN status SET DEFAULT '启用';
 ALTER TABLE sys_config ALTER COLUMN config_type SET DEFAULT '业务参数';
-ALTER TABLE sys_post ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_post ALTER COLUMN status SET DEFAULT '启用';
-ALTER TABLE sys_user_post ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_user_post ALTER COLUMN status SET DEFAULT '启用';
-ALTER TABLE sys_permission ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_permission ALTER COLUMN status SET DEFAULT '启用';
-ALTER TABLE sys_user_role ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_user_role ALTER COLUMN status SET DEFAULT '启用';
-ALTER TABLE sys_role_menu ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_role_menu ALTER COLUMN status SET DEFAULT '启用';
 ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS tenant_name VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS package_name VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS admin_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS expire_at DATE;
-ALTER TABLE sys_tenant ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '正常' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE sys_tenant ALTER COLUMN status SET DEFAULT '正常';
 
 COMMENT ON TABLE sys_tenant IS '租户信息表';
 COMMENT ON COLUMN sys_tenant.id IS '主键编号';
@@ -405,33 +381,33 @@ COMMENT ON COLUMN sys_role_menu.deleted IS '逻辑删除标识';
 
 INSERT INTO sys_tenant (id, tenant_id, name, tenant_name, package_name, admin_name, expire_at, status)
 VALUES
-    (1, 100, '互联网医院平台租户', '互联网医院平台租户', '平台租户管理员', 'hlw_admin', '2026-12-31', '正常')
+    (1, 100, '互联网医院平台租户', '互联网医院平台租户', '平台租户管理员', 'hlw_admin', '2026-12-31', '0')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_name, role_name, last_login, status)
 VALUES
-    (1, 100, '门诊运营', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'ADMIN', '运营中心', '运营管理员', '今天 08:40', '启用'),
-    (2, 100, '药房主管', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800002222', 'ADMIN', '药房组', '库存专员', '今天 07:58', '启用')
+    (1, 100, '门诊运营', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'ADMIN', '运营中心', '运营管理员', '今天 08:40', '0'),
+    (2, 100, '药房主管', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800002222', 'ADMIN', '药房组', '库存专员', '今天 07:58', '0')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_role (id, tenant_id, role_name, role_code, data_scope, member_count, status)
 VALUES
-    (1, 100, '系统管理员', 'SYSTEM_ADMIN', '全部数据', 1, '启用'),
-    (2, 100, '运营管理员', 'OPERATOR_ADMIN', '本租户数据', 1, '启用')
+    (1, 100, '系统管理员', 'SYSTEM_ADMIN', '全部数据', 1, '0'),
+    (2, 100, '运营管理员', 'OPERATOR_ADMIN', '本租户数据', 1, '0')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_menu (id, tenant_id, parent_id, menu_name, menu_type, permission, route_path, sort, status)
 VALUES
-    (1, 100, 0, '工作台', '菜单', 'dashboard:view', '/dashboard', 1, '启用'),
-    (2, 100, 0, '医生管理', '菜单', 'doctor:list', '/doctor', 2, '启用'),
-    (3, 100, 0, '用户管理', '菜单', 'system:user:list', '/system/users', 3, '启用'),
-    (4, 100, 0, '角色管理', '菜单', 'system:role:list', '/system/roles', 4, '启用'),
-    (5, 100, 0, '菜单管理', '菜单', 'system:menu:list', '/system/menus', 5, '启用'),
-    (6, 100, 0, '字典管理', '菜单', 'system:dict:list', '/system/dicts', 6, '启用'),
-    (7, 100, 0, '参数配置', '菜单', 'system:config:list', '/system/configs', 7, '启用'),
-    (8, 100, 0, '岗位管理', '菜单', 'system:post:list', '/system/posts', 8, '启用'),
-    (9, 100, 0, '权限管理', '菜单', 'system:permission:list', '/system/permissions', 9, '启用'),
-    (10, 100, 2, '科室管理', '菜单', 'doctor:department:list', '/doctor/departments', 10, '启用')
+    (1, 100, 0, '工作台', '菜单', 'dashboard:view', '/dashboard', 1, '0'),
+    (2, 100, 0, '医生管理', '菜单', 'doctor:list', '/doctor', 2, '0'),
+    (3, 100, 0, '用户管理', '菜单', 'system:user:list', '/system/users', 3, '0'),
+    (4, 100, 0, '角色管理', '菜单', 'system:role:list', '/system/roles', 4, '0'),
+    (5, 100, 0, '菜单管理', '菜单', 'system:menu:list', '/system/menus', 5, '0'),
+    (6, 100, 0, '字典管理', '菜单', 'system:dict:list', '/system/dicts', 6, '0'),
+    (7, 100, 0, '参数配置', '菜单', 'system:config:list', '/system/configs', 7, '0'),
+    (8, 100, 0, '岗位管理', '菜单', 'system:post:list', '/system/posts', 8, '0'),
+    (9, 100, 0, '权限管理', '菜单', 'system:permission:list', '/system/permissions', 9, '0'),
+    (10, 100, 2, '科室管理', '菜单', 'doctor:department:list', '/doctor/departments', 10, '0')
 ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
                                menu_name = EXCLUDED.menu_name,
                                menu_type = EXCLUDED.menu_type,
@@ -442,11 +418,11 @@ ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
 
 INSERT INTO sys_dict (id, tenant_id, dict_type, dict_label, dict_value, sort, status, remark)
 VALUES
-    (1, 100, 'account_status', '启用', '启用', 1, '启用', '后台账号可登录'),
-    (2, 100, 'account_status', '停用', '停用', 2, '启用', '后台账号禁止登录'),
-    (3, 100, 'menu_type', '目录', '目录', 1, '启用', '菜单目录节点'),
-    (4, 100, 'menu_type', '菜单', '菜单', 2, '启用', '可访问页面菜单'),
-    (5, 100, 'menu_type', '按钮', '按钮', 3, '启用', '页面按钮权限')
+    (1, 100, 'account_status', '启用', '0', 1, '0', '后台账号可登录'),
+    (2, 100, 'account_status', '停用', '1', 2, '0', '后台账号禁止登录'),
+    (3, 100, 'menu_type', '目录', '目录', 1, '0', '菜单目录节点'),
+    (4, 100, 'menu_type', '菜单', '菜单', 2, '0', '可访问页面菜单'),
+    (5, 100, 'menu_type', '按钮', '按钮', 3, '0', '页面按钮权限')
 ON CONFLICT (id) DO UPDATE SET dict_type = EXCLUDED.dict_type,
                                dict_label = EXCLUDED.dict_label,
                                dict_value = EXCLUDED.dict_value,
@@ -456,9 +432,9 @@ ON CONFLICT (id) DO UPDATE SET dict_type = EXCLUDED.dict_type,
 
 INSERT INTO sys_config (id, tenant_id, config_key, config_value, config_type, status, remark)
 VALUES
-    (1, 100, 'consult.default_duration_minutes', '30', '问诊配置', '启用', '默认问诊时长'),
-    (2, 100, 'appointment.release_window_minutes', '15', '预约配置', '启用', '放号提前窗口'),
-    (3, 100, 'security.password_expire_days', '90', '安全配置', '启用', '密码过期天数')
+    (1, 100, 'consult.default_duration_minutes', '30', '问诊配置', '0', '默认问诊时长'),
+    (2, 100, 'appointment.release_window_minutes', '15', '预约配置', '0', '放号提前窗口'),
+    (3, 100, 'security.password_expire_days', '90', '安全配置', '0', '密码过期天数')
 ON CONFLICT (id) DO UPDATE SET config_key = EXCLUDED.config_key,
                                config_value = EXCLUDED.config_value,
                                config_type = EXCLUDED.config_type,
@@ -467,9 +443,9 @@ ON CONFLICT (id) DO UPDATE SET config_key = EXCLUDED.config_key,
 
 INSERT INTO sys_post (id, tenant_id, post_name, post_code, sort, status, remark)
 VALUES
-    (1, 100, '运营管理员', 'OPERATIONS_ADMIN', 1, '启用', '负责平台日常运营'),
-    (2, 100, '药房主管', 'PHARMACY_MANAGER', 2, '启用', '负责药品库存和发药'),
-    (3, 100, '客服专员', 'SERVICE_AGENT', 3, '启用', '负责患者咨询和预约协助')
+    (1, 100, '运营管理员', 'OPERATIONS_ADMIN', 1, '0', '负责平台日常运营'),
+    (2, 100, '药房主管', 'PHARMACY_MANAGER', 2, '0', '负责药品库存和发药'),
+    (3, 100, '客服专员', 'SERVICE_AGENT', 3, '0', '负责患者咨询和预约协助')
 ON CONFLICT (id) DO UPDATE SET post_name = EXCLUDED.post_name,
                                post_code = EXCLUDED.post_code,
                                sort = EXCLUDED.sort,
@@ -478,19 +454,19 @@ ON CONFLICT (id) DO UPDATE SET post_name = EXCLUDED.post_name,
 
 INSERT INTO sys_user_post (id, tenant_id, user_id, post_id, status)
 VALUES
-    (1, 100, 1, 1, '启用'),
-    (2, 100, 2, 2, '启用')
+    (1, 100, 1, 1, '0'),
+    (2, 100, 2, 2, '0')
 ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
                                post_id = EXCLUDED.post_id,
                                status = EXCLUDED.status;
 
 INSERT INTO sys_permission (id, tenant_id, permission_name, permission_code, resource_type, menu_id, status)
 VALUES
-    (1, 100, '查看用户', 'system:user:list', '菜单', 3, '启用'),
-    (2, 100, '维护角色', 'system:role:edit', '按钮', 4, '启用'),
-    (3, 100, '维护菜单', 'system:menu:edit', '按钮', 5, '启用'),
-    (4, 100, '维护字典', 'system:dict:edit', '按钮', 6, '启用'),
-    (5, 100, '维护岗位', 'system:post:edit', '按钮', 8, '启用')
+    (1, 100, '查看用户', 'system:user:list', '菜单', 3, '0'),
+    (2, 100, '维护角色', 'system:role:edit', '按钮', 4, '0'),
+    (3, 100, '维护菜单', 'system:menu:edit', '按钮', 5, '0'),
+    (4, 100, '维护字典', 'system:dict:edit', '按钮', 6, '0'),
+    (5, 100, '维护岗位', 'system:post:edit', '按钮', 8, '0')
 ON CONFLICT (id) DO UPDATE SET permission_name = EXCLUDED.permission_name,
                                permission_code = EXCLUDED.permission_code,
                                resource_type = EXCLUDED.resource_type,
@@ -499,24 +475,24 @@ ON CONFLICT (id) DO UPDATE SET permission_name = EXCLUDED.permission_name,
 
 INSERT INTO sys_user_role (id, tenant_id, user_id, role_id, status)
 VALUES
-    (1, 100, 1, 1, '启用'),
-    (2, 100, 2, 2, '启用')
+    (1, 100, 1, 1, '0'),
+    (2, 100, 2, 2, '0')
 ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
                                role_id = EXCLUDED.role_id,
                                status = EXCLUDED.status;
 
 INSERT INTO sys_role_menu (id, tenant_id, role_id, menu_id, status)
 VALUES
-    (1, 100, 1, 1, '启用'),
-    (2, 100, 1, 3, '启用'),
-    (3, 100, 1, 4, '启用'),
-    (4, 100, 1, 5, '启用'),
-    (5, 100, 1, 6, '启用'),
-    (6, 100, 1, 7, '启用'),
-    (7, 100, 1, 8, '启用'),
-    (8, 100, 1, 9, '启用'),
-    (9, 100, 2, 1, '启用'),
-    (10, 100, 2, 3, '启用')
+    (1, 100, 1, 1, '0'),
+    (2, 100, 1, 3, '0'),
+    (3, 100, 1, 4, '0'),
+    (4, 100, 1, 5, '0'),
+    (5, 100, 1, 6, '0'),
+    (6, 100, 1, 7, '0'),
+    (7, 100, 1, 8, '0'),
+    (8, 100, 1, 9, '0'),
+    (9, 100, 2, 1, '0'),
+    (10, 100, 2, 3, '0')
 ON CONFLICT (id) DO UPDATE SET role_id = EXCLUDED.role_id,
                                menu_id = EXCLUDED.menu_id,
                                status = EXCLUDED.status;
@@ -651,7 +627,7 @@ CREATE TABLE IF NOT EXISTS doc_department (
     queue_desc VARCHAR(64) NOT NULL DEFAULT '',
     parent_id BIGINT NOT NULL DEFAULT 0,
     sort INTEGER NOT NULL DEFAULT 0,
-    status VARCHAR(32) NOT NULL DEFAULT '启用',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
     description VARCHAR(512),
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -663,8 +639,8 @@ CREATE TABLE IF NOT EXISTS doc_department (
 ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS department_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS doctor_count INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE doc_department ADD COLUMN IF NOT EXISTS queue_desc VARCHAR(64) NOT NULL DEFAULT '';
-ALTER TABLE doc_department ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' ELSE status::text END;
-ALTER TABLE doc_department ALTER COLUMN status SET DEFAULT '启用';
+ALTER TABLE doc_department ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '启用' THEN '0' WHEN status::text = '停用' THEN '1' ELSE status::text END;
+ALTER TABLE doc_department ALTER COLUMN status SET DEFAULT '0';
 UPDATE doc_department SET department_name = name WHERE department_name = '' AND name <> '';
 
 CREATE TABLE IF NOT EXISTS doc_doctor (
@@ -819,9 +795,9 @@ WHERE deleted = 0;
 
 INSERT INTO doc_department (id, tenant_id, name, department_name, doctor_count, queue_desc, parent_id, sort, status)
 VALUES
-    (10, 100, '心内科', '心内科', 1, '当前等候 6 人', 0, 1, '启用'),
-    (20, 100, '儿科', '儿科', 1, '当前等候 8 人', 0, 2, '启用'),
-    (30, 100, '皮肤科', '皮肤科', 0, '当前等候 3 人', 0, 3, '启用')
+    (10, 100, '心内科', '心内科', 1, '当前等候 6 人', 0, 1, '0'),
+    (20, 100, '儿科', '儿科', 1, '当前等候 8 人', 0, 2, '0'),
+    (30, 100, '皮肤科', '皮肤科', 0, '当前等候 3 人', 0, 3, '0')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
                                department_name = EXCLUDED.department_name,
                                doctor_count = EXCLUDED.doctor_count,
@@ -1103,7 +1079,7 @@ CREATE TABLE IF NOT EXISTS apt_number_source_release_config (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
-ALTER TABLE apt_number_source_release_config ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '1' THEN '启用' WHEN status::text = '0' THEN '停用' WHEN status::text = '2' THEN '已完成' ELSE status::text END;
+ALTER TABLE apt_number_source_release_config ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN status::text = '启用' THEN '0' WHEN status::text = '停用' THEN '1' WHEN status::text = '已完成' THEN '2' ELSE status::text END;
 
 COMMENT ON TABLE apt_number_source_release_config IS '放号配置表';
 COMMENT ON COLUMN apt_number_source_release_config.id IS '主键编号';
@@ -1132,7 +1108,7 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO apt_number_source_release_config (id, tenant_id, schedule_id, release_time, release_count, status)
 VALUES
-    (1, 100, 1, '2026-06-13 08:00:00', 10, '启用')
+    (1, 100, 1, '2026-06-13 08:00:00', 10, '0')
 ON CONFLICT DO NOTHING;
 
 SELECT setval(pg_get_serial_sequence('apt_appointment', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM apt_appointment), 1), true);
