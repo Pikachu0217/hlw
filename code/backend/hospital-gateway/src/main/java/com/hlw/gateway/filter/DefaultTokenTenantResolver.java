@@ -1,5 +1,6 @@
 package com.hlw.gateway.filter;
 
+import com.hlw.common.core.security.AuthTokenResolver;
 import com.hlw.common.core.tenant.TenantJwtResolver;
 import org.springframework.util.StringUtils;
 
@@ -43,14 +44,6 @@ public class DefaultTokenTenantResolver implements TokenTenantResolver {
      * @return 原始登录令牌，缺少令牌时返回 null
      */
     private String resolveRawToken(String token) {
-        if (token == null || token.isBlank()) {
-            return null;
-        }
-        String trimmed = token.trim();
-        String prefixWithSpace = tokenPrefix + " ";
-        if (!tokenPrefix.isBlank() && trimmed.regionMatches(true, 0, prefixWithSpace, 0, prefixWithSpace.length())) {
-            return trimmed.substring(prefixWithSpace.length()).trim();
-        }
-        return trimmed;
+        return AuthTokenResolver.resolve(token, tokenPrefix);
     }
 }

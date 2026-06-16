@@ -1,13 +1,14 @@
 package com.hlw.common.security;
 
+import com.hlw.common.core.config.AuthTokenProperties;
+import com.hlw.common.core.security.AuthTokenResolver;
 import com.hlw.common.core.tenant.TenantContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -20,19 +21,28 @@ import java.io.IOException;
  */
 @Component
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@Slf4j
 public class JwtTenantContextFilter extends OncePerRequestFilter {
-    private static final Logger log = LoggerFactory.getLogger(JwtTenantContextFilter.class);
+    /** 隔离租户编号，用于无法解析租户或匿名访问的场景。 */
     private static final Long ISOLATED_TENANT_ID = -1L;
+    /** 平台租户编号，只有平台账号的租户编号为 0，享有跨租户管理权限。 */
+    private static final Long PLATFORM_TENANT_ID = 0L;
 
     private final String jwtSecret;
+    private final AuthTokenProperties authTokenProperties;
 
     /**
      * 构造 JWT 租户上下文过滤器。
      *
      * @param jwtSecret JWT 签名密钥
+     * @param authTokenProperties 公共认证令牌配置属性
      */
-    public JwtTenantContextFilter(@Value("${hlw.jwt.secret}") String jwtSecret) {
+    public JwtTenantContextFilter(
+            @Value("${hlw.jwt.secret}") String jwtSecret,
+            AuthTokenProperties authTokenProperties
+    ) {
         this.jwtSecret = jwtSecret;
+        this.authTokenProperties = authTokenProperties;
     }
 
     /**
@@ -46,12 +56,15 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
      */
     @Override
     protected void doFilterInternal(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain
+                                    HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain
     ) throws ServletException, IOException {
-        String tenantHeader = request.getHeader("X-Tenant-Id");
-        String token = BearerTokenResolver.resolve(request.getHeader(BearerTokenResolver.AUTHORIZATION_HEADER));
+        String tenantHeader = request.getHeader(authTokenProperties.getTenantHeaderName());
+        String token = AuthTokenResolver.resolve(
+                request.getHeader(authTokenProperties.getTokenName()),
+                authTokenProperties.getTokenPrefix()
+        );
 
         Long tenantId;
         boolean platformRequest = false;
@@ -60,14 +73,14 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
             try {
                 long parsed = Long.parseLong(tenantHeader.trim());
                 tenantId = parsed >= 0 ? parsed : ISOLATED_TENANT_ID;
-                platformRequest = tenantId == 0L;
+                platformRequest = PLATFORM_TENANT_ID.equals(tenantId);
             } catch (NumberFormatException e) {
                 log.warn("解析租户请求头失败，tenantHeader={}", tenantHeader);
                 tenantId = ISOLATED_TENANT_ID;
             }
         } else if (token != null && !token.isBlank()) {
             tenantId = TenantJwtParser.resolveTenantId(token, jwtSecret);
-            platformRequest = tenantId != null && tenantId == 0L;
+            platformRequest = PLATFORM_TENANT_ID.equals(tenantId);
         } else {
             tenantId = ISOLATED_TENANT_ID;
         }

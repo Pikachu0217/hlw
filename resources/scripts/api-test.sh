@@ -10,6 +10,9 @@ DIRECT_MODE="${HLW_API_DIRECT_MODE:-0}"
 USERNAME="${HLW_API_USERNAME:-门诊运营}"
 PASSWORD="${HLW_API_PASSWORD:-123456}"
 TENANT_HEADER="${HLW_API_TENANT_ID:-100}"
+TOKEN_HEADER_NAME="${HLW_API_TOKEN_NAME:-Authorization}"
+TOKEN_PREFIX="${HLW_API_TOKEN_PREFIX:-Bearer}"
+TENANT_HEADER_NAME="${HLW_API_TENANT_HEADER_NAME:-X-Tenant-Id}"
 TIMEOUT_SECONDS="${HLW_API_TIMEOUT_SECONDS:-10}"
 RUN_AT="$(date '+%Y-%m-%d %H:%M:%S')"
 REPORT_STAMP="$(date '+%Y%m%d-%H%M%S')"
@@ -165,7 +168,7 @@ else:
 PY
 }
 
-# 从登录响应中提取登录令牌，供后续接口通过 Authorization Bearer 携带。
+# 从登录响应中提取登录令牌，供后续接口通过配置化请求头携带。
 extract_token() {
   local body="$1"
 
@@ -186,6 +189,17 @@ else:
     payload = data.get("data") or {}
     print(payload.get("token", ""))
 PY
+}
+
+# 按公共认证配置拼接登录令牌请求头值。
+build_token_header_value() {
+  local raw_token="$1"
+
+  if [ -n "${TOKEN_PREFIX}" ]; then
+    printf '%s %s' "${TOKEN_PREFIX}" "${raw_token}"
+  else
+    printf '%s' "${raw_token}"
+  fi
 }
 
 # 压缩响应体摘要，避免报告过长。
@@ -285,14 +299,14 @@ run_case() {
     --max-time "${TIMEOUT_SECONDS}"
     --request "${method}"
     --header "Content-Type: application/json"
-    --header "X-Tenant-Id: ${TENANT_HEADER}"
+    --header "${TENANT_HEADER_NAME}: ${TENANT_HEADER}"
     --output "${response_file}"
     --write-out "%{http_code}"
     "${full_url}"
   )
 
   if [ -n "${token}" ]; then
-    curl_args=(--header "Authorization: Bearer ${token}" "${curl_args[@]}")
+    curl_args=(--header "${TOKEN_HEADER_NAME}: $(build_token_header_value "${token}")" "${curl_args[@]}")
   fi
 
   if [ -n "${body}" ]; then
@@ -356,7 +370,7 @@ run_login_case() {
     --max-time "${TIMEOUT_SECONDS}" \
     --request "${method}" \
     --header "Content-Type: application/json" \
-    --header "X-Tenant-Id: ${TENANT_HEADER}" \
+    --header "${TENANT_HEADER_NAME}: ${TENANT_HEADER}" \
     --data "${body}" \
     --output "${response_file}" \
     --write-out "%{http_code}" \

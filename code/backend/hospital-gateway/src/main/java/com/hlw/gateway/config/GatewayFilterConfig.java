@@ -1,5 +1,6 @@
 package com.hlw.gateway.config;
 
+import com.hlw.common.core.config.AuthTokenProperties;
 import com.hlw.gateway.filter.DefaultTokenTenantResolver;
 import com.hlw.gateway.filter.TenantHeaderGatewayFilter;
 import com.hlw.gateway.filter.TokenTenantResolver;
@@ -17,28 +18,30 @@ public class GatewayFilterConfig {
      *
      * @param tokenTenantResolver 租户解析器
      * @param gatewayAuthProperties 网关认证配置属性
+     * @param authTokenProperties 公共认证令牌配置属性
      * @return 租户请求头过滤器
      */
     @Bean
     public TenantHeaderGatewayFilter tenantHeaderGatewayFilter(
             TokenTenantResolver tokenTenantResolver,
-            GatewayAuthProperties gatewayAuthProperties
+            GatewayAuthProperties gatewayAuthProperties,
+            AuthTokenProperties authTokenProperties
     ) {
-        return new TenantHeaderGatewayFilter(tokenTenantResolver, gatewayAuthProperties);
+        return new TenantHeaderGatewayFilter(tokenTenantResolver, gatewayAuthProperties, authTokenProperties);
     }
 
     /**
      * 创建 JWT 令牌租户解析器。
      *
      * @param jwtSecret JWT 签名密钥
-     * @param gatewayAuthProperties 网关认证配置属性
+     * @param authTokenProperties 公共认证令牌配置属性
      * @return 租户解析器
      */
     @Bean
     public TokenTenantResolver tokenTenantResolver(
             @Value("${hlw.jwt.secret}") String jwtSecret,
-            GatewayAuthProperties gatewayAuthProperties
+            AuthTokenProperties authTokenProperties
     ) {
-        return new DefaultTokenTenantResolver(jwtSecret, gatewayAuthProperties.getTokenPrefix());
+        return new DefaultTokenTenantResolver(jwtSecret, authTokenProperties.getTokenPrefix());
     }
 }

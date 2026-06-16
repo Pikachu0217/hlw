@@ -4,13 +4,13 @@ import com.hlw.auth.service.AuthService;
 import com.hlw.auth.service.LoginCommand;
 import com.hlw.auth.service.LoginResult;
 import com.hlw.auth.vo.UserProfileVO;
+import com.hlw.common.core.config.AuthTokenProperties;
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.exception.BizException;
-import com.hlw.common.security.BearerTokenResolver;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,28 +26,32 @@ public class AuthController {
     private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
+    private final AuthTokenProperties authTokenProperties;
 
     /**
      * 构造认证控制器。
      *
      * @param authService 认证服务
+     * @param authTokenProperties 公共认证令牌配置属性
      */
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, AuthTokenProperties authTokenProperties) {
         this.authService = authService;
+        this.authTokenProperties = authTokenProperties;
     }
 
     /**
      * 用户登录。
      *
-     * @param tenantHeader 租户请求头
+     * @param request HTTP 请求对象
      * @param command 登录命令
      * @return 登录结果
      */
     @PostMapping("/login")
     public R<LoginResult> login(
-            @RequestHeader(value = "X-Tenant-Id", required = false) String tenantHeader,
+            HttpServletRequest request,
             @Valid @RequestBody LoginCommand command
     ) {
+        String tenantHeader = request.getHeader(authTokenProperties.getTenantHeaderName());
         Long tenantId = resolveLoginTenantId(tenantHeader, command.tenantId());
         log.info("用户登录请求进入认证控制器，tenantId={}，username={}", tenantId, command.username());
         return R.ok(authService.login(command.withTenantId(tenantId)));
@@ -56,13 +60,12 @@ public class AuthController {
     /**
      * 查询登录用户资料。
      *
-     * @param token 登录令牌
+     * @param request HTTP 请求对象
      * @return 登录用户资料
      */
     @GetMapping("/profile")
-    public R<UserProfileVO> profile(
-            @RequestHeader(value = BearerTokenResolver.AUTHORIZATION_HEADER, required = false) String token
-    ) {
+    public R<UserProfileVO> profile(HttpServletRequest request) {
+        String token = request.getHeader(authTokenProperties.getTokenName());
         log.info("查询登录用户资料请求进入认证控制器");
         return R.ok(authService.profile(token));
     }

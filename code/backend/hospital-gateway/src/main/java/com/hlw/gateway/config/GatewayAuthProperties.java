@@ -14,7 +14,8 @@ import java.util.List;
 @ConfigurationProperties(prefix = "hlw.gateway")
 @Data
 public class GatewayAuthProperties {
+    /**
+     * 网关放行的公开接口路径。
+     */
     private List<String> publicPaths = new ArrayList<>();
-    private String tokenName = "";
-    private String tokenPrefix = "";
 }

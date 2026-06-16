@@ -1,8 +1,9 @@
 package com.hlw.auth.service;
 
 import com.hlw.auth.vo.UserProfileVO;
+import com.hlw.common.core.config.AuthTokenProperties;
 import com.hlw.common.core.exception.BizException;
-import com.hlw.common.security.BearerTokenResolver;
+import com.hlw.common.core.security.AuthTokenResolver;
 import com.hlw.common.security.JwtUtil;
 import com.hlw.common.security.PasswordEncoder;
 import io.jsonwebtoken.Claims;
@@ -22,6 +23,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final TokenIssuer tokenIssuer;
     private final String jwtSecret;
+    private final AuthTokenProperties authTokenProperties;
 
     /**
      * 构造认证服务。
@@ -29,12 +31,15 @@ public class AuthService {
      * @param userRepository 用户仓储
      * @param tokenIssuer 令牌签发器
      * @param jwtSecret JWT 签名密钥
+     * @param authTokenProperties 公共认证令牌配置属性
      */
     public AuthService(UserRepository userRepository, TokenIssuer tokenIssuer,
-                       @Value("${hlw.jwt.secret}") String jwtSecret) {
+                       @Value("${hlw.jwt.secret}") String jwtSecret,
+                       AuthTokenProperties authTokenProperties) {
         this.userRepository = userRepository;
         this.tokenIssuer = tokenIssuer;
         this.jwtSecret = jwtSecret;
+        this.authTokenProperties = authTokenProperties;
     }
 
     /**
@@ -45,7 +50,7 @@ public class AuthService {
      */
     public LoginResult login(LoginCommand command) {
         if (command == null) {
-            log.warn("用户登录认证失败，登录命令为空");
+            log.warn("用户登录认证失败，登录参数为空");
             throw new BizException(400, "登录参数不能为空");
         }
         Long tenantId = requireLoginTenantId(command.tenantId());
@@ -111,7 +116,7 @@ public class AuthService {
      * @return 令牌主体
      */
     private TokenPrincipal parseToken(String token) {
-        String rawToken = BearerTokenResolver.resolve(token);
+        String rawToken = AuthTokenResolver.resolve(token, authTokenProperties.getTokenPrefix());
         if (rawToken == null || rawToken.isBlank()) {
             throw new BizException(401, "登录令牌不能为空");
         }

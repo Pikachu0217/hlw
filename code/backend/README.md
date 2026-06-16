@@ -80,6 +80,13 @@ MinIO Root 用户：minio
 MinIO Root 密码：minio123
 ```
 
+Nacos 公共认证配置：
+
+- 所有后端应用模块都会通过 `spring.config.import` 尝试读取 `hlw-common-auth.yml`，并继续读取各模块同名 Data ID，例如 `hospital-auth.yml`、`hospital-gateway.yml`。
+- 公共配置模板维护在 `resources/nacos/hlw-common-auth.yml`，需要在 Nacos 控制台创建同名 Data ID，默认 Group 为 `DEFAULT_GROUP`。
+- `hlw.auth.token-name`、`hlw.auth.token-prefix`、`hlw.auth.tenant-header-name` 是网关、认证服务、业务服务和接口测试脚本共享的登录令牌协议配置；本地未创建 Nacos 配置时，代码默认仍按 `Authorization`、`Bearer`、`X-Tenant-Id` 处理。
+- Nacos 连接凭据 `HLW_NACOS_USERNAME` 默认值为 `nacos`，但 `HLW_NACOS_PASSWORD` 未设默认值，必须在环境变量中显式注入（本地开发可用 `export HLW_NACOS_PASSWORD=nacos`），否则服务启动时占位符无法解析。生产环境务必使用强口令，避免使用默认值 `nacos`。
+
 ## 初始化数据库
 
 PostgreSQL 16 启动后，在仓库根目录执行基线脚本：
@@ -122,7 +129,7 @@ psql -U postgres -f resources/sql/init.sql
 - 控制器统一仅接收 DTO、执行参数校验、调用 Service 并返回 `R`。
 - Service 统一负责系统管理业务编排、关系绑定校验和 VO 转换。
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再在系统模块中保留 `JdbcOperations` 直查实现。
-- 系统服务会优先读取网关透传的可信 `X-Tenant-Id` 写入租户上下文，只有缺少租户头时才兜底解析 `Authorization: Bearer <token>`；无法识别租户时会进入隔离上下文，不再默认落到平台租户。
+- 系统服务会优先读取网关透传的可信租户头写入租户上下文，只有缺少租户头时才兜底解析登录令牌；默认请求头为 `Authorization: Bearer <token>`，实际名称和前缀以 `hlw.auth` 公共配置为准。无法识别租户时会进入隔离上下文，不再默认落到平台租户。
 - 涉及平台级租户主数据的创建，会在 Service 中显式忽略租户行过滤，并且仅允许平台令牌上下文访问；登录前租户选择接口不鉴权，公开查询所有未删除租户的基础展示信息。
 
 ## 认证与租户上下文
@@ -130,17 +137,21 @@ psql -U postgres -f resources/sql/init.sql
 当前认证链路约定如下：
 
 - 登录页可在未登录状态通过 `GET /system/tenants` 读取所有未删除租户选项，用于选择管理端登录租户。
-- 登录接口 `POST /auth/login` 优先读取网关透传的 `X-Tenant-Id`，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 查询认证库 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
+- 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 查询认证库 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
-- 网关只信任 `Authorization: Bearer <token>` 登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `X-Tenant-Id` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
-- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenants`；登录令牌前缀由 `hlw.gateway.token-prefix` 配置读取，默认值为 `Bearer`。
-- 登录接口属于公开接口，允许携带正数 `X-Tenant-Id` 辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
-- 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，优先消费网关透传的可信 `X-Tenant-Id`，缺少租户头时再兜底解析 JWT；令牌无效或租户缺失时进入隔离租户 `-1`。
+- 网关只信任 `hlw.auth.token-name` 请求头中的登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `hlw.auth.tenant-header-name` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
+- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenants`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
+- 登录接口属于公开接口，允许携带正数可信租户头辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
+- 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，优先消费网关透传的可信租户头，缺少租户头时再兜底解析 JWT；令牌无效或租户缺失时进入隔离租户 `-1`。
 
 认证与租户相关环境变量：
 
 ```bash
 HLW_JWT_SECRET=至少32字节的JWT签名密钥
+HLW_NACOS_PASSWORD=Nacos登录口令，本地开发可设为nacos，生产必须使用强口令
+HLW_API_TOKEN_NAME=Authorization
+HLW_API_TOKEN_PREFIX=Bearer
+HLW_API_TENANT_HEADER_NAME=X-Tenant-Id
 HLW_API_USERNAME=门诊运营
 HLW_API_PASSWORD=123456
 HLW_API_TENANT_ID=100
@@ -344,7 +355,7 @@ HLW_LOG_ROOT_LEVEL=INFO
 
 每个模块当前包含三类配置文件：
 
-- `application.yml`：统一声明端口、服务名、Nacos、数据库、Redis、RabbitMQ 等键位。
+- `application.yml`：统一声明端口、服务名、Nacos、数据库、Redis、RabbitMQ 等键位，并通过 Nacos Config 引入 `hlw-common-auth.yml` 与模块私有配置。
 - `application-local.yml`：本地开发默认值，主要指向 `127.0.0.1` 与本地 PostgreSQL/Redis/Nacos。
 - `application-prod.yml`：生产占位配置，主要通过环境变量注入。
 
@@ -555,9 +566,9 @@ drug.shipped
 网关租户透传规则：
 
 ```text
-请求头：Authorization: Bearer <token>
-转发头：X-Tenant-Id: <token 中解析出的租户 ID>
-业务服务：优先读取 X-Tenant-Id 写入 TenantContext，缺少该头时兜底解析 JWT
+请求头：${hlw.auth.token-name}: ${hlw.auth.token-prefix} <token>
+转发头：${hlw.auth.tenant-header-name}: <token 中解析出的租户 ID>
+业务服务：优先读取 ${hlw.auth.tenant-header-name} 写入 TenantContext，缺少该头时兜底解析 JWT
 ```
 
 ## 文档维护规则

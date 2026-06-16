@@ -1,0 +1,13 @@
+# Nacos Data ID：hlw-common-auth.yml
+# Nacos Group：DEFAULT_GROUP
+# 用途：网关、认证服务和业务服务共享登录令牌解析协议。
+hlw:
+  auth:
+    token-name: Authorization
+    token-prefix: Bearer
+    tenant-header-name: X-Tenant-Id
+  jwt:
+    secret: ${HLW_JWT_SECRET:a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6A7B8C}
+  sa-token:
+    timeout: ${HLW_SA_TOKEN_TIMEOUT:2592000}
+    active-timeout: ${HLW_SA_TOKEN_ACTIVE_TIMEOUT:-1}
