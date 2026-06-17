@@ -1,8 +1,8 @@
 package com.hlw.system.controller;
 
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.system.service.InternalUserService;
-import com.hlw.system.vo.InternalUserVO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 网关不应对 /system/internal/** 进行外部路由。
  */
 @RestController
-@RequestMapping("/system/internal/users")
+@RequestMapping("/internal/system")
 public class SystemInternalUserController {
     private static final Logger log = LoggerFactory.getLogger(SystemInternalUserController.class);
 
@@ -38,8 +38,8 @@ public class SystemInternalUserController {
      * @param username 登录账号
      * @return 内部用户展示对象，不存在返回 data=null
      */
-    @GetMapping
-    public R<InternalUserVO> lookup(@RequestParam Long tenantId, @RequestParam String username) {
+    @GetMapping("/users")
+    public R<InternalUserResp> users(@RequestParam Long tenantId, @RequestParam String username) {
         log.info("接收内部用户查询请求，tenantId={}，username={}", tenantId, username);
         return R.ok(internalUserService.findByTenantIdAndUsername(tenantId, username));
     }
@@ -51,8 +51,8 @@ public class SystemInternalUserController {
      * @param tenantId 租户编号
      * @return 内部用户展示对象，不存在返回 data=null
      */
-    @GetMapping("/{id}")
-    public R<InternalUserVO> detail(@PathVariable Long id, @RequestParam Long tenantId) {
+    @GetMapping("/user/{id}")
+    public R<InternalUserResp> detail(@PathVariable Long id, @RequestParam Long tenantId) {
         log.info("接收内部用户资料查询请求，id={}，tenantId={}", id, tenantId);
         return R.ok(internalUserService.findByIdAndTenantId(id, tenantId));
     }

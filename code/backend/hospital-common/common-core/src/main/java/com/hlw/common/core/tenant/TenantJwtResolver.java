@@ -1,6 +1,7 @@
 package com.hlw.common.core.tenant;
 
 import com.hlw.common.core.constants.CommonConstants;
+import com.hlw.common.core.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -28,11 +29,23 @@ public final class TenantJwtResolver {
      * @return 租户编号，无法解析时返回 null
      */
     public static Long resolveTenantId(String token, String jwtSecret) {
+        return resolve(token, jwtSecret, CommonConstants.JWT_TENANT_ID);
+    }
+
+    /**
+     * 从 JWT 令牌解析租户编号。
+     *
+     * @param token JWT 令牌
+     * @param jwtSecret JWT 签名密钥
+     * @param item jwt 中存储的内容 如 tenantId userId userType
+     * @return 租户编号，无法解析时返回 null
+     */
+    public static Long resolve(String token, String jwtSecret, String item) {
         if (!StringUtils.hasText(token)) {
             return null;
         }
         try {
-            Claims claims = parseClaims(token, jwtSecret);
+            Claims claims = JwtUtil.parseClaims(token, jwtSecret);
             Object tenantId = claims.get(CommonConstants.JWT_TENANT_ID);
             return tenantId instanceof Number ? ((Number) tenantId).longValue() : null;
         } catch (JwtException e) {

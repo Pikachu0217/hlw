@@ -1,16 +1,15 @@
 package com.hlw.auth.controller;
 
+import com.hlw.auth.domain.req.LoginReq;
+import com.hlw.auth.domain.resp.LoginResultResp;
+import com.hlw.auth.domain.resp.UserDetailResp;
 import com.hlw.auth.service.AuthService;
-import com.hlw.auth.service.LoginCommand;
-import com.hlw.auth.service.LoginResult;
-import com.hlw.auth.vo.UserProfileVO;
 import com.hlw.common.core.config.AuthTokenProperties;
 import com.hlw.common.core.domain.R;
-import com.hlw.common.core.exception.BizException;
+import com.hlw.common.core.security.AuthTokenResolver;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,8 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/auth")
+@Slf4j
 public class AuthController {
-    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
     private final AuthTokenProperties authTokenProperties;
@@ -43,18 +42,18 @@ public class AuthController {
      * 用户登录。
      *
      * @param request HTTP 请求对象
-     * @param command 登录命令
+     * @param loginReq 登录请求体
      * @return 登录结果
      */
     @PostMapping("/login")
-    public R<LoginResult> login(
+    public R<LoginResultResp> login(
             HttpServletRequest request,
-            @Valid @RequestBody LoginCommand command
+            @Valid @RequestBody LoginReq loginReq
     ) {
         String tenantHeader = request.getHeader(authTokenProperties.getTenantHeaderName());
-        Long tenantId = resolveLoginTenantId(tenantHeader, command.tenantId());
-        log.info("用户登录请求进入认证控制器，tenantId={}，username={}", tenantId, command.username());
-        return R.ok(authService.login(command.withTenantId(tenantId)));
+        Long tenantId = AuthTokenResolver.resolveLoginTenantId(tenantHeader, loginReq.tenantId());
+        log.info("用户登录请求进入认证控制器，tenantId={}，username={}", tenantId, loginReq.username());
+        return R.ok(authService.login(loginReq.withTenantId(tenantId)));
     }
 
     /**
@@ -63,44 +62,26 @@ public class AuthController {
      * @param request HTTP 请求对象
      * @return 登录用户资料
      */
-    @GetMapping("/profile")
-    public R<UserProfileVO> profile(HttpServletRequest request) {
-        String token = request.getHeader(authTokenProperties.getTokenName());
+    @GetMapping("/detail")
+    public R<UserDetailResp> detail() {
         log.info("查询登录用户资料请求进入认证控制器");
-        return R.ok(authService.profile(token));
+        return R.ok(authService.detail());
     }
 
     /**
-     * 用户退出登录。
+     * 用户退出登录，将当前令牌加入黑名单直至原令牌过期。
      *
+     * @param request HTTP 请求对象
      * @return 空响应
      */
     @PostMapping("/logout")
-    public R<Void> logout() {
+    public R<Void> logout(HttpServletRequest request) {
+        String rawToken = AuthTokenResolver.resolve(
+                request.getHeader(authTokenProperties.getTokenName()),
+                authTokenProperties.getTokenPrefix()
+        );
         log.info("用户退出登录请求进入认证控制器");
+        authService.logout(rawToken);
         return R.ok(null);
-    }
-
-    /**
-     * 解析登录请求租户编号，优先使用网关透传请求头。
-     *
-     * @param tenantHeader 租户请求头
-     * @param bodyTenantId 请求体租户编号
-     * @return 登录租户编号
-     */
-    private Long resolveLoginTenantId(String tenantHeader, Long bodyTenantId) {
-        if (tenantHeader == null || tenantHeader.isBlank()) {
-            return bodyTenantId;
-        }
-        try {
-            long parsedTenantId = Long.parseLong(tenantHeader.trim());
-            if (parsedTenantId <= 0L) {
-                throw new BizException(400, "租户编号必须大于0");
-            }
-            return parsedTenantId;
-        } catch (NumberFormatException exception) {
-            log.warn("登录请求租户请求头格式错误，tenantHeader={}", tenantHeader);
-            throw new BizException(400, "租户编号格式错误");
-        }
     }
 }

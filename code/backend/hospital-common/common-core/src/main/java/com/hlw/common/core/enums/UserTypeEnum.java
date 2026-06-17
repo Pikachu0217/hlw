@@ -11,12 +11,12 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum UserTypeEnum {
-    PLATFORM_ADMIN(1, "平台管理员"),
-    TENANT_ADMIN(2, "租户管理员"),
-    DOCTOR(3, "医生"),
-    NURSE(4, "护士"),
-    PATIENT(5, "患者"),
+    PLATFORM_ADMIN("1", "平台管理员"),
+    TENANT_ADMIN("2", "租户管理员"),
+    DOCTOR("3", "医生"),
+    NURSE("4", "护士"),
+    PATIENT("5", "患者"),
     ;
-    private final Integer userType;
+    private final String userType;
     private final String desc;
 }

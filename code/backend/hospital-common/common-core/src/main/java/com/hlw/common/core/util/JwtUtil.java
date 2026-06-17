@@ -1,8 +1,8 @@
-package com.hlw.common.security;
+package com.hlw.common.core.util;
 
 import com.hlw.common.core.constants.CommonConstants;
-import com.hlw.common.core.tenant.TenantJwtResolver;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 
@@ -48,13 +48,17 @@ public final class JwtUtil {
     /**
      * 解析 JWT 令牌中的 Claims。
      *
-     * @param token  JWT 令牌
-     * @param secret HMAC 密钥
+     * @param token JWT 令牌
+     * @param jwtSecret JWT 签名密钥
      * @return Claims 对象
-     * @throws io.jsonwebtoken.JwtException 令牌无效或过期时抛出
+     * @throws JwtException 令牌无效或过期时抛出
      */
-    public static Claims parse(String token, String secret) {
-        return TenantJwtResolver.parseClaims(token, secret);
+    public static Claims parseClaims(String token, String jwtSecret) {
+        return Jwts.parserBuilder()
+                .setSigningKey(keyFrom(jwtSecret))
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     /**

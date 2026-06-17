@@ -9,7 +9,7 @@ import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.enums.CommonStatusEnum;
 import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.exception.BizException;
-import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.dto.CreateTenantRequest;
 import com.hlw.system.dto.UpdateTenantRequest;
@@ -53,9 +53,9 @@ public class TenantService {
     public PageResult<TenantVO> listTenants(PageQuery query) {
         log.info("查询租户列表分页，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        Long currentTenantId = TenantContext.getTenantId();
+        Long currentTenantId = TokenPrincipalContext.get().getTenantId();
 
-        if (TenantContext.isPlatformRequest()) {
+        if (TokenPrincipalContext.get().getPlatformRequest()) {
             log.info("平台上下文查询全部未删除租户");
             return pageAllUndeletedTenants(query);
         }

@@ -2,7 +2,7 @@ package com.hlw.common.mybatis.config;
 
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 import com.hlw.common.core.constants.CommonConstants;
-import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.tenant.TokenPrincipalContext;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
 
@@ -14,7 +14,7 @@ public class HlwTenantLineHandler implements TenantLineHandler {
          */
         @Override
         public Expression getTenantId() {
-            Long tenantId = TenantContext.getTenantId();
+            Long tenantId = TokenPrincipalContext.get().getTenantId();
             return new LongValue(tenantId == null ? CommonConstants.ISOLATED_TENANT_ID : tenantId);
         }
 

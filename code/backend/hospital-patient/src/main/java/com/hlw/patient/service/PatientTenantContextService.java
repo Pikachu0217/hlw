@@ -2,7 +2,7 @@ package com.hlw.patient.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
-import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.patient.dto.CreateHealthRecordRequest;
 import com.hlw.patient.dto.CreatePatientRequest;
 import com.hlw.patient.dto.UpdatePatientProfileRequest;
@@ -267,8 +267,8 @@ public class PatientTenantContextService {
      * @param message 不满足条件时的错误消息
      */
     private void ensureBusinessTenantContext(String message) {
-        Long tenantId = TenantContext.getTenantId();
-        if (tenantId == null || tenantId <= 0L || TenantContext.isPlatformRequest()) {
+        Long tenantId = TokenPrincipalContext.getTenantId();
+        if (tenantId == null || tenantId <= 0L || TokenPrincipalContext.isPlatformRequest()) {
             throw new BizException(403, message);
         }
     }

@@ -1,9 +1,10 @@
 package com.hlw.auth.service;
 
-import com.hlw.auth.client.SystemUserDTO;
 import com.hlw.auth.client.SystemUserFeignClient;
-import com.hlw.auth.vo.UserProfileVO;
+import com.hlw.auth.domain.resp.LoginUserResp;
+import com.hlw.auth.domain.resp.UserDetailResp;
 import com.hlw.common.core.domain.R;
+import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.common.core.exception.BizException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -29,14 +30,14 @@ public class FeignUserRepository implements UserRepository {
      * @return 登录用户，不存在返回 null
      */
     @Override
-    public LoginUser findByTenantIdAndUsername(Long tenantId, String username) {
+    public LoginUserResp findByTenantIdAndUsername(Long tenantId, String username) {
         log.info("Feign 调用 hospital-system 查询用户，tenantId={}，username={}", tenantId, username);
-        R<SystemUserDTO> response = systemUserFeignClient.lookup(tenantId, username);
-        SystemUserDTO data = requireOk(response, "查询用户失败");
+        R<InternalUserResp> response = systemUserFeignClient.users(tenantId, username);
+        InternalUserResp data = requireOk(response, "查询用户失败");
         if (data == null) {
             return null;
         }
-        return new LoginUser(
+        return new LoginUserResp(
             data.getId(),
             data.getTenantId(),
             data.getUsername(),
@@ -53,24 +54,24 @@ public class FeignUserRepository implements UserRepository {
      * @return 用户资料，不存在返回 null
      */
     @Override
-    public UserProfileVO findProfileById(Long id, Long tenantId) {
+    public UserDetailResp findProfileById(Long id, Long tenantId) {
         log.info("Feign 调用 hospital-system 查询用户资料，id={}，tenantId={}", id, tenantId);
-        R<SystemUserDTO> response = systemUserFeignClient.detail(id, tenantId);
-        SystemUserDTO data = requireOk(response, "查询用户资料失败");
+        R<InternalUserResp> response = systemUserFeignClient.detail(id, tenantId);
+        InternalUserResp data = requireOk(response, "查询用户资料失败");
         if (data == null) {
             return null;
         }
-        UserProfileVO vo = new UserProfileVO();
-        vo.setKey(String.valueOf(data.getId()));
-        vo.setUserId(data.getId());
-        vo.setTenantId(data.getTenantId());
-        vo.setUsername(data.getUsername());
-        vo.setPhone(data.getPhone());
-        vo.setUserType(data.getUserType());
-        // TODO: 待 role 子系统提供真实角色名查询
-        vo.setRoleName(null);
-        vo.setStatus(data.getStatus());
-        return vo;
+        UserDetailResp resp = new UserDetailResp();
+        resp.setKey(String.valueOf(data.getId()));
+        resp.setUserId(data.getId());
+        resp.setTenantId(data.getTenantId());
+        resp.setUsername(data.getUsername());
+        resp.setPhone(data.getPhone());
+        resp.setUserType(data.getUserType());
+        resp.setRoleCode(data.getRoleCode());
+        resp.setResourceRoutePathList(data.getResourceRoutePathList());
+        resp.setStatus(data.getStatus());
+        return resp;
     }
 
     /**
@@ -80,7 +81,7 @@ public class FeignUserRepository implements UserRepository {
      * @param message 错误消息
      * @return 响应数据
      */
-    private SystemUserDTO requireOk(R<SystemUserDTO> response, String message) {
+    private InternalUserResp requireOk(R<InternalUserResp> response, String message) {
         if (response == null) {
             log.warn("Feign 调用返回空响应");
             throw new BizException(502, message);

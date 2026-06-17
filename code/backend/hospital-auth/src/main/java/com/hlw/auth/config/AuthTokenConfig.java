@@ -1,7 +1,7 @@
 package com.hlw.auth.config;
 
-import com.hlw.auth.service.TokenIssuer;
-import com.hlw.common.security.JwtUtil;
+import com.hlw.auth.domain.dto.TokenIssuer;
+import com.hlw.common.core.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

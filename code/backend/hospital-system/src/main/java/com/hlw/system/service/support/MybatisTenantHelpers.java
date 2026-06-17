@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.exception.BizException;
-import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.tenant.TokenPrincipalContext;
 
 /**
  * MyBatis Plus 与租户上下文的公共工具方法集合，承载跨聚合复用的查询条件、忽略策略与守卫逻辑。
@@ -56,7 +56,7 @@ public final class MybatisTenantHelpers {
      * @param message 不满足条件时的错误消息
      */
     public static void ensurePlatformContext(String message) {
-        if (!TenantContext.isPlatformRequest()) {
+        if (!TokenPrincipalContext.get().getPlatformRequest()) {
             throw new BizException(403, message);
         }
     }

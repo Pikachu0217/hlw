@@ -1,14 +1,16 @@
-package com.hlw.system.vo;
+package com.hlw.common.core.domain.system.resp;
 
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 /**
- * 内部服务间用户展示对象，仅供 hospital-auth 通过 OpenFeign 调用使用，不允许外部网关暴露。
+ * 从 hospital-system 内部接口接收的用户数据传输对象。
  */
 @Getter
 @Setter
-public class InternalUserVO {
+public class InternalUserResp {
     /** 用户编号。 */
     private Long id;
     /** 租户编号。 */
@@ -21,6 +23,10 @@ public class InternalUserVO {
     private String phone;
     /** 用户类型。 */
     private String userType;
+    /** 角色编码。 */
+    private String roleCode;
+    /** 资源列表。 */
+    private List<String> resourceRoutePathList;
     /** 账号状态。 */
     private String status;
 }

@@ -1,6 +1,7 @@
 package com.hlw.auth.service;
 
-import com.hlw.auth.vo.UserProfileVO;
+import com.hlw.auth.domain.resp.LoginUserResp;
+import com.hlw.auth.domain.resp.UserDetailResp;
 
 /**
  * 用户仓储接口，封装认证模块需要的用户查询能力。
@@ -13,7 +14,7 @@ public interface UserRepository {
      * @param username 登录账号
      * @return 登录用户，不存在返回 null
      */
-    LoginUser findByTenantIdAndUsername(Long tenantId, String username);
+    LoginUserResp findByTenantIdAndUsername(Long tenantId, String username);
 
     /**
      * 按用户编号和租户编号查询用户资料。
@@ -22,5 +23,5 @@ public interface UserRepository {
      * @param tenantId 租户编号
      * @return 用户资料，不存在返回 null
      */
-    UserProfileVO findProfileById(Long id, Long tenantId);
+    UserDetailResp findProfileById(Long id, Long tenantId);
 }

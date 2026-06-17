@@ -20,11 +20,12 @@ import java.util.List;
 public class TenantHeaderGatewayFilter implements GlobalFilter {
 
     /** 仅允许服务间直连访问的内部接口前缀，网关一律拒绝。 */
-    private static final String INTERNAL_PATH_PREFIX = "/system/internal/";
+    private static final String INTERNAL_PATH_PREFIX = "/internal";
 
     private final TokenTenantResolver tokenTenantResolver;
     private final GatewayAuthProperties gatewayAuthProperties;
     private final AuthTokenProperties authTokenProperties;
+    private final TokenBlacklistChecker tokenBlacklistChecker;
 
     /**
      * 构造租户请求头网关过滤器。
@@ -32,15 +33,18 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      * @param tokenTenantResolver 登录令牌租户解析器
      * @param gatewayAuthProperties 网关认证配置属性
      * @param authTokenProperties 公共认证令牌配置属性
+     * @param tokenBlacklistChecker 退出登录令牌黑名单校验器
      */
     public TenantHeaderGatewayFilter(
             TokenTenantResolver tokenTenantResolver,
             GatewayAuthProperties gatewayAuthProperties,
-            AuthTokenProperties authTokenProperties
+            AuthTokenProperties authTokenProperties,
+            TokenBlacklistChecker tokenBlacklistChecker
     ) {
         this.tokenTenantResolver = tokenTenantResolver;
         this.gatewayAuthProperties = gatewayAuthProperties;
         this.authTokenProperties = authTokenProperties;
+        this.tokenBlacklistChecker = tokenBlacklistChecker;
     }
 
     /**
@@ -66,7 +70,8 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
                 .build();
 
         Long tenantId = resolveTenantId(token);
-        if (tenantId != null && tenantId >= 0) {
+        boolean hasValidToken = tenantId != null && tenantId >= 0;
+        if (hasValidToken) {
             cleaned = cleaned.mutate()
                     .header(authTokenProperties.getTenantHeaderName(), String.valueOf(tenantId))
                     .build();
@@ -79,12 +84,24 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
             }
         }
 
-        if (!publicPath && (tenantId == null || tenantId < 0)) {
+        if (!publicPath && !hasValidToken) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
             return exchange.getResponse().setComplete();
         }
 
-        return chain.filter(exchange.mutate().request(cleaned).build());
+        ServerHttpRequest finalRequest = cleaned;
+        if (!hasValidToken) {
+            return chain.filter(exchange.mutate().request(finalRequest).build());
+        }
+        return tokenBlacklistChecker.isBlacklisted(token)
+                .flatMap(blacklisted -> {
+                    if (Boolean.TRUE.equals(blacklisted)) {
+                        log.warn("登录令牌已退出登录，拒绝访问，path={}", request.getURI().getPath());
+                        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+                        return exchange.getResponse().setComplete();
+                    }
+                    return chain.filter(exchange.mutate().request(finalRequest).build());
+                });
     }
 
     /**

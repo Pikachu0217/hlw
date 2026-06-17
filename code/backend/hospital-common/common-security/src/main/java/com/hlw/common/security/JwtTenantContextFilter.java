@@ -3,7 +3,9 @@ package com.hlw.common.security;
 import com.hlw.common.core.config.AuthTokenProperties;
 import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.security.AuthTokenResolver;
-import com.hlw.common.core.tenant.TenantContext;
+import com.hlw.common.core.security.TokenPrincipal;
+import com.hlw.common.core.tenant.TenantJwtResolver;
+import com.hlw.common.core.tenant.TokenPrincipalContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -63,15 +65,17 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
                 request.getHeader(authTokenProperties.getTokenName()),
                 authTokenProperties.getTokenPrefix()
         );
-
         Long tenantId;
+        Long userId = null;
         boolean platformRequest = false;
 
         if (StringUtils.hasText(tenantHeader)) {
             try {
-                long parsed = Long.parseLong(tenantHeader.trim());
+                Long parsed = TenantJwtResolver.resolveTenantId(tenantHeader, jwtSecret);
                 tenantId = parsed >= 0 ? parsed : CommonConstants.ISOLATED_TENANT_ID;
                 platformRequest = CommonConstants.PLATFORM_TENANT_ID.equals(tenantId);
+                userId = TenantJwtResolver.resolve(tenantHeader, jwtSecret, CommonConstants.JWT_USER_ID);
+
             } catch (NumberFormatException e) {
                 log.warn("解析租户请求头失败，tenantHeader={}", tenantHeader);
                 tenantId = CommonConstants.ISOLATED_TENANT_ID;
@@ -79,16 +83,20 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
         } else if (StringUtils.hasText(token)) {
             tenantId = TenantJwtParser.resolveTenantId(token, jwtSecret);
             platformRequest = CommonConstants.PLATFORM_TENANT_ID.equals(tenantId);
+            userId = TenantJwtResolver.resolve(tenantHeader, jwtSecret, CommonConstants.JWT_USER_ID);
         } else {
             tenantId = CommonConstants.ISOLATED_TENANT_ID;
         }
 
-        TenantContext.setTenantId(tenantId);
-        TenantContext.setPlatformRequest(platformRequest);
+        TokenPrincipal principal = new TokenPrincipal();
+        principal.setTenantId(tenantId);
+        principal.setUserId(userId);
+        principal.setPlatformRequest(platformRequest);
+        TokenPrincipalContext.set(principal);
         try {
             filterChain.doFilter(request, response);
         } finally {
-            TenantContext.clear();
+            TokenPrincipalContext.clear();
         }
     }
 }

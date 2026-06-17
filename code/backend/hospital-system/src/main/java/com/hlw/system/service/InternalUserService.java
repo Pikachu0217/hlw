@@ -3,14 +3,17 @@ package com.hlw.system.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
 import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
+import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.common.core.enums.CommonStatusEnum;
 import com.hlw.common.core.enums.DeletedStatusEnum;
+import com.hlw.system.entity.SysRoleEntity;
 import com.hlw.system.entity.SysUserEntity;
+import com.hlw.system.entity.SysUserRoleEntity;
+import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysUserMapper;
-import com.hlw.system.vo.InternalUserVO;
+import com.hlw.system.mapper.SysUserRoleMapper;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -18,11 +21,15 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InternalUserService {
-    private static final Logger log = LoggerFactory.getLogger(InternalUserService.class);
 
-    /** 用户数据访问组件。 */
+    /**
+     * 用户数据访问组件。
+     */
     private final SysUserMapper sysUserMapper;
+    private final SysRoleMapper sysRoleMapper;
+    private final SysUserRoleMapper sysUserRoleMapper;
 
     /**
      * 按租户编号和登录账号查询用户。
@@ -31,41 +38,70 @@ public class InternalUserService {
      * @param username 登录账号
      * @return 内部用户展示对象，不存在返回 null
      */
-    public InternalUserVO findByTenantIdAndUsername(Long tenantId, String username) {
+    public InternalUserResp findByTenantIdAndUsername(Long tenantId, String username) {
         log.info("内部查询用户，tenantId={}，username={}", tenantId, username);
         LambdaQueryWrapper<SysUserEntity> queryWrapper = new LambdaQueryWrapper<SysUserEntity>()
-            .eq(SysUserEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
-            .eq(SysUserEntity::getTenantId, tenantId)
-            .eq(SysUserEntity::getUsername, username)
-            .eq(SysUserEntity::getStatus, CommonStatusEnum.ENABLED.getStatus())
-            .orderByAsc(SysUserEntity::getId)
-            .last("limit 1");
+                .eq(SysUserEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
+                .eq(SysUserEntity::getTenantId, tenantId)
+                .eq(SysUserEntity::getUsername, username)
+                .eq(SysUserEntity::getStatus, CommonStatusEnum.ENABLED.getStatus())
+                .orderByAsc(SysUserEntity::getId)
+                .last("limit 1");
         SysUserEntity entity = InterceptorIgnoreHelper.execute(
-            ignoreTenantLine(),
-            () -> sysUserMapper.selectOne(queryWrapper)
+                ignoreTenantLine(),
+                () -> sysUserMapper.selectOne(queryWrapper)
         );
-        return entity == null ? null : toInternalUserVO(entity);
+        if (null == entity) {
+            return null;
+        }
+        return toInternalUserResp(entity, queryRoleCodeByUserIdAndTenantId(entity.getId(), tenantId));
     }
 
     /**
      * 按用户编号和租户编号查询用户。
      *
-     * @param id 用户编号
+     * @param id       用户编号
      * @param tenantId 租户编号
      * @return 内部用户展示对象，不存在返回 null
      */
-    public InternalUserVO findByIdAndTenantId(Long id, Long tenantId) {
-        log.info("内部查询用户资料，id={}，tenantId={}", id, tenantId);
+    public InternalUserResp findByIdAndTenantId(Long uid, Long tenantId) {
         LambdaQueryWrapper<SysUserEntity> queryWrapper = new LambdaQueryWrapper<SysUserEntity>()
-            .eq(SysUserEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
-            .eq(SysUserEntity::getId, id)
-            .eq(SysUserEntity::getTenantId, tenantId)
-            .last("limit 1");
-        SysUserEntity entity = InterceptorIgnoreHelper.execute(
-            ignoreTenantLine(),
-            () -> sysUserMapper.selectOne(queryWrapper)
-        );
-        return entity == null ? null : toInternalUserVO(entity);
+                .eq(SysUserEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
+                .eq(SysUserEntity::getId, uid)
+                .eq(SysUserEntity::getTenantId, tenantId)
+                .last("limit 1");
+        SysUserEntity entity = sysUserMapper.selectOne(queryWrapper);
+        String roleCode = queryRoleCodeByUserIdAndTenantId(uid, tenantId);
+        return entity == null ? null : toInternalUserResp(entity, roleCode);
+    }
+
+
+    /**
+     * 根据用户 id 和租户 id 查询 roleCode
+     * @param uid
+     * @param tenantId
+     * @return
+     */
+    private String queryRoleCodeByUserIdAndTenantId(Long uid, Long tenantId) {
+        LambdaQueryWrapper<SysUserRoleEntity> userRoleQueryWrapper = new LambdaQueryWrapper<SysUserRoleEntity>()
+                .eq(SysUserRoleEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
+                .eq(SysUserRoleEntity::getId, uid)
+                .eq(SysUserRoleEntity::getTenantId, tenantId)
+                .last("limit 1");
+        SysUserRoleEntity sysUserRoleEntity = sysUserRoleMapper.selectOne(userRoleQueryWrapper);
+        if (null == sysUserRoleEntity) {
+            return null;
+        }
+        LambdaQueryWrapper<SysRoleEntity> roleQueryWrapper = new LambdaQueryWrapper<SysRoleEntity>()
+                .eq(SysRoleEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
+                .eq(SysRoleEntity::getId, uid)
+                .eq(SysRoleEntity::getTenantId, tenantId)
+                .last("limit 1");
+        SysRoleEntity roleEntity = sysRoleMapper.selectOne(roleQueryWrapper);
+        if (null == roleEntity) {
+            return null;
+        }
+        return roleEntity.getRoleCode();
     }
 
     /**
@@ -83,15 +119,16 @@ public class InternalUserService {
      * @param entity 用户实体
      * @return 内部用户展示对象
      */
-    private InternalUserVO toInternalUserVO(SysUserEntity entity) {
-        InternalUserVO vo = new InternalUserVO();
-        vo.setId(entity.getId());
-        vo.setTenantId(entity.getTenantId());
-        vo.setUsername(entity.getUsername());
-        vo.setPassword(entity.getPassword());
-        vo.setPhone(entity.getPhone());
-        vo.setUserType(entity.getUserType());
-        vo.setStatus(entity.getStatus());
-        return vo;
+    private InternalUserResp toInternalUserResp(SysUserEntity entity, String roleCode) {
+        InternalUserResp resp = new InternalUserResp();
+        resp.setId(entity.getId());
+        resp.setTenantId(entity.getTenantId());
+        resp.setUsername(entity.getUsername());
+        resp.setPassword(entity.getPassword());
+        resp.setPhone(entity.getPhone());
+        resp.setUserType(entity.getUserType());
+        resp.setRoleCode(roleCode);
+        resp.setStatus(entity.getStatus());
+        return resp;
     }
 }
