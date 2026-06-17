@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 系统内部用户接口，专供 hospital-auth 通过 OpenFeign 服务间直连调用，
- * 网关不应对 /system/internal/** 进行外部路由。
+ * 网关不应对 /internal/** 进行外部路由。
  */
 @RestController
 @RequestMapping("/internal/system")

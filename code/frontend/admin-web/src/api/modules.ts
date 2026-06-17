@@ -7,13 +7,13 @@ import type { DepartmentRecord } from '@/pages/doctor/departments';
 import type { OrderRecord } from '@/pages/order';
 import type { HealthRecord, PatientRecord } from '@/pages/patient';
 import type { PrescriptionRecord } from '@/pages/prescription';
-import type { ConfigRecord } from '@/pages/system/configs';
-import type { DictRecord } from '@/pages/system/dicts';
-import type { MenuRecord } from '@/pages/system/menus';
-import type { PermissionRecord } from '@/pages/system/permissions';
-import type { PostRecord } from '@/pages/system/posts';
-import type { RoleRecord } from '@/pages/system/roles';
-import type { UserRecord } from '@/pages/system/users';
+import type { ConfigRecord } from '@/pages/system/config';
+import type { DictRecord } from '@/pages/system/dict';
+import type { MenuRecord } from '@/pages/system/menu';
+import type { PermissionRecord } from '@/pages/system/permission';
+import type { PostRecord } from '@/pages/system/post';
+import type { RoleRecord } from '@/pages/system/role';
+import type { UserRecord } from '@/pages/system/user';
 import type { TenantRecord } from '@/pages/tenant';
 
 interface ApiResult<T> {
@@ -264,103 +264,103 @@ async function fetchModulePage<T>(
 
 // 查询租户列表。
 export function fetchTenants(): Promise<TenantRecord[]> {
-  return fetchModulePage<TenantRecord>('/system/tenants', '租户');
+  return fetchModulePage<TenantRecord>('/system/tenant', '租户');
 }
 
 // 创建租户。
 export async function createTenant(payload: CreateTenantPayload): Promise<TenantRecord> {
   console.info('[admin-module] 创建租户', payload);
-  const response = await apiClient.post<ApiResult<TenantRecord>>('/system/tenants', payload);
+  const response = await apiClient.post<ApiResult<TenantRecord>>('/system/tenant', payload);
   return response.data.data;
 }
 
 // 更新租户信息。
 export async function updateTenant(id: string, payload: CreateTenantPayload): Promise<TenantRecord> {
   console.info('[admin-module] 更新租户', id, payload);
-  const response = await apiClient.put<ApiResult<TenantRecord>>(`/system/tenants/${id}`, payload);
+  const response = await apiClient.put<ApiResult<TenantRecord>>(`/system/tenant/${id}`, payload);
   return response.data.data;
 }
 
 // 删除租户。
 export async function deleteTenant(id: string): Promise<void> {
   console.info('[admin-module] 删除租户', id);
-  await apiClient.delete(`/system/tenants/${id}`);
+  await apiClient.delete(`/system/tenant/${id}`);
 }
 
 // 查询后台用户列表。
 export function fetchUsers(): Promise<UserRecord[]> {
-  return fetchModulePage<UserRecord>('/system/users', '用户');
+  return fetchModulePage<UserRecord>('/system/user', '用户');
 }
 
 // 创建后台用户。
 export async function createUser(payload: CreateUserPayload): Promise<UserRecord> {
   console.info('[admin-module] 创建用户', payload);
-  const response = await apiClient.post<ApiResult<UserRecord>>('/system/users', payload);
+  const response = await apiClient.post<ApiResult<UserRecord>>('/system/user', payload);
   return response.data.data;
 }
 
 // 查询角色列表。
 export function fetchRoles(): Promise<RoleRecord[]> {
-  return fetchModulePage<RoleRecord>('/system/roles', '角色');
+  return fetchModulePage<RoleRecord>('/system/role', '角色');
 }
 
 // 创建角色。
 export async function createRole(payload: CreateRolePayload): Promise<RoleRecord> {
   console.info('[admin-module] 创建角色', payload);
-  const response = await apiClient.post<ApiResult<RoleRecord>>('/system/roles', payload);
+  const response = await apiClient.post<ApiResult<RoleRecord>>('/system/role', payload);
   return response.data.data;
 }
 
 // 查询菜单列表。
 export function fetchMenus(): Promise<MenuRecord[]> {
-  return fetchModulePage<MenuRecord>('/system/menus', '菜单');
+  return fetchModulePage<MenuRecord>('/system/menu', '菜单');
 }
 
 // 创建菜单。
 export async function createMenu(payload: CreateMenuPayload): Promise<MenuRecord> {
   console.info('[admin-module] 创建菜单', payload);
-  const response = await apiClient.post<ApiResult<MenuRecord>>('/system/menus', payload);
+  const response = await apiClient.post<ApiResult<MenuRecord>>('/system/menu', payload);
   return response.data.data;
 }
 
 // 查询字典列表。
 export function fetchDicts(): Promise<DictRecord[]> {
-  return fetchModulePage<DictRecord>('/system/dicts', '字典');
+  return fetchModulePage<DictRecord>('/system/dict', '字典');
 }
 
 // 创建字典项。
 export async function createDict(payload: CreateDictPayload): Promise<DictRecord> {
   console.info('[admin-module] 创建字典项', payload);
-  const response = await apiClient.post<ApiResult<DictRecord>>('/system/dicts', payload);
+  const response = await apiClient.post<ApiResult<DictRecord>>('/system/dict', payload);
   return response.data.data;
 }
 
 // 查询系统参数配置列表。
 export function fetchConfigs(): Promise<ConfigRecord[]> {
-  return fetchModulePage<ConfigRecord>('/system/configs', '参数配置');
+  return fetchModulePage<ConfigRecord>('/system/config', '参数配置');
 }
 
 // 查询岗位列表。
 export function fetchPosts(): Promise<PostRecord[]> {
-  return fetchModulePage<PostRecord>('/system/posts', '岗位');
+  return fetchModulePage<PostRecord>('/system/post', '岗位');
 }
 
 // 创建岗位。
 export async function createPost(payload: CreatePostPayload): Promise<PostRecord> {
   console.info('[admin-module] 创建岗位', payload);
-  const response = await apiClient.post<ApiResult<PostRecord>>('/system/posts', payload);
+  const response = await apiClient.post<ApiResult<PostRecord>>('/system/post', payload);
   return response.data.data;
 }
 
 // 查询权限码列表。
 export function fetchPermissions(): Promise<PermissionRecord[]> {
-  return fetchModulePage<PermissionRecord>('/system/permissions', '权限码');
+  return fetchModulePage<PermissionRecord>('/system/permission', '权限码');
 }
 
 // 创建权限码。
 export async function createPermission(payload: CreatePermissionPayload): Promise<PermissionRecord> {
   console.info('[admin-module] 创建权限码', payload);
-  const response = await apiClient.post<ApiResult<PermissionRecord>>('/system/permissions', payload);
+  const response = await apiClient.post<ApiResult<PermissionRecord>>('/system/permission', payload);
   return response.data.data;
 }
 

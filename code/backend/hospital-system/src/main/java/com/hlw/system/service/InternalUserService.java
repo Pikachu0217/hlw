@@ -61,7 +61,7 @@ public class InternalUserService {
     /**
      * 按用户编号和租户编号查询用户。
      *
-     * @param id       用户编号
+     * @param uid       用户编号
      * @param tenantId 租户编号
      * @return 内部用户展示对象，不存在返回 null
      */
@@ -85,7 +85,7 @@ public class InternalUserService {
     private String queryRoleCodeByUserIdAndTenantId(Long uid, Long tenantId) {
         LambdaQueryWrapper<SysUserRoleEntity> userRoleQueryWrapper = new LambdaQueryWrapper<SysUserRoleEntity>()
                 .eq(SysUserRoleEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
-                .eq(SysUserRoleEntity::getId, uid)
+                .eq(SysUserRoleEntity::getUserId, uid)
                 .eq(SysUserRoleEntity::getTenantId, tenantId)
                 .last("limit 1");
         SysUserRoleEntity sysUserRoleEntity = sysUserRoleMapper.selectOne(userRoleQueryWrapper);
@@ -94,7 +94,7 @@ public class InternalUserService {
         }
         LambdaQueryWrapper<SysRoleEntity> roleQueryWrapper = new LambdaQueryWrapper<SysRoleEntity>()
                 .eq(SysRoleEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
-                .eq(SysRoleEntity::getId, uid)
+                .eq(SysRoleEntity::getId, sysUserRoleEntity.getRoleId())
                 .eq(SysRoleEntity::getTenantId, tenantId)
                 .last("limit 1");
         SysRoleEntity roleEntity = sysRoleMapper.selectOne(roleQueryWrapper);

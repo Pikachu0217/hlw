@@ -111,7 +111,7 @@ export async function fetchPatientProfile(): Promise<PatientProfile> {
 
 export async function fetchHospitals(): Promise<HospitalItem[]> {
   console.info("[patient] 查询医院租户列表");
-  const response = await http.get<ApiResult<HospitalItem[]>>("/system/tenants");
+  const response = await http.get<ApiResult<HospitalItem[]>>("/system/tenant");
   return response.data.data;
 }
 
