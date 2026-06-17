@@ -1,5 +1,6 @@
 package com.hlw.common.security;
 
+import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.tenant.TenantJwtResolver;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -16,7 +17,6 @@ import java.util.Map;
  * JWT 令牌工具，负责签发和校验 JWT 令牌。
  */
 public final class JwtUtil {
-    private static final long DEFAULT_EXPIRATION_MS = 30L * 24 * 60 * 60 * 1000;
 
     private JwtUtil() {
     }
@@ -34,13 +34,13 @@ public final class JwtUtil {
         Key key = keyFrom(secret);
         Date now = new Date();
         Map<String, Object> claims = new HashMap<>();
-        claims.put("userId", userId);
-        claims.put("tenantId", tenantId);
-        claims.put("userType", userType);
+        claims.put(CommonConstants.JWT_USER_ID, userId);
+        claims.put(CommonConstants.JWT_TENANT_ID, tenantId);
+        claims.put(CommonConstants.JWT_USER_TYPE, userType);
         return Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(now)
-                .setExpiration(new Date(now.getTime() + DEFAULT_EXPIRATION_MS))
+                .setExpiration(new Date(now.getTime() + CommonConstants.JWT_DEFAULT_EXPIRATION_MS))
                 .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }

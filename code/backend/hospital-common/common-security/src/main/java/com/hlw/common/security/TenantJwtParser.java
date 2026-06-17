@@ -1,12 +1,12 @@
 package com.hlw.common.security;
 
+import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.tenant.TenantJwtResolver;
 
 /**
  * 租户上下文 JWT 解析器，从 JWT 令牌中提取租户编号。
  */
 public final class TenantJwtParser {
-    private static final Long ISOLATED_TENANT_ID = -1L;
 
     private TenantJwtParser() {
     }
@@ -20,7 +20,7 @@ public final class TenantJwtParser {
      */
     public static Long resolveTenantId(String token, String jwtSecret) {
         Long tenantId = resolveNullableTenantId(token, jwtSecret);
-        return tenantId == null ? ISOLATED_TENANT_ID : tenantId;
+        return tenantId == null ? CommonConstants.ISOLATED_TENANT_ID : tenantId;
     }
 
     /**
