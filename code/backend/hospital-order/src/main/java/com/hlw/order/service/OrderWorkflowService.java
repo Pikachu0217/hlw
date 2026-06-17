@@ -141,8 +141,8 @@ public class OrderWorkflowService {
      * @param message 不满足条件时的错误消息
      */
     private void ensureBusinessTenantContext(String message) {
-        Long tenantId = TokenPrincipalContext.getTenantId();
-        if (tenantId == null || tenantId <= 0L || TokenPrincipalContext.isPlatformRequest()) {
+        Long tenantId = TokenPrincipalContext.get().getTenantId();
+        if (tenantId == null || tenantId <= 0L || TokenPrincipalContext.get().getPlatformRequest()) {
             throw new BizException(403, message);
         }
     }
