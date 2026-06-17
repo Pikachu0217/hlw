@@ -1,21 +1,20 @@
 package com.hlw.consult.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 问诊超时调度器，定时扫描咨询中的问诊并处理超时或临近提醒。
  */
 @Component
 @EnableScheduling
+@Slf4j
 public class ConsultTimeoutScheduler {
-    private static final Logger log = LoggerFactory.getLogger(ConsultTimeoutScheduler.class);
-
     private final ConsultRepository consultRepository;
     private final ConsultTimeoutWarningPublisher warningPublisher;
 

@@ -12,8 +12,6 @@ import com.hlw.consult.mapper.ConConsultMapper;
 import com.hlw.consult.mapper.ConMessageMapper;
 import com.hlw.consult.vo.ConsultVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,13 +23,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 问诊工作流服务，负责问诊创建、接单、完成和延长状态落库。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ConsultWorkflowService {
-    private static final Logger log = LoggerFactory.getLogger(ConsultWorkflowService.class);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter CONSULT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final long DEFAULT_PATIENT_ID = 1L;

@@ -36,8 +36,6 @@ import com.hlw.system.vo.UserRoleVO;
 import com.hlw.system.vo.UserVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -49,15 +47,16 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 系统管理控制器。
  */
 @RestController
 @RequestMapping("/system")
 @RequiredArgsConstructor
+@Slf4j
 public class SystemManagementController {
-    private static final Logger log = LoggerFactory.getLogger(SystemManagementController.class);
-
     /** 租户聚合服务。 */
     private final TenantService tenantService;
     /** 后台用户聚合服务。 */

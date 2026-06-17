@@ -1,8 +1,9 @@
 package com.hlw.common.core.security;
 
 import com.hlw.common.core.exception.BizException;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 公共登录令牌解析器，统一从请求头值中剥离配置化令牌前缀。

@@ -15,8 +15,6 @@ import com.hlw.system.service.converter.PermissionConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.vo.PermissionVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -27,13 +25,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 权限码聚合服务，负责权限码的查询与创建编排，并解析菜单名称。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PermissionService {
-    private static final Logger log = LoggerFactory.getLogger(PermissionService.class);
     private static final String DEFAULT_RESOURCE_TYPE = "按钮";
 
     /** 权限码数据访问组件。 */

@@ -15,21 +15,21 @@ import com.hlw.system.service.converter.RoleConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.vo.RoleVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 角色聚合服务，负责角色的查询与创建编排，并统计成员数量。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RoleService {
-    private static final Logger log = LoggerFactory.getLogger(RoleService.class);
     private static final String DEFAULT_DATA_SCOPE = "本租户数据";
 
     /** 角色数据访问组件。 */

@@ -13,22 +13,21 @@ import com.hlw.system.service.converter.PostConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.vo.PostVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 岗位聚合服务，负责岗位的查询与创建编排。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PostService {
-    private static final Logger log = LoggerFactory.getLogger(PostService.class);
-
     /** 岗位数据访问组件。 */
     private final SysPostMapper sysPostMapper;
     /** 岗位展示对象转换器。 */

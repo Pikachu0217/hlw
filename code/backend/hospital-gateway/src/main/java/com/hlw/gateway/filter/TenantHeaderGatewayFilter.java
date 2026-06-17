@@ -2,7 +2,6 @@ package com.hlw.gateway.filter;
 
 import com.hlw.common.core.config.AuthTokenProperties;
 import com.hlw.gateway.config.GatewayAuthProperties;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.http.HttpStatus;
@@ -12,6 +11,8 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 租户请求头网关过滤器，负责基于登录令牌设置可信租户头。

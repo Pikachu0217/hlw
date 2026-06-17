@@ -2,18 +2,17 @@ package com.hlw.auth.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.exception.BizException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 认证服务异常处理器，统一返回业务异常和未知异常。
  */
 @RestControllerAdvice
+@Slf4j
 public class AuthExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(AuthExceptionHandler.class);
-
     /**
      * 处理业务异常。
      *

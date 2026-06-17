@@ -12,8 +12,6 @@ import com.hlw.order.entity.OrdOrderEntity;
 import com.hlw.order.mapper.OrdOrderMapper;
 import com.hlw.order.vo.OrderVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,13 +24,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 订单工作流服务，负责订单创建、支付状态变更和支付事件发布。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrderWorkflowService {
-    private static final Logger log = LoggerFactory.getLogger(OrderWorkflowService.class);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter ORDER_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final long DEFAULT_PATIENT_ID = 1L;

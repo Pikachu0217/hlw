@@ -7,8 +7,6 @@ import com.hlw.prescription.dto.RejectPrescriptionRequest;
 import com.hlw.prescription.service.PrescriptionWorkflowService;
 import com.hlw.prescription.vo.PrescriptionVO;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,14 +16,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 处方管理控制器，提供处方创建、提审、审核与驳回接口。
  */
 @RestController
 @RequestMapping("/prescription")
+@Slf4j
 public class PrescriptionController {
-    private static final Logger log = LoggerFactory.getLogger(PrescriptionController.class);
-
     private final PrescriptionWorkflowService prescriptionWorkflowService;
 
     /**

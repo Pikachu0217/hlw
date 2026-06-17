@@ -1,10 +1,10 @@
 package com.hlw.common.mq.service.local;
 
 import com.hlw.common.core.util.JsonUtil;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.List;
 import java.util.Queue;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 本地队列抽象基类，提供入队、消费与拒绝策略。

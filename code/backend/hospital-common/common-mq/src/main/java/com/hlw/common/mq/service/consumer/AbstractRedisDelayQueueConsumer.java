@@ -4,7 +4,6 @@ import com.hlw.common.core.constants.LUAScriptConstants;
 import com.hlw.common.core.domain.queue.BaseDelayQueueDTO;
 import com.hlw.common.mq.enums.MessageQueueEnum;
 import com.hlw.common.redis.service.RedisService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.script.RedisScript;
 
@@ -15,6 +14,8 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 抽象的 Redis 延迟队列消费者实现，基于 zset + Lua 保证消费原子性。

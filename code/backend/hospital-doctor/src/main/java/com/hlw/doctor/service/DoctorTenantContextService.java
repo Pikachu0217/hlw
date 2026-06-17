@@ -21,8 +21,6 @@ import com.hlw.doctor.vo.DoctorDepartmentBindingVO;
 import com.hlw.doctor.vo.DoctorVO;
 import com.hlw.doctor.vo.ScheduleVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,13 +33,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 医生模块租户上下文服务。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DoctorTenantContextService {
-    private static final Logger log = LoggerFactory.getLogger(DoctorTenantContextService.class);
     private static final String DEFAULT_STATUS = "启用";
     private static final String DEFAULT_DOCTOR_STATUS = "接诊中";
     private static final String DEFAULT_CONSULT_STATUS = "ONLINE";

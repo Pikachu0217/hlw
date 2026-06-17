@@ -8,8 +8,6 @@ import com.hlw.drug.vo.DeliveryShipVO;
 import com.hlw.drug.vo.DrugVO;
 import com.hlw.drug.vo.StockVO;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,14 +17,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 药品与库存管理控制器。
  */
 @RestController
 @RequestMapping("/drug")
+@Slf4j
 public class DrugController {
-    private static final Logger log = LoggerFactory.getLogger(DrugController.class);
-
     private final DrugCatalogService drugCatalogService;
 
     /**

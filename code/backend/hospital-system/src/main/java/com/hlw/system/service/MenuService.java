@@ -13,21 +13,21 @@ import com.hlw.system.service.converter.MenuConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.vo.MenuVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 菜单聚合服务，负责菜单的查询与创建编排。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MenuService {
-    private static final Logger log = LoggerFactory.getLogger(MenuService.class);
     private static final String DEFAULT_MENU_TYPE = "菜单";
 
     /** 菜单数据访问组件。 */

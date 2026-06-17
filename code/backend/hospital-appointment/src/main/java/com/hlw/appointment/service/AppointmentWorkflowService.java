@@ -18,8 +18,6 @@ import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.redis.lock.RedisLockService;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,13 +30,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 预约工作流服务，负责预约单、号源锁定和放号配置业务编排。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AppointmentWorkflowService {
-    private static final Logger log = LoggerFactory.getLogger(AppointmentWorkflowService.class);
     private static final Long DEFAULT_PATIENT_ID = 1L;
     private static final Long DEFAULT_DOCTOR_ID = 1L;
     private static final Long DEFAULT_DEPARTMENT_ID = 10L;

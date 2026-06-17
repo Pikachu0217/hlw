@@ -4,20 +4,19 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.consult.entity.ConConsultEntity;
 import com.hlw.consult.mapper.ConConsultMapper;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * MyBatis 问诊仓储实现。
  */
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class MybatisConsultRepository implements ConsultRepository {
-    private static final Logger log = LoggerFactory.getLogger(MybatisConsultRepository.class);
-
     private final ConConsultMapper conConsultMapper;
 
     @Override

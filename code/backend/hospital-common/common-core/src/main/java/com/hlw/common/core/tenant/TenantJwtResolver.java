@@ -6,12 +6,13 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 租户 JWT 解析工具，负责从登录令牌中提取租户编号。

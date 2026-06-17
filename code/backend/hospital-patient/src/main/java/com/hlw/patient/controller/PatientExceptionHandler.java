@@ -2,21 +2,20 @@ package com.hlw.patient.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.exception.BizException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 患者服务异常处理器，统一返回业务异常和未知异常。
  */
 @RestControllerAdvice
+@Slf4j
 public class PatientExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(PatientExceptionHandler.class);
-
     /**
      * 处理业务异常。
      *

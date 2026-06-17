@@ -19,8 +19,6 @@ import com.hlw.system.service.converter.TenantConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.vo.TenantVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -29,13 +27,15 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 租户聚合服务，负责租户的查询、创建、更新与删除编排。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TenantService {
-    private static final Logger log = LoggerFactory.getLogger(TenantService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     /** 租户数据访问组件。 */

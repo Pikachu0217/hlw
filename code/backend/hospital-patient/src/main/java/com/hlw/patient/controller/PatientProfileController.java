@@ -8,8 +8,6 @@ import com.hlw.patient.service.PatientTenantContextService;
 import com.hlw.patient.vo.HealthRecordVO;
 import com.hlw.patient.vo.PatientProfileVO;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,14 +19,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 患者档案控制器。
  */
 @RestController
 @RequestMapping("/patient")
+@Slf4j
 public class PatientProfileController {
-    private static final Logger log = LoggerFactory.getLogger(PatientProfileController.class);
-
     private final PatientTenantContextService patientTenantContextService;
 
     /**

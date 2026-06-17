@@ -13,8 +13,6 @@ import com.hlw.patient.mapper.PatPatientMapper;
 import com.hlw.patient.vo.HealthRecordVO;
 import com.hlw.patient.vo.PatientProfileVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,13 +26,15 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 患者模块租户上下文服务。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PatientTenantContextService {
-    private static final Logger log = LoggerFactory.getLogger(PatientTenantContextService.class);
     private static final String DEFAULT_RISK_LEVEL = "低风险";
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

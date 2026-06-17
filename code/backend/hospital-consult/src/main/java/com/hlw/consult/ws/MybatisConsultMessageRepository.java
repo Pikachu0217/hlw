@@ -5,21 +5,20 @@ import com.hlw.common.core.exception.BizException;
 import com.hlw.consult.entity.ConMessageEntity;
 import com.hlw.consult.mapper.ConMessageMapper;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * MyBatis Plus 问诊消息仓储，负责将 WebSocket 消息读写到 con_message 表。
  */
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class MybatisConsultMessageRepository implements ConsultMessageRepository {
-    private static final Logger log = LoggerFactory.getLogger(MybatisConsultMessageRepository.class);
-
     /** 问诊消息数据访问组件。 */
     private final ConMessageMapper conMessageMapper;
 

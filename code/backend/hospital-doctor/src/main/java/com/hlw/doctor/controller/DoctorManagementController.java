@@ -14,8 +14,6 @@ import com.hlw.doctor.vo.DoctorDepartmentBindingVO;
 import com.hlw.doctor.vo.DoctorVO;
 import com.hlw.doctor.vo.ScheduleVO;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,14 +25,15 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 医生管理控制器。
  */
 @RestController
 @RequestMapping("/doctor")
+@Slf4j
 public class DoctorManagementController {
-    private static final Logger log = LoggerFactory.getLogger(DoctorManagementController.class);
-
     private final DoctorTenantContextService doctorTenantContextService;
     private final AppointmentFeePolicyService appointmentFeePolicyService;
 

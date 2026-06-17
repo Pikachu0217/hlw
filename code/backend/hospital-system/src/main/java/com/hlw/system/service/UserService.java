@@ -18,8 +18,6 @@ import com.hlw.system.service.converter.UserConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.vo.UserVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -32,14 +30,15 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 后台用户聚合服务，负责用户的查询、创建编排。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
-
     /** 用户数据访问组件。 */
     private final SysUserMapper sysUserMapper;
     /** 岗位数据访问组件。 */

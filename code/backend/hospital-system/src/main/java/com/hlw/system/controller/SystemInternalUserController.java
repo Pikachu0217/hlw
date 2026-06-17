@@ -3,13 +3,13 @@ package com.hlw.system.controller;
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.system.service.InternalUserService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 系统内部用户接口，专供 hospital-auth 通过 OpenFeign 服务间直连调用，
@@ -17,9 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/internal/system")
+@Slf4j
 public class SystemInternalUserController {
-    private static final Logger log = LoggerFactory.getLogger(SystemInternalUserController.class);
-
     private final InternalUserService internalUserService;
 
     /**

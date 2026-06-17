@@ -7,18 +7,17 @@ import com.hlw.common.core.domain.R;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.common.core.exception.BizException;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 基于 OpenFeign 的用户仓储，通过调用 hospital-system 内部接口完成用户查询。
  */
 @Repository
 @RequiredArgsConstructor
+@Slf4j
 public class FeignUserRepository implements UserRepository {
-    private static final Logger log = LoggerFactory.getLogger(FeignUserRepository.class);
-
     /** 系统用户 Feign 客户端。 */
     private final SystemUserFeignClient systemUserFeignClient;
 

@@ -15,8 +15,6 @@ import com.hlw.prescription.mapper.PrePrescriptionItemMapper;
 import com.hlw.prescription.mapper.PrePrescriptionMapper;
 import com.hlw.prescription.vo.PrescriptionVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,13 +27,15 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 处方工作流服务，负责处方草稿、提审、审核和驳回落库。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PrescriptionWorkflowService {
-    private static final Logger log = LoggerFactory.getLogger(PrescriptionWorkflowService.class);
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter PRESCRIPTION_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final long DEFAULT_CONSULT_ID = 1L;

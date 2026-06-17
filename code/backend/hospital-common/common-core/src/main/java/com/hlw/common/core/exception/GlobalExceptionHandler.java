@@ -1,13 +1,13 @@
 package com.hlw.common.core.exception;
 
 import com.hlw.common.core.domain.R;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 全局异常处理器，统一返回业务异常、参数校验异常与未知异常。
@@ -17,9 +17,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  * </p>
  */
 @RestControllerAdvice
+@Slf4j
 public class GlobalExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
-
     /**
      * 处理业务异常。
      *

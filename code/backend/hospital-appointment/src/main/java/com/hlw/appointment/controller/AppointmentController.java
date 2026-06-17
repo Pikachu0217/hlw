@@ -9,8 +9,6 @@ import com.hlw.appointment.vo.NumberSourceVO;
 import com.hlw.appointment.vo.ReleaseConfigVO;
 import com.hlw.common.core.domain.R;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,14 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 预约管理控制器。
  */
 @RestController
 @RequestMapping("/appointment")
+@Slf4j
 public class AppointmentController {
-    private static final Logger log = LoggerFactory.getLogger(AppointmentController.class);
-
     private final AppointmentWorkflowService appointmentWorkflowService;
 
     /**

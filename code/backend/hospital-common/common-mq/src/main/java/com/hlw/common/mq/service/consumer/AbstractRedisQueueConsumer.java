@@ -4,13 +4,14 @@ import com.hlw.common.core.domain.queue.BaseQueueDTO;
 import com.hlw.common.core.util.JsonUtil;
 import com.hlw.common.mq.enums.MessageQueueEnum;
 import com.hlw.common.redis.service.RedisService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 抽象的 Redis 队列消费者，提供重试、归队、线程池调度等通用能力。

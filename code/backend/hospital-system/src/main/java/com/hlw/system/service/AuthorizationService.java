@@ -20,8 +20,6 @@ import com.hlw.system.vo.RelationBindingVO;
 import com.hlw.system.vo.RoleMenuVO;
 import com.hlw.system.vo.UserRoleVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,14 +28,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 授权聚合服务，负责用户角色与角色菜单两类绑定关系的查询、绑定及成员数维护。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthorizationService {
-    private static final Logger log = LoggerFactory.getLogger(AuthorizationService.class);
-
     /** 用户角色关联数据访问组件。 */
     private final SysUserRoleMapper sysUserRoleMapper;
     /** 角色菜单关联数据访问组件。 */

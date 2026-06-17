@@ -13,22 +13,21 @@ import com.hlw.system.service.converter.DictConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.vo.DictVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 字典聚合服务，负责字典项的查询与创建编排。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DictService {
-    private static final Logger log = LoggerFactory.getLogger(DictService.class);
-
     /** 字典数据访问组件。 */
     private final SysDictMapper sysDictMapper;
     /** 字典展示对象转换器。 */

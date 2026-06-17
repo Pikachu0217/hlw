@@ -12,22 +12,21 @@ import com.hlw.system.service.converter.ConfigConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.vo.ConfigVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 参数配置聚合服务，负责系统配置项的查询与更新编排。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ConfigService {
-    private static final Logger log = LoggerFactory.getLogger(ConfigService.class);
-
     /** 参数配置数据访问组件。 */
     private final SysConfigMapper sysConfigMapper;
     /** 参数配置展示对象转换器。 */

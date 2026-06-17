@@ -16,8 +16,6 @@ import com.hlw.common.redis.service.RedisService;
 import com.hlw.common.security.PasswordEncoder;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -25,13 +23,14 @@ import org.springframework.util.StringUtils;
 import java.time.Duration;
 import java.util.Date;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 认证业务服务，负责账号登录和登录用户资料读取。
  */
 @Service
+@Slf4j
 public class AuthService {
-    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
-
     private final UserRepository userRepository;
     private final TokenIssuer tokenIssuer;
     private final String jwtSecret;

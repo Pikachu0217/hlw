@@ -13,8 +13,9 @@ import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysUserMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 内部用户查询服务，承接 hospital-auth 通过 OpenFeign 发起的登录认证与资料查询。
@@ -74,7 +75,6 @@ public class InternalUserService {
         String roleCode = queryRoleCodeByUserIdAndTenantId(uid, tenantId);
         return entity == null ? null : toInternalUserResp(entity, roleCode);
     }
-
 
     /**
      * 根据用户 id 和租户 id 查询 roleCode

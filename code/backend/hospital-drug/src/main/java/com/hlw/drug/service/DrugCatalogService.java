@@ -18,8 +18,6 @@ import com.hlw.drug.vo.DeliveryShipVO;
 import com.hlw.drug.vo.DrugVO;
 import com.hlw.drug.vo.StockVO;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,13 +26,15 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * 药品目录和库存服务，负责药品资料、库存记录和配送发货落库。
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DrugCatalogService {
-    private static final Logger log = LoggerFactory.getLogger(DrugCatalogService.class);
     private static final String DEFAULT_UNIT = "盒";
     private static final String DEFAULT_WAREHOUSE_NAME = "中心药房";
     private static final String STATUS_PENDING = "PENDING";
