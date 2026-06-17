@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TenantContext;
 import com.hlw.common.core.util.DefaultValueUtils;
-import com.hlw.common.mq.core.MqProducer;
-import com.hlw.common.mq.model.MqMessage;
+import com.hlw.common.mq.enums.MessageQueueEnum;
+import com.hlw.common.mq.service.producer.MessageQueueProducer;
 import com.hlw.order.dto.CreateOrderRequest;
 import com.hlw.order.dto.PayOrderRequest;
 import com.hlw.order.entity.OrdOrderEntity;
@@ -45,7 +45,7 @@ public class OrderWorkflowService {
     /** 订单数据访问组件。 */
     private final OrdOrderMapper ordOrderMapper;
     /** 消息生产者。 */
-    private final MqProducer mqProducer;
+    private final MessageQueueProducer<String, Long> messageQueueProducer;
 
     /**
      * 查询订单列表。
@@ -122,7 +122,7 @@ public class OrderWorkflowService {
         order.setPayMethod(payMethod);
         order.setPayTime(LocalDateTime.now());
         ordOrderMapper.updateById(order);
-        mqProducer.publish(new MqMessage("order.paid", "{\"orderId\":" + id + "}", 0, 3));
+        messageQueueProducer.send(MessageQueueEnum.QUEUE_ORDER_PAID, "{\"orderId\":" + id + "}");
         return toOrderVO(order);
     }
 

@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TenantContext;
 import com.hlw.common.core.util.DefaultValueUtils;
-import com.hlw.common.mq.core.MqProducer;
-import com.hlw.common.mq.model.MqMessage;
+import com.hlw.common.mq.enums.MessageQueueEnum;
+import com.hlw.common.mq.service.producer.MessageQueueProducer;
 import com.hlw.drug.dto.CreateDrugRequest;
 import com.hlw.drug.dto.CreateStockRequest;
 import com.hlw.drug.entity.DrugDeliveryEntity;
@@ -47,7 +47,7 @@ public class DrugCatalogService {
     /** 药品配送数据访问组件。 */
     private final DrugDeliveryMapper drugDeliveryMapper;
     /** 消息生产者。 */
-    private final MqProducer mqProducer;
+    private final MessageQueueProducer<String, Long> messageQueueProducer;
 
     /**
      * 查询药品列表。
@@ -146,7 +146,7 @@ public class DrugCatalogService {
         delivery.setStatus(STATUS_SHIPPED);
         delivery.setShipTime(LocalDateTime.now());
         drugDeliveryMapper.updateById(delivery);
-        mqProducer.publish(new MqMessage("drug.shipped", "{\"deliveryId\":" + deliveryId + "}", 0, 3));
+        messageQueueProducer.send(MessageQueueEnum.QUEUE_DRUG_SHIPPED, "{\"deliveryId\":" + deliveryId + "}");
         log.info("药品配送事件已发布，deliveryId={}", deliveryId);
         return toDeliveryShipVO(delivery);
     }

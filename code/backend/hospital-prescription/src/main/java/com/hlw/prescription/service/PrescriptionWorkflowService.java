@@ -4,8 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TenantContext;
 import com.hlw.common.core.util.DefaultValueUtils;
-import com.hlw.common.mq.core.MqProducer;
-import com.hlw.common.mq.model.MqMessage;
+import com.hlw.common.mq.enums.MessageQueueEnum;
+import com.hlw.common.mq.service.producer.MessageQueueProducer;
 import com.hlw.prescription.dto.ApprovePrescriptionRequest;
 import com.hlw.prescription.dto.CreatePrescriptionRequest;
 import com.hlw.prescription.dto.RejectPrescriptionRequest;
@@ -54,7 +54,7 @@ public class PrescriptionWorkflowService {
     /** 处方药品明细数据访问组件。 */
     private final PrePrescriptionItemMapper prePrescriptionItemMapper;
     /** 消息生产者。 */
-    private final MqProducer mqProducer;
+    private final MessageQueueProducer<String, Long> messageQueueProducer;
 
     /**
      * 查询处方列表。
@@ -159,7 +159,7 @@ public class PrescriptionWorkflowService {
         entity.setAuditRemark(remark);
         entity.setAuditTime(LocalDateTime.now());
         prePrescriptionMapper.updateById(entity);
-        mqProducer.publish(new MqMessage("prescription.audited", "{\"prescriptionId\":" + id + "}", 0, 3));
+        messageQueueProducer.send(MessageQueueEnum.QUEUE_PRESCRIPTION_AUDITED, "{\"prescriptionId\":" + id + "}");
         return toPrescriptionVO(entity);
     }
 
