@@ -1,5 +1,7 @@
 package com.hlw.common.mybatis.datascope.context;
 
+import java.util.function.Supplier;
+
 /**
  * 数据权限上下文的 ThreadLocal 持有器，与 {@code TokenPrincipalContext} 对称。
  *
@@ -34,12 +36,35 @@ public final class DataScopeContextHolder {
     }
 
     /**
+     * 在 {@code supplier} 执行期间将 {@code ignoreAll} 临时置为 true（栈式恢复）。
+     */
+    public static <T> T supplyWithIgnore(Supplier<T> supplier) {
+        DataScopeContext previous = HOLDER.get();
+        HOLDER.set(ignoreContext(previous));
+        try {
+            return supplier.get();
+        } finally {
+            if (previous == null) {
+                HOLDER.remove();
+            } else {
+                HOLDER.set(previous);
+            }
+        }
+    }
+
+    /**
      * 在 {@code action} 执行期间将 {@code ignoreAll} 临时置为 true（栈式恢复）。
      * 用于平台超级管理员、定时任务等需要绕过数据权限的场景。
      */
     public static void runWithIgnore(Runnable action) {
-        DataScopeContext previous = HOLDER.get();
-        DataScopeContext ignore = previous == null
+        supplyWithIgnore(() -> {
+            action.run();
+            return null;
+        });
+    }
+
+    private static DataScopeContext ignoreContext(DataScopeContext previous) {
+        return previous == null
                 ? DataScopeContext.builder().ignoreAll(true).build()
                 : DataScopeContext.builder()
                         .userId(previous.getUserId())
@@ -50,15 +75,5 @@ public final class DataScopeContextHolder {
                         .customSql(previous.getCustomSql())
                         .ignoreAll(true)
                         .build();
-        HOLDER.set(ignore);
-        try {
-            action.run();
-        } finally {
-            if (previous == null) {
-                HOLDER.remove();
-            } else {
-                HOLDER.set(previous);
-            }
-        }
     }
 }

@@ -84,7 +84,7 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
         } else if (StringUtils.hasText(token)) {
             tenantId = TenantJwtParser.resolveTenantId(token, jwtSecret);
             platformRequest = CommonConstants.PLATFORM_TENANT_ID.equals(tenantId);
-            userId = TenantJwtResolver.resolve(tenantHeader, jwtSecret, CommonConstants.JWT_USER_ID);
+            userId = TenantJwtResolver.resolve(token, jwtSecret, CommonConstants.JWT_USER_ID);
         } else {
             tenantId = CommonConstants.ISOLATED_TENANT_ID;
         }

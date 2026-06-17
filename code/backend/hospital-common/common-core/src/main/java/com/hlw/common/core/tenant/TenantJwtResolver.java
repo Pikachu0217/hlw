@@ -47,8 +47,8 @@ public final class TenantJwtResolver {
         }
         try {
             Claims claims = JwtUtil.parseClaims(token, jwtSecret);
-            Object tenantId = claims.get(CommonConstants.JWT_TENANT_ID);
-            return tenantId instanceof Number ? ((Number) tenantId).longValue() : null;
+            Object value = claims.get(item);
+            return value instanceof Number ? ((Number) value).longValue() : null;
         } catch (JwtException e) {
             log.error("解析 JWT 令牌失败", e);
             return null;

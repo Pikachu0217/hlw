@@ -50,22 +50,19 @@ public class HlwDataPermissionHandler implements MultiDataPermissionHandler {
         try {
             return doGetSqlSegment(table, where, mappedStatementId);
         } catch (RuntimeException ex) {
-            // JSqlParser 偶发的解析失败不应当让业务接口 500，记 warn 后放行。
-            log.warn("DataScope handler failed on msId={}, fall back to original where", mappedStatementId, ex);
-            return null;
+            log.warn("DataScope handler failed on msId={}, deny by default", mappedStatementId, ex);
+            return DENY_ALL;
         }
     }
 
     private Expression doGetSqlSegment(Table table, Expression where, String mappedStatementId) {
         DataScopeMeta meta = resolver.resolve(mappedStatementId);
-        // 未标注 @DataScope 或显式 ignore=true：放行
         if (!meta.isPresent() || meta.isIgnore()) {
             return null;
         }
 
         DataScopeContext ctx = DataScopeContextHolder.get();
         if (ctx == null) {
-            // 标了注解但运行时没上下文：按"未登录"安全失败
             log.debug("DataScope annotated but no context, deny: msId={}", mappedStatementId);
             return combine(where, DENY_ALL);
         }
@@ -85,11 +82,11 @@ public class HlwDataPermissionHandler implements MultiDataPermissionHandler {
             case DEPT -> buildDeptEquals(table, meta, ctx);
             case DEPT_AND_CHILD -> buildDeptIn(table, meta, ctx);
             case SELF -> buildSelfEquals(table, meta, ctx);
-            case CUSTOM -> buildCustom(ctx);
+            case CUSTOM -> buildCustom(meta, ctx);
             default -> null;
         };
         if (segment == null) {
-            return null;
+            return DENY_ALL;
         }
         return combine(where, segment);
     }
@@ -124,13 +121,18 @@ public class HlwDataPermissionHandler implements MultiDataPermissionHandler {
         return new EqualsTo(column(table, meta.getUserAlias(), meta.getUserColumn()), new LongValue(ctx.getUserId()));
     }
 
-    private Expression buildCustom(DataScopeContext ctx) {
+    private Expression buildCustom(DataScopeMeta meta, DataScopeContext ctx) {
         String customSql = ctx.getCustomSql();
         if (customSql == null || customSql.isBlank()) {
-            return null;
+            return DENY_ALL;
         }
         try {
-            return CCJSqlParserUtil.parseCondExpression(customSql);
+            String resolvedSql = customSql
+                    .replace("{deptAlias}", nullToEmpty(meta.getDeptAlias()))
+                    .replace("{userAlias}", nullToEmpty(meta.getUserAlias()))
+                    .replace("{tenantAlias}", nullToEmpty(meta.getTenantAlias()));
+            Expression expression = CCJSqlParserUtil.parseCondExpression(resolvedSql);
+            return expression == null ? DENY_ALL : expression;
         } catch (JSQLParserException ex) {
             log.warn("DataScope custom SQL parse failed, deny by 1=0: {}", customSql, ex);
             return DENY_ALL;
@@ -139,9 +141,7 @@ public class HlwDataPermissionHandler implements MultiDataPermissionHandler {
 
     private static Column column(Table table, String alias, String columnName) {
         String resolvedAlias = (alias == null || alias.isBlank()) ? tableAlias(table) : alias;
-        return resolvedAlias == null
-                ? new Column(columnName)
-                : new Column(new Table(resolvedAlias), columnName);
+        return resolvedAlias == null ? new Column(columnName) : new Column(new Table(resolvedAlias), columnName);
     }
 
     private static String tableAlias(Table table) {
@@ -151,7 +151,11 @@ public class HlwDataPermissionHandler implements MultiDataPermissionHandler {
         if (table.getAlias() != null && table.getAlias().getName() != null && !table.getAlias().getName().isBlank()) {
             return table.getAlias().getName();
         }
-        return table.getName();
+        return null;
+    }
+
+    private static String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private static Expression combine(Expression where, Expression segment) {
