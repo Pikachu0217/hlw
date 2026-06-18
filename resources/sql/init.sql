@@ -1,6 +1,10 @@
 -- Internet Hospital MVP PostgreSQL 16 baseline schema.
 -- Execute with psql. Database creation uses \gexec so reruns are idempotent.
 
+SELECT 'CREATE DATABASE hospital_auth'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_auth')\gexec
+SELECT 'CREATE DATABASE hospital_gateway'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_gateway')\gexec
 SELECT 'CREATE DATABASE hospital_system'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_system')\gexec
 SELECT 'CREATE DATABASE hospital_patient'
@@ -17,6 +21,154 @@ SELECT 'CREATE DATABASE hospital_drug'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_drug')\gexec
 SELECT 'CREATE DATABASE hospital_order'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_order')\gexec
+
+\connect hospital_auth
+
+CREATE TABLE IF NOT EXISTS auth_login_record (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    user_id BIGINT,
+    username VARCHAR(64) NOT NULL,
+    user_type VARCHAR(32) NOT NULL DEFAULT '',
+    login_status VARCHAR(32) NOT NULL,
+    failure_reason VARCHAR(256) NOT NULL DEFAULT '',
+    token_digest VARCHAR(64) NOT NULL DEFAULT '',
+    login_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    logout_time TIMESTAMP,
+    client_ip VARCHAR(64) NOT NULL DEFAULT '',
+    user_agent VARCHAR(512) NOT NULL DEFAULT '',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_login_record_tenant_username ON auth_login_record (tenant_id, username);
+CREATE INDEX IF NOT EXISTS idx_auth_login_record_login_time ON auth_login_record (login_time DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_login_record_token_digest ON auth_login_record (token_digest);
+
+COMMENT ON TABLE auth_login_record IS '认证登录记录表';
+COMMENT ON COLUMN auth_login_record.id IS '主键编号';
+COMMENT ON COLUMN auth_login_record.tenant_id IS '租户编号';
+COMMENT ON COLUMN auth_login_record.user_id IS '用户编号';
+COMMENT ON COLUMN auth_login_record.username IS '登录账号';
+COMMENT ON COLUMN auth_login_record.user_type IS '用户类型';
+COMMENT ON COLUMN auth_login_record.login_status IS '登录状态';
+COMMENT ON COLUMN auth_login_record.failure_reason IS '失败原因';
+COMMENT ON COLUMN auth_login_record.token_digest IS '令牌摘要';
+COMMENT ON COLUMN auth_login_record.login_time IS '登录时间';
+COMMENT ON COLUMN auth_login_record.logout_time IS '退出时间';
+COMMENT ON COLUMN auth_login_record.client_ip IS '客户端 IP';
+COMMENT ON COLUMN auth_login_record.user_agent IS '客户端标识';
+COMMENT ON COLUMN auth_login_record.create_time IS '创建时间';
+COMMENT ON COLUMN auth_login_record.update_time IS '更新时间';
+COMMENT ON COLUMN auth_login_record.create_by IS '创建人编号';
+COMMENT ON COLUMN auth_login_record.update_by IS '更新人编号';
+COMMENT ON COLUMN auth_login_record.deleted IS '逻辑删除标识';
+
+CREATE TABLE IF NOT EXISTS local_message (
+    id BIGSERIAL PRIMARY KEY,
+    topic VARCHAR(128) NOT NULL,
+    body TEXT NOT NULL,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    max_retry INTEGER NOT NULL DEFAULT 3,
+    next_retry_time TIMESTAMP,
+    -- status: PENDING, SENT, FAILED
+    status VARCHAR(16) NOT NULL,
+    error_msg TEXT,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE local_message IS '认证服务本地消息表';
+COMMENT ON COLUMN local_message.id IS '主键编号';
+COMMENT ON COLUMN local_message.topic IS '消息主题';
+COMMENT ON COLUMN local_message.body IS '消息内容';
+COMMENT ON COLUMN local_message.retry_count IS '已重试次数';
+COMMENT ON COLUMN local_message.max_retry IS '最大重试次数';
+COMMENT ON COLUMN local_message.next_retry_time IS '下次重试时间';
+COMMENT ON COLUMN local_message.status IS '消息状态';
+COMMENT ON COLUMN local_message.error_msg IS '错误信息';
+COMMENT ON COLUMN local_message.create_time IS '创建时间';
+COMMENT ON COLUMN local_message.update_time IS '更新时间';
+
+\connect hospital_gateway
+
+CREATE TABLE IF NOT EXISTS gw_route_config (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL DEFAULT 0,
+    route_code VARCHAR(64) NOT NULL,
+    uri VARCHAR(256) NOT NULL,
+    path_predicate VARCHAR(256) NOT NULL,
+    sort INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(32) NOT NULL DEFAULT '0',
+    remark VARCHAR(256) NOT NULL DEFAULT '',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_gw_route_config_route_code ON gw_route_config (route_code) WHERE deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_gw_route_config_sort ON gw_route_config (sort, id);
+
+COMMENT ON TABLE gw_route_config IS '网关路由配置表';
+COMMENT ON COLUMN gw_route_config.id IS '主键编号';
+COMMENT ON COLUMN gw_route_config.tenant_id IS '平台租户编号';
+COMMENT ON COLUMN gw_route_config.route_code IS '路由编码';
+COMMENT ON COLUMN gw_route_config.uri IS '服务地址';
+COMMENT ON COLUMN gw_route_config.path_predicate IS '路径断言';
+COMMENT ON COLUMN gw_route_config.sort IS '显示排序';
+COMMENT ON COLUMN gw_route_config.status IS '路由状态';
+COMMENT ON COLUMN gw_route_config.remark IS '备注';
+COMMENT ON COLUMN gw_route_config.create_time IS '创建时间';
+COMMENT ON COLUMN gw_route_config.update_time IS '更新时间';
+COMMENT ON COLUMN gw_route_config.create_by IS '创建人编号';
+COMMENT ON COLUMN gw_route_config.update_by IS '更新人编号';
+COMMENT ON COLUMN gw_route_config.deleted IS '逻辑删除标识';
+
+INSERT INTO gw_route_config (id, tenant_id, route_code, uri, path_predicate, sort, status, remark)
+VALUES
+    (1, 0, 'hospital-auth', 'lb://hospital-auth', '/auth/**', 10, '0', '认证服务静态路由'),
+    (2, 0, 'hospital-system', 'lb://hospital-system', '/system/**', 20, '0', '系统服务静态路由'),
+    (3, 0, 'hospital-doctor', 'lb://hospital-doctor', '/doctor/**', 30, '0', '医生服务静态路由'),
+    (4, 0, 'hospital-patient', 'lb://hospital-patient', '/patient/**', 40, '0', '患者服务静态路由'),
+    (5, 0, 'hospital-appointment', 'lb://hospital-appointment', '/appointment/**', 50, '0', '预约服务静态路由'),
+    (6, 0, 'hospital-consult', 'lb://hospital-consult', '/consult/**,/ws/consult/**', 60, '0', '问诊服务静态路由'),
+    (7, 0, 'hospital-prescription', 'lb://hospital-prescription', '/prescription/**', 70, '0', '处方服务静态路由'),
+    (8, 0, 'hospital-drug', 'lb://hospital-drug', '/drug/**', 80, '0', '药品服务静态路由'),
+    (9, 0, 'hospital-order', 'lb://hospital-order', '/order/**', 90, '0', '订单服务静态路由')
+ON CONFLICT DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('gw_route_config', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM gw_route_config), 1), true);
+
+CREATE TABLE IF NOT EXISTS local_message (
+    id BIGSERIAL PRIMARY KEY,
+    topic VARCHAR(128) NOT NULL,
+    body TEXT NOT NULL,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    max_retry INTEGER NOT NULL DEFAULT 3,
+    next_retry_time TIMESTAMP,
+    -- status: PENDING, SENT, FAILED
+    status VARCHAR(16) NOT NULL,
+    error_msg TEXT,
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE local_message IS '网关服务本地消息表';
+COMMENT ON COLUMN local_message.id IS '主键编号';
+COMMENT ON COLUMN local_message.topic IS '消息主题';
+COMMENT ON COLUMN local_message.body IS '消息内容';
+COMMENT ON COLUMN local_message.retry_count IS '已重试次数';
+COMMENT ON COLUMN local_message.max_retry IS '最大重试次数';
+COMMENT ON COLUMN local_message.next_retry_time IS '下次重试时间';
+COMMENT ON COLUMN local_message.status IS '消息状态';
+COMMENT ON COLUMN local_message.error_msg IS '错误信息';
+COMMENT ON COLUMN local_message.create_time IS '创建时间';
+COMMENT ON COLUMN local_message.update_time IS '更新时间';
 
 \connect hospital_system
 

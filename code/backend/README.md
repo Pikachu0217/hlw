@@ -15,9 +15,9 @@
 
 本阶段新增：
 
-- `hospital-gateway`：网关租户请求头透传过滤器，会基于 JWT 登录令牌生成可信 `X-Tenant-Id`。
-- `hospital-auth`：登录服务与认证资料接口已改造为 MyBatis Plus + VO 分层实现，登录令牌改为 JWT，密码校验改为 BCrypt。
-- `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单已改造为 MyBatis Plus + DTO/VO 分层实现。
+- `hospital-gateway`：网关租户请求头透传过滤器，会基于 JWT 登录令牌生成可信 `X-Tenant-Id`，并新增平台级网关路由配置 CRUD 管理接口。
+- `hospital-auth`：登录服务与认证资料接口已改造为 MyBatis Plus + VO 分层实现，登录令牌改为 JWT，密码校验改为 BCrypt，并新增登录记录自动写入与 CRUD 管理接口。
+- `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单已改造为 MyBatis Plus + DTO/VO 分层实现，并补齐基础资源详情、更新和删除接口。
 - `hospital-doctor`：医生、科室、医生科室绑定、排班和挂号费规则已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-patient`：患者档案、健康档案、风险等级、身份证与就诊信息已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-appointment`：预约单创建、支付、签到、便民门诊抢单、号源锁定和放号配置已改造为 MyBatis Plus + DTO/VO 分层实现。
@@ -99,6 +99,7 @@ psql -U postgres -f resources/sql/init.sql
 脚本会创建以下逻辑库：
 
 - `hospital_auth`
+- `hospital_gateway`
 - `hospital_system`
 - `hospital_patient`
 - `hospital_doctor`
@@ -126,6 +127,14 @@ psql -U postgres -f resources/sql/init.sql
 - `sys_user_role`：用户角色关系。
 - `sys_role_menu`：角色菜单关系。
 
+`hospital_auth` 当前已补齐认证审计表：
+
+- `auth_login_record`：登录记录表，登录成功、失败和退出登录会自动写入或回写记录，也支持管理端分页查询、详情、新增、更新和删除。
+
+`hospital_gateway` 当前已补齐网关配置表：
+
+- `gw_route_config`：网关路由配置表，统一按平台租户 `0` 存储。当前版本只做配置管理和展示，不替换 `application.yml` 中的 Spring Cloud Gateway 静态路由加载。
+
 `hospital-system` 当前约定补充如下：
 
 - 控制器统一仅接收 DTO、执行参数校验、调用 Service 并返回 `R`。
@@ -138,11 +147,11 @@ psql -U postgres -f resources/sql/init.sql
 
 当前认证链路约定如下：
 
-- 登录页可在未登录状态通过 `GET /system/tenants` 读取所有未删除租户选项，用于选择管理端登录租户。
+- 登录页可在未登录状态通过 `GET /system/tenant` 读取所有未删除租户选项，用于选择管理端登录租户。
 - 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 查询认证库 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
 - 网关只信任 `hlw.auth.token-name` 请求头中的登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `hlw.auth.tenant-header-name` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
-- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenants`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
+- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenant`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
 - 登录接口属于公开接口，允许携带正数可信租户头辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
 - 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，优先消费网关透传的可信租户头，缺少租户头时再兜底解析 JWT；令牌无效或租户缺失时进入隔离租户 `-1`。
 
@@ -157,6 +166,12 @@ HLW_API_TENANT_HEADER_NAME=X-Tenant-Id
 HLW_API_USERNAME=门诊运营
 HLW_API_PASSWORD=123456
 HLW_API_TENANT_ID=100
+HLW_AUTH_DB_URL=jdbc:postgresql://127.0.0.1:5432/hospital_auth
+HLW_AUTH_DB_USERNAME=postgres
+HLW_AUTH_DB_PASSWORD=hospital123
+HLW_GATEWAY_DB_URL=jdbc:postgresql://127.0.0.1:5432/hospital_gateway
+HLW_GATEWAY_DB_USERNAME=postgres
+HLW_GATEWAY_DB_PASSWORD=hospital123
 ```
 
 `resources/sql/init.sql` 是当前唯一数据库初始化脚本，兼作完整领域设计基线和本地联调用脚本；后续新增字段、表或演示数据时只维护这一处，并为每个字段补充 `COMMENT ON COLUMN`。
@@ -394,37 +409,87 @@ PRD 规划端口：
 
 ```http
 POST /auth/login
-GET /auth/profile
+GET /auth/detail
 POST /auth/logout
-GET /system/tenants
-POST /system/tenants
-GET /system/users
-POST /system/users
-GET /system/roles
-POST /system/roles
-GET /system/menus
-POST /system/menus
-GET /system/dicts
-POST /system/dicts
-GET /system/configs
-PUT /system/configs/{id}
-GET /system/posts
-POST /system/posts
-GET /system/permissions
-POST /system/permissions
-GET /system/user-roles
-POST /system/user-roles
-GET /system/role-menus
-POST /system/role-menus
+GET /auth/login-record
+POST /auth/login-record
+GET /auth/login-record/{id}
+PUT /auth/login-record/{id}
+DELETE /auth/login-record/{id}
+GET /system/tenant
+POST /system/tenant
+GET /system/tenant/{id}
+PUT /system/tenant/{id}
+DELETE /system/tenant/{id}
+GET /system/user
+POST /system/user
+GET /system/user/{id}
+PUT /system/user/{id}
+DELETE /system/user/{id}
+GET /system/dept
+POST /system/dept
+GET /system/dept/{id}
+PUT /system/dept/{id}
+DELETE /system/dept/{id}
+GET /system/role
+POST /system/role
+GET /system/role/{id}
+PUT /system/role/{id}
+DELETE /system/role/{id}
+GET /system/menu
+POST /system/menu
+GET /system/menu/{id}
+PUT /system/menu/{id}
+DELETE /system/menu/{id}
+GET /system/dict
+POST /system/dict
+GET /system/dict/{id}
+PUT /system/dict/{id}
+DELETE /system/dict/{id}
+GET /system/config
+POST /system/config
+GET /system/config/{id}
+PUT /system/config/{id}
+DELETE /system/config/{id}
+GET /system/post
+POST /system/post
+GET /system/post/{id}
+PUT /system/post/{id}
+DELETE /system/post/{id}
+GET /system/permission
+POST /system/permission
+GET /system/permission/{id}
+PUT /system/permission/{id}
+DELETE /system/permission/{id}
+GET /system/user-role
+POST /system/user-role
+GET /system/user-role/{id}
+DELETE /system/user-role/{id}
+GET /system/role-menu
+POST /system/role-menu
+GET /system/role-menu/{id}
+DELETE /system/role-menu/{id}
+GET /gateway/route
+POST /gateway/route
+GET /gateway/route/{id}
+PUT /gateway/route/{id}
+DELETE /gateway/route/{id}
 ```
 
-认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_role`、`sys_menu`、`sys_dict`、`sys_config`、`sys_post`、`sys_permission`、`sys_user_role` 和 `sys_role_menu` 表；租户、用户、角色、菜单、字典、岗位、权限码新增接口均会进行基础参数校验后落库，用户角色和角色菜单绑定接口会校验关联数据并写入授权关系。
+认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。登录成功和失败会自动写入 `auth_login_record`，退出登录会按令牌摘要回写退出时间。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict`、`sys_config`、`sys_post`、`sys_permission`、`sys_user_role` 和 `sys_role_menu` 表；租户、用户、部门、角色、菜单、字典、参数配置、岗位、权限码均提供列表、详情、新增、更新和逻辑删除接口，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
 
 `hospital-auth` 当前约定补充如下：
 
 - 控制器统一接收登录命令并返回登录结果或 `UserProfileVO`，不再返回 `Map`。
 - Service 负责账号密码校验、令牌解析、登录资料读取和业务异常转换。
 - 用户仓储统一基于 MyBatis Plus `BaseMapper` 查询认证库 `sys_user`，不再保留 `JdbcOperations` 直查实现。
+- 登录记录仓储统一基于 MyBatis Plus `BaseMapper` 查询认证库 `auth_login_record`，登录记录读写会显式忽略租户拦截，避免公开登录链路依赖业务租户上下文。
+
+`hospital-gateway` 当前约定补充如下：
+
+- 网关路由配置 CRUD 仅维护 `gw_route_config` 表，用于管理端展示和后续动态路由扩展。
+- 路由配置统一写入平台租户 `0`，Service 读写时显式忽略租户行过滤。
+- 当前版本仍以 `application.yml` 的 Spring Cloud Gateway 静态路由为实际转发来源，避免影响网关主链路。
 
 医生、科室与排班接口：
 

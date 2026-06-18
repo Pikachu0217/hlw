@@ -1,7 +1,7 @@
 package com.hlw.system.service.converter;
 
 import com.hlw.system.entity.SysConfigEntity;
-import com.hlw.system.vo.ConfigVO;
+import com.hlw.system.domain.resp.ConfigResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -18,8 +18,8 @@ public class ConfigConverter {
      * @param entity 参数配置实体
      * @return 参数配置展示对象
      */
-    public ConfigVO toConfigVO(SysConfigEntity entity) {
-        ConfigVO vo = new ConfigVO();
+    public ConfigResp toConfigVO(SysConfigEntity entity) {
+        ConfigResp vo = new ConfigResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setConfigKey(entity.getConfigKey());
         vo.setConfigValue(entity.getConfigValue());

@@ -1,7 +1,7 @@
 package com.hlw.system.service.converter;
 
 import com.hlw.system.entity.SysTenantEntity;
-import com.hlw.system.vo.TenantVO;
+import com.hlw.system.domain.resp.TenantResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -22,8 +22,8 @@ public class TenantConverter {
      * @param entity 租户实体
      * @return 租户展示对象
      */
-    public TenantVO toTenantVO(SysTenantEntity entity) {
-        TenantVO vo = new TenantVO();
+    public TenantResp toTenantVO(SysTenantEntity entity) {
+        TenantResp vo = new TenantResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setTenantId(entity.getTenantId());
         vo.setTenantName(entity.getTenantName());

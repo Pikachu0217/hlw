@@ -11,13 +11,13 @@ import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.common.core.util.DefaultValueUtils;
-import com.hlw.system.dto.CreateTenantRequest;
-import com.hlw.system.dto.UpdateTenantRequest;
+import com.hlw.system.domain.req.CreateTenantReq;
+import com.hlw.system.domain.req.UpdateTenantReq;
 import com.hlw.system.entity.SysTenantEntity;
 import com.hlw.system.mapper.SysTenantMapper;
 import com.hlw.system.service.converter.TenantConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
-import com.hlw.system.vo.TenantVO;
+import com.hlw.system.domain.resp.TenantResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,7 +50,7 @@ public class TenantService {
      * @return 租户分页结果
      */
     @Transactional(readOnly = true)
-    public PageResult<TenantVO> listTenants(PageQuery query) {
+    public PageResult<TenantResp> listTenants(PageQuery query) {
         log.info("查询租户列表分页，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
         Long currentTenantId = TokenPrincipalContext.get().getTenantId();
@@ -74,7 +74,7 @@ public class TenantService {
      * @return 新建租户展示对象
      */
     @Transactional(rollbackFor = Exception.class)
-    public TenantVO createTenant(CreateTenantRequest request) {
+    public TenantResp createTenant(CreateTenantReq request) {
         MybatisTenantHelpers.ensurePlatformContext("只有平台上下文允许创建租户");
         log.info("创建租户，tenantName={}，packageName={}，adminName={}",
             request.getTenantName(), request.getPackageName(), request.getAdminName());
@@ -99,7 +99,7 @@ public class TenantService {
      * @return 租户展示对象
      */
     @Transactional(readOnly = true)
-    public TenantVO getTenant(Long id) {
+    public TenantResp getTenant(Long id) {
         MybatisTenantHelpers.ensurePlatformContext("只有平台上下文允许查询租户详情");
         log.info("查询租户详情，id={}", id);
         return tenantConverter.toTenantVO(requireActiveTenant(id));
@@ -113,7 +113,7 @@ public class TenantService {
      * @return 更新后的租户展示对象
      */
     @Transactional(rollbackFor = Exception.class)
-    public TenantVO updateTenant(Long id, UpdateTenantRequest request) {
+    public TenantResp updateTenant(Long id, UpdateTenantReq request) {
         MybatisTenantHelpers.ensurePlatformContext("只有平台上下文允许更新租户");
         log.info("更新租户，id={}，tenantName={}", id, request.getTenantName());
         SysTenantEntity entity = requireActiveTenant(id);
@@ -157,7 +157,7 @@ public class TenantService {
      * @param query 分页查询条件
      * @return 租户分页结果
      */
-    private PageResult<TenantVO> pageAllUndeletedTenants(PageQuery query) {
+    private PageResult<TenantResp> pageAllUndeletedTenants(PageQuery query) {
         Page<SysTenantEntity> page = query.toPage();
         LambdaQueryWrapper<SysTenantEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysTenantEntity::getDeleted);
         if (StringUtils.hasText(query.getKeyword())) {
@@ -179,7 +179,7 @@ public class TenantService {
      * @param currentTenantId 当前租户编号
      * @return 租户分页结果
      */
-    private PageResult<TenantVO> pageCurrentTenant(PageQuery query, Long currentTenantId) {
+    private PageResult<TenantResp> pageCurrentTenant(PageQuery query, Long currentTenantId) {
         Page<SysTenantEntity> page = query.toPage();
         LambdaQueryWrapper<SysTenantEntity> wrapper = new LambdaQueryWrapper<SysTenantEntity>()
             .eq(SysTenantEntity::getDeleted, 0)
@@ -199,8 +199,8 @@ public class TenantService {
      * @param result 数据库分页结果
      * @return 租户展示分页结果
      */
-    private PageResult<TenantVO> toPageResult(Page<SysTenantEntity> result) {
-        List<TenantVO> records = result.getRecords().stream()
+    private PageResult<TenantResp> toPageResult(Page<SysTenantEntity> result) {
+        List<TenantResp> records = result.getRecords().stream()
             .map(tenantConverter::toTenantVO)
             .toList();
         return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());

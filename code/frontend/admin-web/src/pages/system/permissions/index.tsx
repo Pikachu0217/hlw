@@ -1,7 +1,7 @@
-import { Form, Input, InputNumber, Modal, Select, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
-import { createPermission, fetchPermissions } from '@/api/modules';
+import { useMemo, useState } from 'react';
+import { createPermission, deletePermission, fetchPermissions, updatePermission } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
@@ -14,35 +14,91 @@ export interface PermissionRecord {
   status: string;
 }
 
-const columns: ColumnsType<PermissionRecord> = [
-  { title: '权限名称', dataIndex: 'permissionName' },
-  { title: '权限编码', dataIndex: 'permissionCode' },
-  { title: '资源类型', dataIndex: 'resourceType' },
-  { title: '关联菜单', dataIndex: 'menuName' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
-];
-
 function PermissionsPage() {
   const { records, loading, refresh } = useModuleRecords(fetchPermissions, '权限码');
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<PermissionRecord | null>(null);
 
-  const handleCreate = async () => {
+  const handleOpenCreate = () => {
+    setEditingRecord(null);
+    form.resetFields();
+    form.setFieldsValue({ resourceType: '按钮', status: '0' });
+    setOpen(true);
+  };
+
+  const handleOpenEdit = (record: PermissionRecord) => {
+    setEditingRecord(record);
+    form.setFieldsValue({ ...record, menuId: undefined });
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
     const values = await form.validateFields();
     setSubmitting(true);
     try {
-      await createPermission(values);
-      message.success('权限码创建成功');
+      if (editingRecord) {
+        await updatePermission(editingRecord.key, values);
+        message.success('权限码更新成功');
+      } else {
+        await createPermission(values);
+        message.success('权限码创建成功');
+      }
       setOpen(false);
+      setEditingRecord(null);
       form.resetFields();
       refresh();
     } catch {
-      message.warning('权限码创建失败，请检查接口或稍后重试');
+      message.warning(editingRecord ? '权限码更新失败，请检查接口或稍后重试' : '权限码创建失败，请检查接口或稍后重试');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handleDelete = (record: PermissionRecord) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除权限码"${record.permissionName}"吗？`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deletePermission(record.key);
+          message.success('权限码删除成功');
+          refresh();
+        } catch {
+          message.warning('权限码删除失败，请稍后重试');
+        }
+      },
+    });
+  };
+
+  const columns = useMemo<ColumnsType<PermissionRecord>>(
+    () => [
+      { title: '权限名称', dataIndex: 'permissionName' },
+      { title: '权限编码', dataIndex: 'permissionCode' },
+      { title: '资源类型', dataIndex: 'resourceType' },
+      { title: '关联菜单', dataIndex: 'menuName' },
+      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_: unknown, record: PermissionRecord) => (
+          <Space size="small">
+            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
+              编辑
+            </Button>
+            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+              删除
+            </Button>
+          </Space>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <>
@@ -61,17 +117,17 @@ function PermissionsPage() {
         tableTitle="权限码列表"
         searchPlaceholder="搜索权限名称、编码或菜单"
         getSearchText={(record) => `${record.permissionName} ${record.permissionCode} ${record.menuName}`}
-        onCreate={() => setOpen(true)}
+        onCreate={handleOpenCreate}
       />
       <Modal
-        title="新增权限码"
+        title={editingRecord ? '编辑权限码' : '新增权限码'}
         open={open}
         confirmLoading={submitting}
-        onOk={handleCreate}
+        onOk={handleSubmit}
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ resourceType: '按钮', status: '0' }}>
+        <Form form={form} layout="vertical" className="module-form">
           <Form.Item name="permissionName" label="权限名称" rules={[{ required: true, message: '请输入权限名称' }]}>
             <Input placeholder="请输入权限名称" />
           </Form.Item>

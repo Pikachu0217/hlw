@@ -2,7 +2,7 @@ package com.hlw.system.service.converter;
 
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.entity.SysMenuEntity;
-import com.hlw.system.vo.MenuVO;
+import com.hlw.system.domain.resp.MenuResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,8 +19,8 @@ public class MenuConverter {
      * @param entity 菜单实体
      * @return 菜单展示对象
      */
-    public MenuVO toMenuVO(SysMenuEntity entity) {
-        MenuVO vo = new MenuVO();
+    public MenuResp toMenuVO(SysMenuEntity entity) {
+        MenuResp vo = new MenuResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setParentId(String.valueOf(DefaultValueUtils.defaultIfNull(entity.getParentId(), 0L)));
         vo.setMenuName(entity.getMenuName());

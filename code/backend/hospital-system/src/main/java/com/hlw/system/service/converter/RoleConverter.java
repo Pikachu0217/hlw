@@ -1,7 +1,7 @@
 package com.hlw.system.service.converter;
 
 import com.hlw.system.entity.SysRoleEntity;
-import com.hlw.system.vo.RoleVO;
+import com.hlw.system.domain.resp.RoleResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -23,8 +23,8 @@ public class RoleConverter {
      * @param memberCount 成员数量
      * @return 角色展示对象
      */
-    public RoleVO toRoleVO(SysRoleEntity entity, Integer memberCount) {
-        RoleVO vo = new RoleVO();
+    public RoleResp toRoleVO(SysRoleEntity entity, Integer memberCount) {
+        RoleResp vo = new RoleResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setRoleName(entity.getRoleName());
         vo.setRoleCode(entity.getRoleCode());

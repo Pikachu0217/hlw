@@ -17,8 +17,10 @@ import DepartmentsPage from '@/pages/doctor/departments';
 import PatientPage from '@/pages/patient';
 import ConsultPage from '@/pages/consult';
 import AppointmentPage from '@/pages/appointment';
+import LoginRecordPage from '@/pages/auth/login-record';
 import PrescriptionPage from '@/pages/prescription';
 import DrugPage from '@/pages/drug';
+import GatewayRoutesPage from '@/pages/gateway/routes';
 import OrderPage from '@/pages/order';
 
 export const appRouter = createBrowserRouter([
@@ -42,6 +44,8 @@ export const appRouter = createBrowserRouter([
       { path: 'system/post', element: <PostsPage /> },
       { path: 'system/dept', element: <SystemDeptsPage /> },
       { path: 'system/permission', element: <PermissionsPage /> },
+      { path: 'auth/login-record', element: <LoginRecordPage /> },
+      { path: 'gateway/routes', element: <GatewayRoutesPage /> },
       { path: 'doctor', element: <DoctorPage /> },
       { path: 'doctor/departments', element: <DepartmentsPage /> },
       { path: 'patient', element: <PatientPage /> },

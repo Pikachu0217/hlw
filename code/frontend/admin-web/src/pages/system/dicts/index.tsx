@@ -1,7 +1,7 @@
-import { Form, Input, InputNumber, Modal, Select, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
-import { createDict, fetchDicts } from '@/api/modules';
+import { useMemo, useState } from 'react';
+import { createDict, deleteDict, fetchDicts, updateDict } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
@@ -15,37 +15,93 @@ export interface DictRecord {
   remark: string;
 }
 
-const columns: ColumnsType<DictRecord> = [
-  { title: '字典类型', dataIndex: 'dictType' },
-  { title: '字典标签', dataIndex: 'dictLabel' },
-  { title: '字典键值', dataIndex: 'dictValue' },
-  { title: '排序', dataIndex: 'sort' },
-  { title: '备注', dataIndex: 'remark' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
-];
-
 function DictsPage() {
   const { records, loading, refresh } = useModuleRecords(fetchDicts, '字典');
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<DictRecord | null>(null);
   const dictTypeCount = new Set(records.map((record) => record.dictType)).size;
 
-  const handleCreate = async () => {
+  const handleOpenCreate = () => {
+    setEditingRecord(null);
+    form.resetFields();
+    form.setFieldsValue({ sort: 0, status: '0' });
+    setOpen(true);
+  };
+
+  const handleOpenEdit = (record: DictRecord) => {
+    setEditingRecord(record);
+    form.setFieldsValue(record);
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
     const values = await form.validateFields();
     setSubmitting(true);
     try {
-      await createDict(values);
-      message.success('字典项创建成功');
+      if (editingRecord) {
+        await updateDict(editingRecord.key, values);
+        message.success('字典项更新成功');
+      } else {
+        await createDict(values);
+        message.success('字典项创建成功');
+      }
       setOpen(false);
+      setEditingRecord(null);
       form.resetFields();
       refresh();
     } catch {
-      message.warning('字典项创建失败，请检查接口或稍后重试');
+      message.warning(editingRecord ? '字典项更新失败，请检查接口或稍后重试' : '字典项创建失败，请检查接口或稍后重试');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handleDelete = (record: DictRecord) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除字典项"${record.dictLabel}"吗？`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteDict(record.key);
+          message.success('字典项删除成功');
+          refresh();
+        } catch {
+          message.warning('字典项删除失败，请稍后重试');
+        }
+      },
+    });
+  };
+
+  const columns = useMemo<ColumnsType<DictRecord>>(
+    () => [
+      { title: '字典类型', dataIndex: 'dictType' },
+      { title: '字典标签', dataIndex: 'dictLabel' },
+      { title: '字典键值', dataIndex: 'dictValue' },
+      { title: '排序', dataIndex: 'sort' },
+      { title: '备注', dataIndex: 'remark' },
+      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_: unknown, record: DictRecord) => (
+          <Space size="small">
+            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
+              编辑
+            </Button>
+            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+              删除
+            </Button>
+          </Space>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <>
@@ -64,17 +120,17 @@ function DictsPage() {
         tableTitle="字典项列表"
         searchPlaceholder="搜索类型、标签或键值"
         getSearchText={(record) => `${record.dictType} ${record.dictLabel} ${record.dictValue} ${record.remark}`}
-        onCreate={() => setOpen(true)}
+        onCreate={handleOpenCreate}
       />
       <Modal
-        title="新增字典项"
+        title={editingRecord ? '编辑字典项' : '新增字典项'}
         open={open}
         confirmLoading={submitting}
-        onOk={handleCreate}
+        onOk={handleSubmit}
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ sort: 0, status: '0' }}>
+        <Form form={form} layout="vertical" className="module-form">
           <Form.Item name="dictType" label="字典类型" rules={[{ required: true, message: '请输入字典类型' }]}>
             <Input placeholder="例如：user_status" />
           </Form.Item>

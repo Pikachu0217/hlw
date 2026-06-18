@@ -5,13 +5,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.enums.CommonStatusEnum;
+import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
-import com.hlw.system.dto.CreateMenuRequest;
+import com.hlw.system.domain.req.CreateMenuReq;
 import com.hlw.system.entity.SysMenuEntity;
 import com.hlw.system.mapper.SysMenuMapper;
 import com.hlw.system.service.converter.MenuConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
-import com.hlw.system.vo.MenuVO;
+import com.hlw.system.domain.resp.MenuResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,7 +43,7 @@ public class MenuService {
      * @return 菜单分页结果
      */
     @Transactional(readOnly = true)
-    public PageResult<MenuVO> listMenus(PageQuery query) {
+    public PageResult<MenuResp> listMenus(PageQuery query) {
         log.info("查询系统菜单列表分页，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
 
@@ -56,7 +57,7 @@ public class MenuService {
             .orderByAsc(SysMenuEntity::getId);
 
         Page<SysMenuEntity> result = sysMenuMapper.selectPage(page, wrapper);
-        List<MenuVO> records = result.getRecords().stream()
+        List<MenuResp> records = result.getRecords().stream()
             .map(menuConverter::toMenuVO)
             .toList();
         return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
@@ -69,7 +70,7 @@ public class MenuService {
      * @return 新建菜单展示对象
      */
     @Transactional(rollbackFor = Exception.class)
-    public MenuVO createMenu(CreateMenuRequest request) {
+    public MenuResp createMenu(CreateMenuReq request) {
         log.info("创建菜单，menuName={}，permission={}，routePath={}",
             request.getMenuName(), request.getPermission(), request.getRoutePath());
         SysMenuEntity entity = new SysMenuEntity();
@@ -83,6 +84,53 @@ public class MenuService {
         entity.setDeleted(0);
         sysMenuMapper.insert(entity);
         return menuConverter.toMenuVO(entity);
+    }
+
+    /**
+     * 查询菜单详情。
+     *
+     * @param menuId 菜单编号
+     * @return 菜单展示对象
+     */
+    @Transactional(readOnly = true)
+    public MenuResp getMenu(Long menuId) {
+        log.info("查询系统菜单详情，menuId={}", menuId);
+        return menuConverter.toMenuVO(requireActiveMenu(menuId));
+    }
+
+    /**
+     * 更新菜单。
+     *
+     * @param menuId 菜单编号
+     * @param request 菜单更新请求
+     * @return 更新后的菜单展示对象
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public MenuResp updateMenu(Long menuId, CreateMenuReq request) {
+        log.info("更新系统菜单，menuId={}，menuName={}，permission={}", menuId, request.getMenuName(), request.getPermission());
+        SysMenuEntity entity = requireActiveMenu(menuId);
+        entity.setMenuName(request.getMenuName());
+        entity.setPermission(request.getPermission());
+        entity.setRoutePath(request.getRoutePath());
+        entity.setMenuType(DefaultValueUtils.defaultIfBlank(request.getMenuType(), DEFAULT_MENU_TYPE));
+        entity.setParentId(DefaultValueUtils.defaultIfNull(request.getParentId(), 0L));
+        entity.setSort(DefaultValueUtils.defaultIfNull(request.getSort(), 0));
+        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
+        sysMenuMapper.updateById(entity);
+        return menuConverter.toMenuVO(entity);
+    }
+
+    /**
+     * 删除菜单。
+     *
+     * @param menuId 菜单编号
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteMenu(Long menuId) {
+        log.info("删除系统菜单，menuId={}", menuId);
+        SysMenuEntity entity = requireActiveMenu(menuId);
+        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
+        sysMenuMapper.updateById(entity);
     }
 
     /**

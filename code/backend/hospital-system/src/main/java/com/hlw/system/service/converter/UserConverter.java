@@ -1,7 +1,7 @@
 package com.hlw.system.service.converter;
 
 import com.hlw.system.entity.SysUserEntity;
-import com.hlw.system.vo.UserVO;
+import com.hlw.system.domain.resp.UserResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,8 +19,8 @@ public class UserConverter {
      * @param postName 岗位名称（无岗位时调用方传入 "-"）
      * @return 用户展示对象
      */
-    public UserVO toUserVO(SysUserEntity entity, String postName) {
-        UserVO vo = new UserVO();
+    public UserResp toUserVO(SysUserEntity entity, String postName) {
+        UserResp vo = new UserResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setUsername(entity.getUsername());
         vo.setDeptId(entity.getDeptId());

@@ -5,15 +5,16 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.enums.CommonStatusEnum;
+import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
-import com.hlw.system.dto.CreateRoleRequest;
+import com.hlw.system.domain.req.CreateRoleReq;
 import com.hlw.system.entity.SysRoleEntity;
 import com.hlw.system.entity.SysUserRoleEntity;
 import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
 import com.hlw.system.service.converter.RoleConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
-import com.hlw.system.vo.RoleVO;
+import com.hlw.system.domain.resp.RoleResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,7 +47,7 @@ public class RoleService {
      * @return 角色分页结果
      */
     @Transactional(readOnly = true)
-    public PageResult<RoleVO> listRoles(PageQuery query) {
+    public PageResult<RoleResp> listRoles(PageQuery query) {
         log.info("查询系统角色列表分页，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
 
@@ -58,7 +59,7 @@ public class RoleService {
         wrapper.orderByAsc(SysRoleEntity::getId);
 
         Page<SysRoleEntity> result = sysRoleMapper.selectPage(page, wrapper);
-        List<RoleVO> records = result.getRecords().stream()
+        List<RoleResp> records = result.getRecords().stream()
             .map(role -> roleConverter.toRoleVO(role, countRoleMembers(role.getId())))
             .toList();
         return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
@@ -71,7 +72,7 @@ public class RoleService {
      * @return 新建角色展示对象
      */
     @Transactional(rollbackFor = Exception.class)
-    public RoleVO createRole(CreateRoleRequest request) {
+    public RoleResp createRole(CreateRoleReq request) {
         log.info("创建角色，roleName={}，roleCode={}", request.getRoleName(), request.getRoleCode());
         SysRoleEntity entity = new SysRoleEntity();
         entity.setRoleName(request.getRoleName());
@@ -82,6 +83,51 @@ public class RoleService {
         entity.setDeleted(0);
         sysRoleMapper.insert(entity);
         return roleConverter.toRoleVO(entity, 0);
+    }
+
+    /**
+     * 查询角色详情。
+     *
+     * @param roleId 角色编号
+     * @return 角色展示对象
+     */
+    @Transactional(readOnly = true)
+    public RoleResp getRole(Long roleId) {
+        log.info("查询系统角色详情，roleId={}", roleId);
+        SysRoleEntity role = requireActiveRole(roleId);
+        return roleConverter.toRoleVO(role, countRoleMembers(roleId));
+    }
+
+    /**
+     * 更新角色。
+     *
+     * @param roleId 角色编号
+     * @param request 角色更新请求
+     * @return 更新后的角色展示对象
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public RoleResp updateRole(Long roleId, CreateRoleReq request) {
+        log.info("更新系统角色，roleId={}，roleName={}，roleCode={}", roleId, request.getRoleName(), request.getRoleCode());
+        SysRoleEntity entity = requireActiveRole(roleId);
+        entity.setRoleName(request.getRoleName());
+        entity.setRoleCode(request.getRoleCode());
+        entity.setDataScope(DefaultValueUtils.defaultIfBlank(request.getDataScope(), DEFAULT_DATA_SCOPE));
+        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
+        sysRoleMapper.updateById(entity);
+        return roleConverter.toRoleVO(entity, countRoleMembers(roleId));
+    }
+
+    /**
+     * 删除角色。
+     *
+     * @param roleId 角色编号
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteRole(Long roleId) {
+        log.info("删除系统角色，roleId={}", roleId);
+        SysRoleEntity entity = requireActiveRole(roleId);
+        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
+        sysRoleMapper.updateById(entity);
     }
 
     /**

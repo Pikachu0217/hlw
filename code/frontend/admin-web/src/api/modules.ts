@@ -9,6 +9,8 @@ import type { HealthRecord, PatientRecord } from '@/pages/patient';
 import type { PrescriptionRecord } from '@/pages/prescription';
 import type { ConfigRecord } from '@/pages/system/configs';
 import type { DictRecord } from '@/pages/system/dicts';
+import type { GatewayRouteRecord } from '@/pages/gateway/routes';
+import type { LoginRecord } from '@/pages/auth/login-record';
 import type { MenuRecord } from '@/pages/system/menus';
 import type { PermissionRecord } from '@/pages/system/permissions';
 import type { PostRecord } from '@/pages/system/posts';
@@ -103,6 +105,48 @@ export interface CreateDictPayload {
 export interface CreatePostPayload {
   postName: string;
   postCode: string;
+  sort?: number;
+  status?: string;
+  remark?: string;
+}
+
+export interface CreateConfigPayload {
+  configKey: string;
+  configValue: string;
+  configType?: string;
+  status?: string;
+  remark?: string;
+}
+
+export interface UpdateConfigPayload {
+  configValue: string;
+  remark?: string;
+}
+
+export interface CreateLoginRecordPayload {
+  tenantId: number;
+  userId?: number;
+  username: string;
+  userType?: string;
+  loginStatus: string;
+  failureReason?: string;
+  tokenDigest?: string;
+  clientIp?: string;
+  userAgent?: string;
+}
+
+export interface UpdateLoginRecordPayload {
+  loginStatus: string;
+  failureReason?: string;
+  logoutTime?: string;
+  clientIp?: string;
+  userAgent?: string;
+}
+
+export interface CreateGatewayRoutePayload {
+  routeCode: string;
+  uri: string;
+  pathPredicate: string;
   sort?: number;
   status?: string;
   remark?: string;
@@ -317,6 +361,26 @@ export async function createUser(payload: CreateUserPayload): Promise<UserRecord
   return response.data.data;
 }
 
+// 查询后台用户详情。
+export async function fetchUserDetail(id: string): Promise<UserRecord> {
+  console.info('[admin-module] 查询用户详情', id);
+  const response = await apiClient.get<ApiResult<UserRecord>>(`/system/user/${id}`);
+  return response.data.data;
+}
+
+// 更新后台用户。
+export async function updateUser(id: string, payload: CreateUserPayload): Promise<UserRecord> {
+  console.info('[admin-module] 更新用户', id, payload);
+  const response = await apiClient.put<ApiResult<UserRecord>>(`/system/user/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除后台用户。
+export async function deleteUser(id: string): Promise<void> {
+  console.info('[admin-module] 删除用户', id);
+  await apiClient.delete(`/system/user/${id}`);
+}
+
 // 查询系统部门选项。
 export function fetchSystemDeptOptions(): Promise<SystemDeptRecord[]> {
   return fetchModuleRecords<SystemDeptRecord>('/system/dept/options', '系统部门');
@@ -334,6 +398,26 @@ export async function createSystemDept(payload: CreateSystemDeptPayload): Promis
   return response.data.data;
 }
 
+// 查询系统部门详情。
+export async function fetchSystemDeptDetail(id: string): Promise<SystemDeptRecord> {
+  console.info('[admin-module] 查询系统部门详情', id);
+  const response = await apiClient.get<ApiResult<SystemDeptRecord>>(`/system/dept/${id}`);
+  return response.data.data;
+}
+
+// 更新系统部门。
+export async function updateSystemDept(id: string, payload: CreateSystemDeptPayload): Promise<SystemDeptRecord> {
+  console.info('[admin-module] 更新系统部门', id, payload);
+  const response = await apiClient.put<ApiResult<SystemDeptRecord>>(`/system/dept/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除系统部门。
+export async function deleteSystemDept(id: string): Promise<void> {
+  console.info('[admin-module] 删除系统部门', id);
+  await apiClient.delete(`/system/dept/${id}`);
+}
+
 // 查询角色列表。
 export function fetchRoles(): Promise<RoleRecord[]> {
   return fetchModulePage<RoleRecord>('/system/role', '角色');
@@ -344,6 +428,26 @@ export async function createRole(payload: CreateRolePayload): Promise<RoleRecord
   console.info('[admin-module] 创建角色', payload);
   const response = await apiClient.post<ApiResult<RoleRecord>>('/system/role', payload);
   return response.data.data;
+}
+
+// 查询角色详情。
+export async function fetchRoleDetail(id: string): Promise<RoleRecord> {
+  console.info('[admin-module] 查询角色详情', id);
+  const response = await apiClient.get<ApiResult<RoleRecord>>(`/system/role/${id}`);
+  return response.data.data;
+}
+
+// 更新角色。
+export async function updateRole(id: string, payload: CreateRolePayload): Promise<RoleRecord> {
+  console.info('[admin-module] 更新角色', id, payload);
+  const response = await apiClient.put<ApiResult<RoleRecord>>(`/system/role/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除角色。
+export async function deleteRole(id: string): Promise<void> {
+  console.info('[admin-module] 删除角色', id);
+  await apiClient.delete(`/system/role/${id}`);
 }
 
 // 查询菜单列表。
@@ -358,6 +462,26 @@ export async function createMenu(payload: CreateMenuPayload): Promise<MenuRecord
   return response.data.data;
 }
 
+// 查询菜单详情。
+export async function fetchMenuDetail(id: string): Promise<MenuRecord> {
+  console.info('[admin-module] 查询菜单详情', id);
+  const response = await apiClient.get<ApiResult<MenuRecord>>(`/system/menu/${id}`);
+  return response.data.data;
+}
+
+// 更新菜单。
+export async function updateMenu(id: string, payload: CreateMenuPayload): Promise<MenuRecord> {
+  console.info('[admin-module] 更新菜单', id, payload);
+  const response = await apiClient.put<ApiResult<MenuRecord>>(`/system/menu/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除菜单。
+export async function deleteMenu(id: string): Promise<void> {
+  console.info('[admin-module] 删除菜单', id);
+  await apiClient.delete(`/system/menu/${id}`);
+}
+
 // 查询字典列表。
 export function fetchDicts(): Promise<DictRecord[]> {
   return fetchModulePage<DictRecord>('/system/dict', '字典');
@@ -370,9 +494,56 @@ export async function createDict(payload: CreateDictPayload): Promise<DictRecord
   return response.data.data;
 }
 
+// 查询字典详情。
+export async function fetchDictDetail(id: string): Promise<DictRecord> {
+  console.info('[admin-module] 查询字典详情', id);
+  const response = await apiClient.get<ApiResult<DictRecord>>(`/system/dict/${id}`);
+  return response.data.data;
+}
+
+// 更新字典项。
+export async function updateDict(id: string, payload: CreateDictPayload): Promise<DictRecord> {
+  console.info('[admin-module] 更新字典项', id, payload);
+  const response = await apiClient.put<ApiResult<DictRecord>>(`/system/dict/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除字典项。
+export async function deleteDict(id: string): Promise<void> {
+  console.info('[admin-module] 删除字典项', id);
+  await apiClient.delete(`/system/dict/${id}`);
+}
+
 // 查询系统参数配置列表。
 export function fetchConfigs(): Promise<ConfigRecord[]> {
   return fetchModulePage<ConfigRecord>('/system/config', '参数配置');
+}
+
+// 创建系统参数配置。
+export async function createConfig(payload: CreateConfigPayload): Promise<ConfigRecord> {
+  console.info('[admin-module] 创建参数配置', payload);
+  const response = await apiClient.post<ApiResult<ConfigRecord>>('/system/config', payload);
+  return response.data.data;
+}
+
+// 查询系统参数配置详情。
+export async function fetchConfigDetail(id: string): Promise<ConfigRecord> {
+  console.info('[admin-module] 查询参数配置详情', id);
+  const response = await apiClient.get<ApiResult<ConfigRecord>>(`/system/config/${id}`);
+  return response.data.data;
+}
+
+// 更新系统参数配置。
+export async function updateConfig(id: string, payload: UpdateConfigPayload): Promise<ConfigRecord> {
+  console.info('[admin-module] 更新参数配置', id, payload);
+  const response = await apiClient.put<ApiResult<ConfigRecord>>(`/system/config/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除系统参数配置。
+export async function deleteConfig(id: string): Promise<void> {
+  console.info('[admin-module] 删除参数配置', id);
+  await apiClient.delete(`/system/config/${id}`);
 }
 
 // 查询岗位列表。
@@ -387,6 +558,26 @@ export async function createPost(payload: CreatePostPayload): Promise<PostRecord
   return response.data.data;
 }
 
+// 查询岗位详情。
+export async function fetchPostDetail(id: string): Promise<PostRecord> {
+  console.info('[admin-module] 查询岗位详情', id);
+  const response = await apiClient.get<ApiResult<PostRecord>>(`/system/post/${id}`);
+  return response.data.data;
+}
+
+// 更新岗位。
+export async function updatePost(id: string, payload: CreatePostPayload): Promise<PostRecord> {
+  console.info('[admin-module] 更新岗位', id, payload);
+  const response = await apiClient.put<ApiResult<PostRecord>>(`/system/post/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除岗位。
+export async function deletePost(id: string): Promise<void> {
+  console.info('[admin-module] 删除岗位', id);
+  await apiClient.delete(`/system/post/${id}`);
+}
+
 // 查询权限码列表。
 export function fetchPermissions(): Promise<PermissionRecord[]> {
   return fetchModulePage<PermissionRecord>('/system/permission', '权限码');
@@ -397,6 +588,90 @@ export async function createPermission(payload: CreatePermissionPayload): Promis
   console.info('[admin-module] 创建权限码', payload);
   const response = await apiClient.post<ApiResult<PermissionRecord>>('/system/permission', payload);
   return response.data.data;
+}
+
+// 查询权限码详情。
+export async function fetchPermissionDetail(id: string): Promise<PermissionRecord> {
+  console.info('[admin-module] 查询权限码详情', id);
+  const response = await apiClient.get<ApiResult<PermissionRecord>>(`/system/permission/${id}`);
+  return response.data.data;
+}
+
+// 更新权限码。
+export async function updatePermission(id: string, payload: CreatePermissionPayload): Promise<PermissionRecord> {
+  console.info('[admin-module] 更新权限码', id, payload);
+  const response = await apiClient.put<ApiResult<PermissionRecord>>(`/system/permission/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除权限码。
+export async function deletePermission(id: string): Promise<void> {
+  console.info('[admin-module] 删除权限码', id);
+  await apiClient.delete(`/system/permission/${id}`);
+}
+
+// 查询登录记录列表。
+export function fetchLoginRecords(): Promise<LoginRecord[]> {
+  return fetchModulePage<LoginRecord>('/auth/login-record', '登录记录');
+}
+
+// 查询登录记录详情。
+export async function fetchLoginRecordDetail(id: string): Promise<LoginRecord> {
+  console.info('[admin-module] 查询登录记录详情', id);
+  const response = await apiClient.get<ApiResult<LoginRecord>>(`/auth/login-record/${id}`);
+  return response.data.data;
+}
+
+// 创建登录记录。
+export async function createLoginRecord(payload: CreateLoginRecordPayload): Promise<LoginRecord> {
+  console.info('[admin-module] 创建登录记录', payload);
+  const response = await apiClient.post<ApiResult<LoginRecord>>('/auth/login-record', payload);
+  return response.data.data;
+}
+
+// 更新登录记录。
+export async function updateLoginRecord(id: string, payload: UpdateLoginRecordPayload): Promise<LoginRecord> {
+  console.info('[admin-module] 更新登录记录', id, payload);
+  const response = await apiClient.put<ApiResult<LoginRecord>>(`/auth/login-record/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除登录记录。
+export async function deleteLoginRecord(id: string): Promise<void> {
+  console.info('[admin-module] 删除登录记录', id);
+  await apiClient.delete(`/auth/login-record/${id}`);
+}
+
+// 查询网关路由配置列表。
+export function fetchGatewayRoutes(): Promise<GatewayRouteRecord[]> {
+  return fetchModulePage<GatewayRouteRecord>('/gateway/route', '网关路由');
+}
+
+// 查询网关路由配置详情。
+export async function fetchGatewayRouteDetail(id: string): Promise<GatewayRouteRecord> {
+  console.info('[admin-module] 查询网关路由详情', id);
+  const response = await apiClient.get<ApiResult<GatewayRouteRecord>>(`/gateway/route/${id}`);
+  return response.data.data;
+}
+
+// 创建网关路由配置。
+export async function createGatewayRoute(payload: CreateGatewayRoutePayload): Promise<GatewayRouteRecord> {
+  console.info('[admin-module] 创建网关路由', payload);
+  const response = await apiClient.post<ApiResult<GatewayRouteRecord>>('/gateway/route', payload);
+  return response.data.data;
+}
+
+// 更新网关路由配置。
+export async function updateGatewayRoute(id: string, payload: CreateGatewayRoutePayload): Promise<GatewayRouteRecord> {
+  console.info('[admin-module] 更新网关路由', id, payload);
+  const response = await apiClient.put<ApiResult<GatewayRouteRecord>>(`/gateway/route/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除网关路由配置。
+export async function deleteGatewayRoute(id: string): Promise<void> {
+  console.info('[admin-module] 删除网关路由', id);
+  await apiClient.delete(`/gateway/route/${id}`);
 }
 
 // 查询科室列表。

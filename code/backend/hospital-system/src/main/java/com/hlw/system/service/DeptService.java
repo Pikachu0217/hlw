@@ -5,13 +5,14 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.enums.CommonStatusEnum;
+import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
-import com.hlw.system.dto.CreateDeptRequest;
+import com.hlw.system.domain.req.CreateDeptReq;
 import com.hlw.system.entity.SysDeptEntity;
 import com.hlw.system.mapper.SysDeptMapper;
 import com.hlw.system.service.converter.DeptConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
-import com.hlw.system.vo.DeptVO;
+import com.hlw.system.domain.resp.DeptResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,14 +41,14 @@ public class DeptService {
      * @return 部门分页结果
      */
     @Transactional(readOnly = true)
-    public PageResult<DeptVO> listDepts(PageQuery query) {
+    public PageResult<DeptResp> listDepts(PageQuery query) {
         log.info("查询系统部门列表分页，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
 
         Page<SysDeptEntity> page = query.toPage();
         LambdaQueryWrapper<SysDeptEntity> wrapper = buildListWrapper(query.getKeyword());
         Page<SysDeptEntity> result = sysDeptMapper.selectPage(page, wrapper);
-        List<DeptVO> records = result.getRecords().stream()
+        List<DeptResp> records = result.getRecords().stream()
             .map(deptConverter::toDeptVO)
             .toList();
         return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
@@ -60,7 +61,7 @@ public class DeptService {
      * @return 部门展示对象列表
      */
     @Transactional(readOnly = true)
-    public List<DeptVO> listDeptOptions(PageQuery query) {
+    public List<DeptResp> listDeptOptions(PageQuery query) {
         log.info("查询系统部门选项，keyword={}", query.getKeyword());
         return sysDeptMapper.selectList(buildListWrapper(query.getKeyword())).stream()
             .map(deptConverter::toDeptVO)
@@ -74,7 +75,7 @@ public class DeptService {
      * @return 新建部门展示对象
      */
     @Transactional(rollbackFor = Exception.class)
-    public DeptVO createDept(CreateDeptRequest request) {
+    public DeptResp createDept(CreateDeptReq request) {
         Long parentId = DefaultValueUtils.defaultIfNull(request.getParentId(), 0L);
         log.info("创建部门，deptName={}，parentId={}", request.getDeptName(), parentId);
         SysDeptEntity entity = new SysDeptEntity();
@@ -86,6 +87,52 @@ public class DeptService {
         entity.setDeleted(0);
         sysDeptMapper.insert(entity);
         return deptConverter.toDeptVO(entity);
+    }
+
+    /**
+     * 查询部门详情。
+     *
+     * @param deptId 部门编号
+     * @return 部门展示对象
+     */
+    @Transactional(readOnly = true)
+    public DeptResp getDept(Long deptId) {
+        log.info("查询系统部门详情，deptId={}", deptId);
+        return deptConverter.toDeptVO(requireActiveDept(deptId));
+    }
+
+    /**
+     * 更新部门。
+     *
+     * @param deptId 部门编号
+     * @param request 部门更新请求
+     * @return 更新后的部门展示对象
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public DeptResp updateDept(Long deptId, CreateDeptReq request) {
+        Long parentId = DefaultValueUtils.defaultIfNull(request.getParentId(), 0L);
+        log.info("更新系统部门，deptId={}，deptName={}，parentId={}", deptId, request.getDeptName(), parentId);
+        SysDeptEntity entity = requireActiveDept(deptId);
+        entity.setParentId(parentId);
+        entity.setDeptName(request.getDeptName());
+        entity.setAncestors(resolveAncestors(parentId));
+        entity.setSort(DefaultValueUtils.defaultIfNull(request.getSort(), 0));
+        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
+        sysDeptMapper.updateById(entity);
+        return deptConverter.toDeptVO(entity);
+    }
+
+    /**
+     * 删除部门。
+     *
+     * @param deptId 部门编号
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteDept(Long deptId) {
+        log.info("删除系统部门，deptId={}", deptId);
+        SysDeptEntity entity = requireActiveDept(deptId);
+        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
+        sysDeptMapper.updateById(entity);
     }
 
     private LambdaQueryWrapper<SysDeptEntity> buildListWrapper(String keyword) {
@@ -107,5 +154,18 @@ public class DeptService {
                 .eq(SysDeptEntity::getId, parentId)
                 .last("limit 1")), "父部门不存在");
         return DefaultValueUtils.defaultIfBlank(parent.getAncestors(), "0") + "," + parent.getId();
+    }
+
+    /**
+     * 校验部门处于可用状态。
+     *
+     * @param deptId 部门编号
+     * @return 部门实体
+     */
+    private SysDeptEntity requireActiveDept(Long deptId) {
+        return MybatisTenantHelpers.requireEntity(sysDeptMapper.selectOne(
+            MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted)
+                .eq(SysDeptEntity::getId, deptId)
+                .last("limit 1")), "部门不存在");
     }
 }

@@ -2,7 +2,7 @@ package com.hlw.system.service.converter;
 
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.entity.SysDeptEntity;
-import com.hlw.system.vo.DeptVO;
+import com.hlw.system.domain.resp.DeptResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,8 +19,8 @@ public class DeptConverter {
      * @param entity 部门实体
      * @return 部门展示对象
      */
-    public DeptVO toDeptVO(SysDeptEntity entity) {
-        DeptVO vo = new DeptVO();
+    public DeptResp toDeptVO(SysDeptEntity entity) {
+        DeptResp vo = new DeptResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setParentId(DefaultValueUtils.defaultIfNull(entity.getParentId(), 0L));

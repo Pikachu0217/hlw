@@ -2,7 +2,7 @@ package com.hlw.system.service.converter;
 
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.entity.SysPermissionEntity;
-import com.hlw.system.vo.PermissionVO;
+import com.hlw.system.domain.resp.PermissionResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -20,8 +20,8 @@ public class PermissionConverter {
      * @param menuName 菜单名称
      * @return 权限码展示对象
      */
-    public PermissionVO toPermissionVO(SysPermissionEntity entity, String menuName) {
-        PermissionVO vo = new PermissionVO();
+    public PermissionResp toPermissionVO(SysPermissionEntity entity, String menuName) {
+        PermissionResp vo = new PermissionResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setPermissionName(entity.getPermissionName());
         vo.setPermissionCode(entity.getPermissionCode());

@@ -2,7 +2,7 @@ package com.hlw.system.service.converter;
 
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.entity.SysPostEntity;
-import com.hlw.system.vo.PostVO;
+import com.hlw.system.domain.resp.PostResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,8 +19,8 @@ public class PostConverter {
      * @param entity 岗位实体
      * @return 岗位展示对象
      */
-    public PostVO toPostVO(SysPostEntity entity) {
-        PostVO vo = new PostVO();
+    public PostResp toPostVO(SysPostEntity entity) {
+        PostResp vo = new PostResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setPostName(entity.getPostName());
         vo.setPostCode(entity.getPostCode());

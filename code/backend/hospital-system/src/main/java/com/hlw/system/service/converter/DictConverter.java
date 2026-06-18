@@ -2,7 +2,7 @@ package com.hlw.system.service.converter;
 
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.entity.SysDictEntity;
-import com.hlw.system.vo.DictVO;
+import com.hlw.system.domain.resp.DictResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -19,8 +19,8 @@ public class DictConverter {
      * @param entity 字典实体
      * @return 字典展示对象
      */
-    public DictVO toDictVO(SysDictEntity entity) {
-        DictVO vo = new DictVO();
+    public DictResp toDictVO(SysDictEntity entity) {
+        DictResp vo = new DictResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setDictType(entity.getDictType());
         vo.setDictLabel(entity.getDictLabel());

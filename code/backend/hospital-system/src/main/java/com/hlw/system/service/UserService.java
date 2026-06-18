@@ -5,9 +5,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.enums.CommonStatusEnum;
+import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.security.PasswordEncoder;
-import com.hlw.system.dto.CreateUserRequest;
+import com.hlw.system.domain.req.CreateUserReq;
 import com.hlw.system.entity.SysDeptEntity;
 import com.hlw.system.entity.SysPostEntity;
 import com.hlw.system.entity.SysUserEntity;
@@ -18,7 +19,7 @@ import com.hlw.system.mapper.SysUserMapper;
 import com.hlw.system.mapper.SysUserPostMapper;
 import com.hlw.system.service.converter.UserConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
-import com.hlw.system.vo.UserVO;
+import com.hlw.system.domain.resp.UserResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,7 +60,7 @@ public class UserService {
      * @return 用户分页结果
      */
     @Transactional(readOnly = true)
-    public PageResult<UserVO> listUsers(PageQuery query) {
+    public PageResult<UserResp> listUsers(PageQuery query) {
         log.info("查询系统用户列表分页，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
 
@@ -75,7 +76,7 @@ public class UserService {
         Map<Long, String> deptNameMap = resolveDeptNameMap(users);
         Map<Long, String> postNameMap = resolvePostNameMap(users);
 
-        List<UserVO> records = new ArrayList<>();
+        List<UserResp> records = new ArrayList<>();
         for (SysUserEntity user : users) {
             if (user.getDeptId() != null && deptNameMap.containsKey(user.getDeptId())) {
                 user.setDeptName(deptNameMap.get(user.getDeptId()));
@@ -92,7 +93,7 @@ public class UserService {
      * @return 新建用户展示对象
      */
     @Transactional(rollbackFor = Exception.class)
-    public UserVO createUser(CreateUserRequest request) {
+    public UserResp createUser(CreateUserReq request) {
         log.info("创建后台用户，username={}，deptId={}，deptName={}，roleName={}",
             request.getUsername(), request.getDeptId(), request.getDeptName(), request.getRoleName());
         SysDeptEntity dept = resolveCreateDept(request);
@@ -117,6 +118,63 @@ public class UserService {
     }
 
     /**
+     * 查询用户详情。
+     *
+     * @param userId 用户编号
+     * @return 用户展示对象
+     */
+    @Transactional(readOnly = true)
+    public UserResp getUser(Long userId) {
+        log.info("查询后台用户详情，userId={}", userId);
+        SysUserEntity user = requireActiveUser(userId);
+        return userConverter.toUserVO(user, resolvePostName(user.getId(), resolveUserPostMap(user.getId()), resolvePostMap(user.getId())));
+    }
+
+    /**
+     * 更新用户。
+     *
+     * @param userId 用户编号
+     * @param request 用户更新请求
+     * @return 更新后的用户展示对象
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public UserResp updateUser(Long userId, CreateUserReq request) {
+        log.info("更新后台用户，userId={}，username={}", userId, request.getUsername());
+        SysUserEntity entity = requireActiveUser(userId);
+        entity.setUsername(request.getUsername());
+        entity.setPhone(DefaultValueUtils.defaultIfBlank(request.getPhone(), ""));
+        entity.setUserType(DefaultValueUtils.defaultIfBlank(request.getUserType(), "ADMIN"));
+        entity.setDeptId(request.getDeptId());
+        if (request.getDeptId() != null) {
+            SysDeptEntity dept = resolveCreateDept(request);
+            entity.setDeptId(dept.getId());
+            entity.setDeptName(dept.getDeptName());
+        } else {
+            entity.setDeptName(DefaultValueUtils.defaultIfBlank(request.getDeptName(), "运营部"));
+        }
+        entity.setRoleName(DefaultValueUtils.defaultIfBlank(request.getRoleName(), "系统管理员"));
+        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
+        if (StringUtils.hasText(request.getPassword())) {
+            entity.setPassword(PasswordEncoder.encode(request.getPassword()));
+        }
+        sysUserMapper.updateById(entity);
+        return userConverter.toUserVO(entity, resolvePostName(entity.getId(), resolveUserPostMap(entity.getId()), resolvePostMap(entity.getId())));
+    }
+
+    /**
+     * 删除用户。
+     *
+     * @param userId 用户编号
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteUser(Long userId) {
+        log.info("删除后台用户，userId={}", userId);
+        SysUserEntity entity = requireActiveUser(userId);
+        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
+        sysUserMapper.updateById(entity);
+    }
+
+    /**
      * 校验用户处于可用状态。
      *
      * @param userId 用户编号
@@ -129,7 +187,7 @@ public class UserService {
             .last("limit 1")), "用户不存在");
     }
 
-    private SysDeptEntity resolveCreateDept(CreateUserRequest request) {
+    private SysDeptEntity resolveCreateDept(CreateUserReq request) {
         if (request.getDeptId() != null) {
             return MybatisTenantHelpers.requireEntity(sysDeptMapper.selectOne(
                 MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted)
@@ -214,5 +272,39 @@ public class UserService {
             .map(SysPostEntity::getPostName)
             .collect(Collectors.toCollection(LinkedHashSet::new));
         return postNames.isEmpty() ? "-" : String.join("、", postNames);
+    }
+
+    /**
+     * 构建指定用户的岗位关系映射。
+     *
+     * @param userId 用户编号
+     * @return 用户岗位关系列表
+     */
+    private Map<Long, List<SysUserPostEntity>> resolveUserPostMap(Long userId) {
+        List<SysUserPostEntity> relations = sysUserPostMapper.selectList(
+            MybatisTenantHelpers.notDeletedWrapper(SysUserPostEntity::getDeleted)
+                .eq(SysUserPostEntity::getUserId, userId));
+        return relations.stream().collect(Collectors.groupingBy(SysUserPostEntity::getUserId));
+    }
+
+    /**
+     * 构建指定用户的岗位映射。
+     *
+     * @param userId 用户编号
+     * @return 岗位映射
+     */
+    private Map<Long, SysPostEntity> resolvePostMap(Long userId) {
+        List<SysUserPostEntity> relations = sysUserPostMapper.selectList(
+            MybatisTenantHelpers.notDeletedWrapper(SysUserPostEntity::getDeleted)
+                .eq(SysUserPostEntity::getUserId, userId));
+        if (relations.isEmpty()) {
+            return Map.of();
+        }
+        Set<Long> postIds = relations.stream().map(SysUserPostEntity::getPostId).collect(Collectors.toSet());
+        return sysPostMapper.selectList(
+                MybatisTenantHelpers.notDeletedWrapper(SysPostEntity::getDeleted)
+                    .in(SysPostEntity::getId, postIds))
+            .stream()
+            .collect(Collectors.toMap(SysPostEntity::getId, post -> post));
     }
 }

@@ -15,13 +15,15 @@
 
 - `dashboard`
 - `tenant`
-- `system/users`
-- `system/roles`
-- `system/menus`
-- `system/dicts`
-- `system/configs`
-- `system/posts`
-- `system/permissions`
+- `system/user`
+- `system/role`
+- `system/menu`
+- `system/dict`
+- `system/config`
+- `system/post`
+- `system/permission`
+- `auth/login-record`
+- `gateway/routes`
 - `doctor`
 - `doctor/departments`
 - `patient`
@@ -134,18 +136,22 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 
 `admin-web` 的系统管理列表接口集中在 `src/api/modules.ts`，当前已接入：
 
-- `/system/users`
-- `/system/roles`
-- `/system/menus`
-- `/system/dicts`
-- `/system/configs`
-- `/system/posts`
-- `/system/permissions`
+- `/system/user`
+- `/system/role`
+- `/system/menu`
+- `/system/dict`
+- `/system/config`
+- `/system/post`
+- `/system/permission`
+- `/auth/login-record`
+- `/gateway/route`
 - `/doctor/departments`
 
-管理端登录页会在未登录状态调用 `GET /system/tenants` 获取所有未删除租户选项，并在 `POST /auth/login` 请求体和请求头中携带租户编号，确保后台账号按租户隔离登录。
+管理端登录页会在未登录状态调用 `GET /system/tenant` 获取所有未删除租户选项，并在 `POST /auth/login` 请求体和请求头中携带租户编号，确保后台账号按租户隔离登录。
 
-系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。用户、角色、菜单、字典、岗位、权限码页面均已接入新增弹窗；提交后调用对应 `POST /system/*` 接口并刷新列表。
+系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。用户、角色、菜单、字典、参数配置、岗位、权限码页面均已接入新增、编辑、删除弹窗；提交后调用对应 `POST /system/*`、`PUT /system/*/{id}` 和 `DELETE /system/*/{id}` 接口并刷新列表。
+
+认证中心已新增 `auth/login-record` 页面，支持登录记录列表、详情、创建、编辑和删除；网关管理已新增 `gateway/routes` 页面，支持路由配置列表、详情、创建、编辑和删除。两个页面均复用 `ModulePage` 和 `src/styles/global.css` 的统一样式约束。
 
 科室管理页面已接入新增科室弹窗，提交后调用 `POST /doctor/departments` 并刷新列表；医生管理页面已接入 `GET /doctor/doctors`、`POST /doctor/doctors`、`PUT /doctor/doctors/{id}/status` 和 `POST /doctor/schedules`，医生列表与排班弹窗继续复用统一样式；弹窗样式同样收口在 `src/styles/global.css`。
 

@@ -1,7 +1,7 @@
-import { Form, Input, Modal, Select, Tag, message } from 'antd';
+import { Button, Form, Input, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
-import { createUser, fetchSystemDeptOptions, fetchUsers } from '@/api/modules';
+import { useMemo, useState } from 'react';
+import { createUser, deleteUser, fetchSystemDeptOptions, fetchUsers, updateUser } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
@@ -16,38 +16,103 @@ export interface UserRecord {
   status: string;
 }
 
-const columns: ColumnsType<UserRecord> = [
-  { title: '账号名称', dataIndex: 'username' },
-  { title: '部门', dataIndex: 'deptName' },
-  { title: '角色', dataIndex: 'roleName' },
-  { title: '联系电话', dataIndex: 'phone' },
-  { title: '最近登录', dataIndex: 'lastLogin' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
-];
-
 function UsersPage() {
   const { records, loading, refresh } = useModuleRecords(fetchUsers, '用户');
   const { records: deptOptions } = useModuleRecords(fetchSystemDeptOptions, '系统部门');
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<UserRecord | null>(null);
 
-  const handleCreate = async () => {
+  const handleOpenCreate = () => {
+    setEditingRecord(null);
+    form.resetFields();
+    form.setFieldsValue({ userType: 'ADMIN', status: '0', roleName: '系统管理员' });
+    setOpen(true);
+  };
+
+  const handleOpenEdit = (record: UserRecord) => {
+    setEditingRecord(record);
+    form.setFieldsValue({
+      username: record.username,
+      phone: record.phone,
+      deptId: record.deptId,
+      deptName: record.deptName,
+      roleName: record.roleName,
+      userType: 'ADMIN',
+      status: record.status,
+    });
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
     const values = await form.validateFields();
     const selectedDept = deptOptions.find((dept) => dept.id === values.deptId);
+    const payload = { ...values, deptName: selectedDept?.deptName ?? values.deptName };
     setSubmitting(true);
     try {
-      await createUser({ ...values, deptName: selectedDept?.deptName ?? values.deptName });
-      message.success('用户创建成功');
+      if (editingRecord) {
+        await updateUser(editingRecord.key, payload);
+        message.success('用户更新成功');
+      } else {
+        await createUser(payload);
+        message.success('用户创建成功');
+      }
       setOpen(false);
       form.resetFields();
+      setEditingRecord(null);
       refresh();
     } catch {
-      message.warning('用户创建失败，请检查接口或稍后重试');
+      message.warning(editingRecord ? '用户更新失败，请检查接口或稍后重试' : '用户创建失败，请检查接口或稍后重试');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handleDelete = (record: UserRecord) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除用户"${record.username}"吗？`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deleteUser(record.key);
+          message.success('用户删除成功');
+          refresh();
+        } catch {
+          message.warning('用户删除失败，请稍后重试');
+        }
+      },
+    });
+  };
+
+  const columns = useMemo<ColumnsType<UserRecord>>(
+    () => [
+      { title: '账号名称', dataIndex: 'username' },
+      { title: '部门', dataIndex: 'deptName' },
+      { title: '角色', dataIndex: 'roleName' },
+      { title: '联系电话', dataIndex: 'phone' },
+      { title: '最近登录', dataIndex: 'lastLogin' },
+      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_: unknown, record: UserRecord) => (
+          <Space size="small">
+            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
+              编辑
+            </Button>
+            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+              删除
+            </Button>
+          </Space>
+        ),
+      },
+    ],
+    [deptOptions],
+  );
 
   return (
     <>
@@ -66,22 +131,25 @@ function UsersPage() {
         tableTitle="用户列表"
         searchPlaceholder="搜索账号、部门、角色"
         getSearchText={(record) => `${record.username} ${record.deptName} ${record.roleName} ${record.phone}`}
-        onCreate={() => setOpen(true)}
+        onCreate={handleOpenCreate}
       />
       <Modal
-        title="新增用户"
+        title={editingRecord ? '编辑用户' : '新增用户'}
         open={open}
         confirmLoading={submitting}
-        onOk={handleCreate}
+        onOk={handleSubmit}
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ userType: 'ADMIN', status: '0', roleName: '系统管理员' }}>
+        <Form form={form} layout="vertical" className="module-form">
           <Form.Item name="username" label="账号名称" rules={[{ required: true, message: '请输入账号名称' }]}>
             <Input placeholder="请输入账号名称" />
           </Form.Item>
           <Form.Item name="phone" label="联系电话">
             <Input placeholder="请输入联系电话" />
+          </Form.Item>
+          <Form.Item name="password" label="登录密码">
+            <Input.Password placeholder={editingRecord ? '留空则不修改密码' : '默认 123456'} />
           </Form.Item>
           <Form.Item name="deptId" label="部门">
             <Select

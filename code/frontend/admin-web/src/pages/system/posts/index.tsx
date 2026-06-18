@@ -1,7 +1,7 @@
-import { Form, Input, InputNumber, Modal, Select, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
-import { createPost, fetchPosts } from '@/api/modules';
+import { useMemo, useState } from 'react';
+import { createPost, deletePost, fetchPosts, updatePost } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
@@ -14,35 +14,91 @@ export interface PostRecord {
   remark: string;
 }
 
-const columns: ColumnsType<PostRecord> = [
-  { title: '岗位名称', dataIndex: 'postName' },
-  { title: '岗位编码', dataIndex: 'postCode' },
-  { title: '排序', dataIndex: 'sort' },
-  { title: '备注', dataIndex: 'remark' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
-];
-
 function PostsPage() {
   const { records, loading, refresh } = useModuleRecords(fetchPosts, '岗位');
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<PostRecord | null>(null);
 
-  const handleCreate = async () => {
+  const handleOpenCreate = () => {
+    setEditingRecord(null);
+    form.resetFields();
+    form.setFieldsValue({ sort: 0, status: '0' });
+    setOpen(true);
+  };
+
+  const handleOpenEdit = (record: PostRecord) => {
+    setEditingRecord(record);
+    form.setFieldsValue(record);
+    setOpen(true);
+  };
+
+  const handleSubmit = async () => {
     const values = await form.validateFields();
     setSubmitting(true);
     try {
-      await createPost(values);
-      message.success('岗位创建成功');
+      if (editingRecord) {
+        await updatePost(editingRecord.key, values);
+        message.success('岗位更新成功');
+      } else {
+        await createPost(values);
+        message.success('岗位创建成功');
+      }
       setOpen(false);
+      setEditingRecord(null);
       form.resetFields();
       refresh();
     } catch {
-      message.warning('岗位创建失败，请检查接口或稍后重试');
+      message.warning(editingRecord ? '岗位更新失败，请检查接口或稍后重试' : '岗位创建失败，请检查接口或稍后重试');
     } finally {
       setSubmitting(false);
     }
   };
+
+  const handleDelete = (record: PostRecord) => {
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除岗位"${record.postName}"吗？`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deletePost(record.key);
+          message.success('岗位删除成功');
+          refresh();
+        } catch {
+          message.warning('岗位删除失败，请稍后重试');
+        }
+      },
+    });
+  };
+
+  const columns = useMemo<ColumnsType<PostRecord>>(
+    () => [
+      { title: '岗位名称', dataIndex: 'postName' },
+      { title: '岗位编码', dataIndex: 'postCode' },
+      { title: '排序', dataIndex: 'sort' },
+      { title: '备注', dataIndex: 'remark' },
+      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
+      {
+        title: '操作',
+        key: 'actions',
+        render: (_: unknown, record: PostRecord) => (
+          <Space size="small">
+            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
+              编辑
+            </Button>
+            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+              删除
+            </Button>
+          </Space>
+        ),
+      },
+    ],
+    [],
+  );
 
   return (
     <>
@@ -61,17 +117,17 @@ function PostsPage() {
         tableTitle="岗位列表"
         searchPlaceholder="搜索岗位名称、编码或备注"
         getSearchText={(record) => `${record.postName} ${record.postCode} ${record.remark}`}
-        onCreate={() => setOpen(true)}
+        onCreate={handleOpenCreate}
       />
       <Modal
-        title="新增岗位"
+        title={editingRecord ? '编辑岗位' : '新增岗位'}
         open={open}
         confirmLoading={submitting}
-        onOk={handleCreate}
+        onOk={handleSubmit}
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ sort: 0, status: '0' }}>
+        <Form form={form} layout="vertical" className="module-form">
           <Form.Item name="postName" label="岗位名称" rules={[{ required: true, message: '请输入岗位名称' }]}>
             <Input placeholder="请输入岗位名称" />
           </Form.Item>

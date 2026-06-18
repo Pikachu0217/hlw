@@ -3,10 +3,10 @@ package com.hlw.system.controller;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.domain.R;
-import com.hlw.system.dto.CreateTenantRequest;
-import com.hlw.system.dto.UpdateTenantRequest;
+import com.hlw.system.domain.req.CreateTenantReq;
+import com.hlw.system.domain.req.UpdateTenantReq;
 import com.hlw.system.service.TenantService;
-import com.hlw.system.vo.TenantVO;
+import com.hlw.system.domain.resp.TenantResp;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ public class TenantController {
      * @return 租户分页结果
      */
     @GetMapping
-    public R<PageResult<TenantVO>> list(PageQuery query) {
+    public R<PageResult<TenantResp>> list(PageQuery query) {
         log.info("查询租户列表");
         return R.ok(tenantService.listTenants(query));
     }
@@ -49,7 +49,7 @@ public class TenantController {
      * @return 创建结果
      */
     @PostMapping
-    public R<TenantVO> createTenant(@Valid @RequestBody CreateTenantRequest request) {
+    public R<TenantResp> createTenant(@Valid @RequestBody CreateTenantReq request) {
         return R.ok(tenantService.createTenant(request));
     }
 
@@ -60,7 +60,7 @@ public class TenantController {
      * @return 租户详情
      */
     @GetMapping("/{id}")
-    public R<TenantVO> detail(@PathVariable Long id) {
+    public R<TenantResp> detail(@PathVariable Long id) {
         log.info("查询租户详情，id={}", id);
         return R.ok(tenantService.getTenant(id));
     }
@@ -73,7 +73,7 @@ public class TenantController {
      * @return 更新后的租户
      */
     @PutMapping("/{id}")
-    public R<TenantVO> updateTenant(@PathVariable Long id, @Valid @RequestBody UpdateTenantRequest request) {
+    public R<TenantResp> updateTenant(@PathVariable Long id, @Valid @RequestBody UpdateTenantReq request) {
         log.info("更新租户，id={}", id);
         return R.ok(tenantService.updateTenant(id, request));
     }

@@ -2,7 +2,7 @@ package com.hlw.system.service.converter;
 
 import com.hlw.system.entity.SysRoleMenuEntity;
 import com.hlw.system.entity.SysUserRoleEntity;
-import com.hlw.system.vo.RelationBindingVO;
+import com.hlw.system.domain.resp.RelationBindingResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -21,8 +21,8 @@ public class AuthorizationConverter {
      * @param roleId 角色编号
      * @return 关系绑定展示对象
      */
-    public RelationBindingVO toRelationBindingVO(SysUserRoleEntity entity, Long userId, Long roleId) {
-        RelationBindingVO vo = new RelationBindingVO();
+    public RelationBindingResp toRelationBindingVO(SysUserRoleEntity entity, Long userId, Long roleId) {
+        RelationBindingResp vo = new RelationBindingResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setStatus(entity.getStatus());
         vo.setUserId(userId);
@@ -39,8 +39,8 @@ public class AuthorizationConverter {
      * @param menuId 菜单编号
      * @return 关系绑定展示对象
      */
-    public RelationBindingVO toRelationBindingVO(SysRoleMenuEntity entity, Long roleId, Long menuId) {
-        RelationBindingVO vo = new RelationBindingVO();
+    public RelationBindingResp toRelationBindingVO(SysRoleMenuEntity entity, Long roleId, Long menuId) {
+        RelationBindingResp vo = new RelationBindingResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setStatus(entity.getStatus());
         vo.setUserId(null);

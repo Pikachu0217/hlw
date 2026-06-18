@@ -54,13 +54,12 @@ public class AuthController {
         String tenantHeader = request.getHeader(authTokenProperties.getTenantHeaderName());
         Long tenantId = AuthTokenResolver.resolveLoginTenantId(tenantHeader, loginReq.tenantId());
         log.info("用户登录请求进入认证控制器，tenantId={}，username={}", tenantId, loginReq.username());
-        return R.ok(authService.login(loginReq.withTenantId(tenantId)));
+        return R.ok(authService.login(loginReq.withTenantId(tenantId), resolveClientIp(request), request.getHeader("User-Agent")));
     }
 
     /**
      * 查询登录用户资料。
      *
-     * @param request HTTP 请求对象
      * @return 登录用户资料
      */
     @GetMapping("/detail")
@@ -84,5 +83,19 @@ public class AuthController {
         log.info("用户退出登录请求进入认证控制器");
         authService.logout(rawToken);
         return R.ok(null);
+    }
+
+    /**
+     * 解析客户端 IP。
+     *
+     * @param request HTTP 请求对象
+     * @return 客户端 IP
+     */
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

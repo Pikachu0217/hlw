@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import {
   CalendarOutlined,
+  CloudServerOutlined,
   DashboardOutlined,
   DeploymentUnitOutlined,
   ExperimentOutlined,
@@ -10,6 +11,7 @@ import {
   ShopOutlined,
   SolutionOutlined,
   TeamOutlined,
+  UserAddOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons';
 import { matchPath } from 'react-router-dom';
@@ -40,6 +42,18 @@ export const navigationTree: NavigationItem[] = [
       { key: 'system-dept', label: '部门管理', path: '/system/dept' },
       { key: 'system-permission', label: '权限管理', path: '/system/permission' },
     ],
+  },
+  {
+    key: 'auth',
+    label: '认证中心',
+    icon: <UserAddOutlined />,
+    children: [{ key: 'auth-login-record', label: '登录记录', path: '/auth/login-record' }],
+  },
+  {
+    key: 'gateway',
+    label: '网关管理',
+    icon: <CloudServerOutlined />,
+    children: [{ key: 'gateway-routes', label: '路由配置', path: '/gateway/routes' }],
   },
   {
     key: 'doctor',
