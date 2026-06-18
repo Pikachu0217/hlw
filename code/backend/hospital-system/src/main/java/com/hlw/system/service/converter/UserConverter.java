@@ -23,6 +23,7 @@ public class UserConverter {
         UserVO vo = new UserVO();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setUsername(entity.getUsername());
+        vo.setDeptId(entity.getDeptId());
         vo.setDeptName(entity.getDeptName());
         vo.setRoleName(entity.getRoleName());
         vo.setPhone(entity.getPhone());

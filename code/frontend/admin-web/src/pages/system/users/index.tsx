@@ -1,13 +1,14 @@
 import { Form, Input, Modal, Select, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
-import { createUser, fetchUsers } from '@/api/modules';
+import { createUser, fetchSystemDeptOptions, fetchUsers } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface UserRecord {
   key: string;
   username: string;
+  deptId?: number;
   deptName: string;
   roleName: string;
   phone: string;
@@ -26,15 +27,17 @@ const columns: ColumnsType<UserRecord> = [
 
 function UsersPage() {
   const { records, loading, refresh } = useModuleRecords(fetchUsers, '用户');
+  const { records: deptOptions } = useModuleRecords(fetchSystemDeptOptions, '系统部门');
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleCreate = async () => {
     const values = await form.validateFields();
+    const selectedDept = deptOptions.find((dept) => dept.id === values.deptId);
     setSubmitting(true);
     try {
-      await createUser(values);
+      await createUser({ ...values, deptName: selectedDept?.deptName ?? values.deptName });
       message.success('用户创建成功');
       setOpen(false);
       form.resetFields();
@@ -73,15 +76,21 @@ function UsersPage() {
         onCancel={() => setOpen(false)}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" className="module-form" initialValues={{ userType: 'ADMIN', status: '0', deptName: '运营部', roleName: '系统管理员' }}>
+        <Form form={form} layout="vertical" className="module-form" initialValues={{ userType: 'ADMIN', status: '0', roleName: '系统管理员' }}>
           <Form.Item name="username" label="账号名称" rules={[{ required: true, message: '请输入账号名称' }]}>
             <Input placeholder="请输入账号名称" />
           </Form.Item>
           <Form.Item name="phone" label="联系电话">
             <Input placeholder="请输入联系电话" />
           </Form.Item>
-          <Form.Item name="deptName" label="部门">
-            <Input placeholder="请输入部门" />
+          <Form.Item name="deptId" label="部门">
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="请选择部门"
+              options={deptOptions.map((dept) => ({ label: dept.deptName, value: dept.id }))}
+            />
           </Form.Item>
           <Form.Item name="roleName" label="角色">
             <Input placeholder="请输入角色" />

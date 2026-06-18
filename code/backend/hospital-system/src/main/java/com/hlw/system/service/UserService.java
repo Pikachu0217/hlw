@@ -8,9 +8,11 @@ import com.hlw.common.core.enums.CommonStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.security.PasswordEncoder;
 import com.hlw.system.dto.CreateUserRequest;
+import com.hlw.system.entity.SysDeptEntity;
 import com.hlw.system.entity.SysPostEntity;
 import com.hlw.system.entity.SysUserEntity;
 import com.hlw.system.entity.SysUserPostEntity;
+import com.hlw.system.mapper.SysDeptMapper;
 import com.hlw.system.mapper.SysPostMapper;
 import com.hlw.system.mapper.SysUserMapper;
 import com.hlw.system.mapper.SysUserPostMapper;
@@ -41,6 +43,8 @@ import lombok.extern.slf4j.Slf4j;
 public class UserService {
     /** 用户数据访问组件。 */
     private final SysUserMapper sysUserMapper;
+    /** 部门数据访问组件。 */
+    private final SysDeptMapper sysDeptMapper;
     /** 岗位数据访问组件。 */
     private final SysPostMapper sysPostMapper;
     /** 用户岗位关联数据访问组件。 */
@@ -49,7 +53,7 @@ public class UserService {
     private final UserConverter userConverter;
 
     /**
-     * 分页查询用户列表，并按当前页用户补全岗位名称。
+     * 分页查询用户列表，并按当前页用户补全部门、岗位名称。
      *
      * @param query 分页查询条件
      * @return 用户分页结果
@@ -68,10 +72,14 @@ public class UserService {
 
         Page<SysUserEntity> result = sysUserMapper.selectPage(page, wrapper);
         List<SysUserEntity> users = result.getRecords();
+        Map<Long, String> deptNameMap = resolveDeptNameMap(users);
         Map<Long, String> postNameMap = resolvePostNameMap(users);
 
         List<UserVO> records = new ArrayList<>();
         for (SysUserEntity user : users) {
+            if (user.getDeptId() != null && deptNameMap.containsKey(user.getDeptId())) {
+                user.setDeptName(deptNameMap.get(user.getDeptId()));
+            }
             records.add(userConverter.toUserVO(user, postNameMap.getOrDefault(user.getId(), "-")));
         }
         return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
@@ -85,15 +93,21 @@ public class UserService {
      */
     @Transactional(rollbackFor = Exception.class)
     public UserVO createUser(CreateUserRequest request) {
-        log.info("创建后台用户，username={}，deptName={}，roleName={}",
-            request.getUsername(), request.getDeptName(), request.getRoleName());
+        log.info("创建后台用户，username={}，deptId={}，deptName={}，roleName={}",
+            request.getUsername(), request.getDeptId(), request.getDeptName(), request.getRoleName());
+        SysDeptEntity dept = resolveCreateDept(request);
         SysUserEntity entity = new SysUserEntity();
         entity.setUsername(request.getUsername());
         String rawPassword = DefaultValueUtils.defaultIfBlank(request.getPassword(), "123456");
         entity.setPassword(PasswordEncoder.encode(rawPassword));
         entity.setPhone(DefaultValueUtils.defaultIfBlank(request.getPhone(), ""));
         entity.setUserType(DefaultValueUtils.defaultIfBlank(request.getUserType(), "ADMIN"));
-        entity.setDeptName(DefaultValueUtils.defaultIfBlank(request.getDeptName(), "运营部"));
+        if (dept != null) {
+            entity.setDeptId(dept.getId());
+            entity.setDeptName(dept.getDeptName());
+        } else {
+            entity.setDeptName(DefaultValueUtils.defaultIfBlank(request.getDeptName(), "运营部"));
+        }
         entity.setRoleName(DefaultValueUtils.defaultIfBlank(request.getRoleName(), "系统管理员"));
         entity.setLastLogin("-");
         entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
@@ -113,6 +127,36 @@ public class UserService {
             .eq(SysUserEntity::getDeleted, 0)
             .eq(SysUserEntity::getId, userId)
             .last("limit 1")), "用户不存在");
+    }
+
+    private SysDeptEntity resolveCreateDept(CreateUserRequest request) {
+        if (request.getDeptId() != null) {
+            return MybatisTenantHelpers.requireEntity(sysDeptMapper.selectOne(
+                MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted)
+                    .eq(SysDeptEntity::getStatus, CommonStatusEnum.ENABLED.getStatus())
+                    .eq(SysDeptEntity::getId, request.getDeptId())
+                    .last("limit 1")), "部门不存在");
+        }
+        if (!StringUtils.hasText(request.getDeptName())) {
+            return null;
+        }
+        return sysDeptMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted)
+            .eq(SysDeptEntity::getStatus, CommonStatusEnum.ENABLED.getStatus())
+            .eq(SysDeptEntity::getDeptName, request.getDeptName())
+            .last("limit 1"));
+    }
+
+    private Map<Long, String> resolveDeptNameMap(List<SysUserEntity> users) {
+        Set<Long> deptIds = users.stream()
+            .map(SysUserEntity::getDeptId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        if (deptIds.isEmpty()) {
+            return Map.of();
+        }
+        return sysDeptMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted)
+                .in(SysDeptEntity::getId, deptIds)).stream()
+            .collect(Collectors.toMap(SysDeptEntity::getId, SysDeptEntity::getDeptName, (left, right) -> left));
     }
 
     /**

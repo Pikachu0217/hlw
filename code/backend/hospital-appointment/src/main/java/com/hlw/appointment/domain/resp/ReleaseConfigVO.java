@@ -1,4 +1,4 @@
-package com.hlw.appointment.vo;
+package com.hlw.appointment.domain.resp;
 
 import lombok.Getter;
 import lombok.Setter;

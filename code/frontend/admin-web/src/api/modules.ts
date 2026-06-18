@@ -7,13 +7,13 @@ import type { DepartmentRecord } from '@/pages/doctor/departments';
 import type { OrderRecord } from '@/pages/order';
 import type { HealthRecord, PatientRecord } from '@/pages/patient';
 import type { PrescriptionRecord } from '@/pages/prescription';
-import type { ConfigRecord } from '@/pages/system/config';
-import type { DictRecord } from '@/pages/system/dict';
-import type { MenuRecord } from '@/pages/system/menu';
-import type { PermissionRecord } from '@/pages/system/permission';
-import type { PostRecord } from '@/pages/system/post';
-import type { RoleRecord } from '@/pages/system/role';
-import type { UserRecord } from '@/pages/system/user';
+import type { ConfigRecord } from '@/pages/system/configs';
+import type { DictRecord } from '@/pages/system/dicts';
+import type { MenuRecord } from '@/pages/system/menus';
+import type { PermissionRecord } from '@/pages/system/permissions';
+import type { PostRecord } from '@/pages/system/posts';
+import type { RoleRecord } from '@/pages/system/roles';
+import type { UserRecord } from '@/pages/system/users';
 import type { TenantRecord } from '@/pages/tenant';
 
 interface ApiResult<T> {
@@ -42,10 +42,28 @@ export interface CreateUserPayload {
   username: string;
   phone?: string;
   userType?: string;
+  deptId?: number;
   deptName?: string;
   roleName?: string;
   status?: string;
   password?: string;
+}
+
+export interface SystemDeptRecord {
+  key: string;
+  id: number;
+  parentId: number;
+  deptName: string;
+  ancestors: string;
+  sort: number;
+  status: string;
+}
+
+export interface CreateSystemDeptPayload {
+  parentId?: number;
+  deptName: string;
+  sort?: number;
+  status?: string;
 }
 
 export interface CreateRolePayload {
@@ -296,6 +314,23 @@ export function fetchUsers(): Promise<UserRecord[]> {
 export async function createUser(payload: CreateUserPayload): Promise<UserRecord> {
   console.info('[admin-module] 创建用户', payload);
   const response = await apiClient.post<ApiResult<UserRecord>>('/system/user', payload);
+  return response.data.data;
+}
+
+// 查询系统部门选项。
+export function fetchSystemDeptOptions(): Promise<SystemDeptRecord[]> {
+  return fetchModuleRecords<SystemDeptRecord>('/system/dept/options', '系统部门');
+}
+
+// 查询系统部门列表。
+export function fetchSystemDepts(): Promise<SystemDeptRecord[]> {
+  return fetchModulePage<SystemDeptRecord>('/system/dept', '系统部门');
+}
+
+// 创建系统部门。
+export async function createSystemDept(payload: CreateSystemDeptPayload): Promise<SystemDeptRecord> {
+  console.info('[admin-module] 创建系统部门', payload);
+  const response = await apiClient.post<ApiResult<SystemDeptRecord>>('/system/dept', payload);
   return response.data.data;
 }
 

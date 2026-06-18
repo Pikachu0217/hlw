@@ -51,9 +51,25 @@ CREATE TABLE IF NOT EXISTS sys_user (
     password VARCHAR(128) NOT NULL,
     phone VARCHAR(32),
     user_type VARCHAR(32) NOT NULL,
+    dept_id BIGINT,
     dept_name VARCHAR(64) NOT NULL DEFAULT '',
     role_name VARCHAR(64) NOT NULL DEFAULT '',
     last_login VARCHAR(64) NOT NULL DEFAULT '',
+    status VARCHAR(32) NOT NULL DEFAULT '0',
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    create_by BIGINT,
+    update_by BIGINT,
+    deleted SMALLINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS sys_dept (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id BIGINT NOT NULL,
+    parent_id BIGINT NOT NULL DEFAULT 0,
+    dept_name VARCHAR(64) NOT NULL,
+    ancestors VARCHAR(256) NOT NULL DEFAULT '0',
+    sort INTEGER NOT NULL DEFAULT 0,
     status VARCHAR(32) NOT NULL DEFAULT '0',
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -194,6 +210,10 @@ CREATE TABLE IF NOT EXISTS sys_role_menu (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+CREATE INDEX IF NOT EXISTS idx_sys_dept_tenant_parent ON sys_dept (tenant_id, parent_id);
+CREATE INDEX IF NOT EXISTS idx_sys_dept_tenant_name ON sys_dept (tenant_id, dept_name);
+CREATE INDEX IF NOT EXISTS idx_sys_user_tenant_dept ON sys_user (tenant_id, dept_id);
+
 CREATE TABLE IF NOT EXISTS local_message (
     id BIGSERIAL PRIMARY KEY,
     topic VARCHAR(128) NOT NULL,
@@ -208,6 +228,7 @@ CREATE TABLE IF NOT EXISTS local_message (
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS dept_id BIGINT;
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS dept_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS role_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS last_login VARCHAR(64) NOT NULL DEFAULT '';
@@ -215,6 +236,11 @@ ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS role_name VARCHAR(64) NOT NULL DEF
 ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS role_code VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS data_scope VARCHAR(64) NOT NULL DEFAULT '本租户数据';
 ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS member_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sys_dept ADD COLUMN IF NOT EXISTS parent_id BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE sys_dept ADD COLUMN IF NOT EXISTS dept_name VARCHAR(64) NOT NULL DEFAULT '';
+ALTER TABLE sys_dept ADD COLUMN IF NOT EXISTS ancestors VARCHAR(256) NOT NULL DEFAULT '0';
+ALTER TABLE sys_dept ADD COLUMN IF NOT EXISTS sort INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sys_dept ADD COLUMN IF NOT EXISTS status VARCHAR(32) NOT NULL DEFAULT '0';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS parent_id BIGINT NOT NULL DEFAULT 0;
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS menu_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS menu_type VARCHAR(32) NOT NULL DEFAULT '菜单';
@@ -255,6 +281,7 @@ COMMENT ON COLUMN sys_user.username IS '登录账号';
 COMMENT ON COLUMN sys_user.password IS '登录密码';
 COMMENT ON COLUMN sys_user.phone IS '联系电话';
 COMMENT ON COLUMN sys_user.user_type IS '用户类型';
+COMMENT ON COLUMN sys_user.dept_id IS '部门编号';
 COMMENT ON COLUMN sys_user.dept_name IS '部门名称';
 COMMENT ON COLUMN sys_user.role_name IS '角色名称';
 COMMENT ON COLUMN sys_user.last_login IS '最近登录时间描述';
@@ -264,6 +291,19 @@ COMMENT ON COLUMN sys_user.update_time IS '更新时间';
 COMMENT ON COLUMN sys_user.create_by IS '创建人编号';
 COMMENT ON COLUMN sys_user.update_by IS '更新人编号';
 COMMENT ON COLUMN sys_user.deleted IS '逻辑删除标识';
+COMMENT ON TABLE sys_dept IS '系统部门表';
+COMMENT ON COLUMN sys_dept.id IS '主键编号';
+COMMENT ON COLUMN sys_dept.tenant_id IS '租户编号';
+COMMENT ON COLUMN sys_dept.parent_id IS '父部门编号';
+COMMENT ON COLUMN sys_dept.dept_name IS '部门名称';
+COMMENT ON COLUMN sys_dept.ancestors IS '祖级列表';
+COMMENT ON COLUMN sys_dept.sort IS '显示排序';
+COMMENT ON COLUMN sys_dept.status IS '部门状态';
+COMMENT ON COLUMN sys_dept.create_time IS '创建时间';
+COMMENT ON COLUMN sys_dept.update_time IS '更新时间';
+COMMENT ON COLUMN sys_dept.create_by IS '创建人编号';
+COMMENT ON COLUMN sys_dept.update_by IS '更新人编号';
+COMMENT ON COLUMN sys_dept.deleted IS '逻辑删除标识';
 COMMENT ON TABLE sys_role IS '系统管理角色表';
 COMMENT ON COLUMN sys_role.id IS '主键编号';
 COMMENT ON COLUMN sys_role.tenant_id IS '租户编号';
@@ -384,11 +424,30 @@ VALUES
     (1, 100, '互联网医院平台租户', '互联网医院平台租户', '平台租户管理员', 'hlw_admin', '2026-12-31', '0')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_name, role_name, last_login, status)
+INSERT INTO sys_dept (id, tenant_id, parent_id, dept_name, ancestors, sort, status)
 VALUES
-    (1, 100, '门诊运营', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'ADMIN', '运营中心', '运营管理员', '今天 08:40', '0'),
-    (2, 100, '药房主管', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800002222', 'ADMIN', '药房组', '库存专员', '今天 07:58', '0')
+    (1, 100, 0, '运营中心', '0', 1, '0'),
+    (2, 100, 1, '药房组', '0,1', 2, '0')
+ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
+                               dept_name = EXCLUDED.dept_name,
+                               ancestors = EXCLUDED.ancestors,
+                               sort = EXCLUDED.sort,
+                               status = EXCLUDED.status;
+
+INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_id, dept_name, role_name, last_login, status)
+VALUES
+    (1, 100, '门诊运营', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'ADMIN', 1, '运营中心', '运营管理员', '今天 08:40', '0'),
+    (2, 100, '药房主管', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800002222', 'ADMIN', 2, '药房组', '库存专员', '今天 07:58', '0')
 ON CONFLICT DO NOTHING;
+
+UPDATE sys_user user_table
+SET dept_id = dept_table.id
+FROM sys_dept dept_table
+WHERE user_table.tenant_id = dept_table.tenant_id
+  AND user_table.dept_id IS NULL
+  AND user_table.dept_name = dept_table.dept_name
+  AND user_table.deleted = 0
+  AND dept_table.deleted = 0;
 
 INSERT INTO sys_role (id, tenant_id, role_name, role_code, data_scope, member_count, status)
 VALUES

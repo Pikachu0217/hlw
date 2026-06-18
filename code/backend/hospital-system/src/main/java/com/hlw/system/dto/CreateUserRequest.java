@@ -17,6 +17,8 @@ public class CreateUserRequest {
     private String phone;
     /** 用户类型。 */
     private String userType;
+    /** 部门编号。 */
+    private Long deptId;
     /** 部门名称。 */
     private String deptName;
     /** 角色名称。 */

@@ -10,6 +10,7 @@ import MenusPage from '@/pages/system/menus';
 import DictsPage from '@/pages/system/dicts';
 import ConfigsPage from '@/pages/system/configs';
 import PostsPage from '@/pages/system/posts';
+import SystemDeptsPage from '@/pages/system/depts';
 import PermissionsPage from '@/pages/system/permissions';
 import DoctorPage from '@/pages/doctor';
 import DepartmentsPage from '@/pages/doctor/departments';
@@ -39,6 +40,7 @@ export const appRouter = createBrowserRouter([
       { path: 'system/dict', element: <DictsPage /> },
       { path: 'system/config', element: <ConfigsPage /> },
       { path: 'system/post', element: <PostsPage /> },
+      { path: 'system/dept', element: <SystemDeptsPage /> },
       { path: 'system/permission', element: <PermissionsPage /> },
       { path: 'doctor', element: <DoctorPage /> },
       { path: 'doctor/departments', element: <DepartmentsPage /> },

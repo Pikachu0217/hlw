@@ -37,6 +37,7 @@ export const navigationTree: NavigationItem[] = [
       { key: 'system-dict', label: '字典管理', path: '/system/dict' },
       { key: 'system-config', label: '参数配置', path: '/system/config' },
       { key: 'system-post', label: '岗位管理', path: '/system/post' },
+      { key: 'system-dept', label: '部门管理', path: '/system/dept' },
       { key: 'system-permission', label: '权限管理', path: '/system/permission' },
     ],
   },

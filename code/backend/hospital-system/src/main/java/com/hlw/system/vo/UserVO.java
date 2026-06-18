@@ -13,6 +13,8 @@ public class UserVO {
     private String key;
     /** 用户名称。 */
     private String username;
+    /** 部门编号。 */
+    private Long deptId;
     /** 部门名称。 */
     private String deptName;
     /** 角色名称。 */
