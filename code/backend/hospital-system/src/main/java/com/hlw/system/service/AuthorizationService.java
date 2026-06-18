@@ -5,22 +5,15 @@ import com.hlw.common.core.enums.CommonStatusEnum;
 import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.system.domain.req.BindRoleMenuReq;
 import com.hlw.system.domain.req.BindUserRoleReq;
-import com.hlw.system.entity.SysMenuEntity;
-import com.hlw.system.entity.SysRoleEntity;
-import com.hlw.system.entity.SysRoleMenuEntity;
-import com.hlw.system.entity.SysUserEntity;
-import com.hlw.system.entity.SysUserRoleEntity;
-import com.hlw.system.mapper.SysMenuMapper;
-import com.hlw.system.mapper.SysRoleMapper;
-import com.hlw.system.mapper.SysRoleMenuMapper;
-import com.hlw.system.mapper.SysUserMapper;
-import com.hlw.system.mapper.SysUserRoleMapper;
-import com.hlw.system.service.converter.AuthorizationConverter;
-import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.domain.resp.RelationBindingResp;
 import com.hlw.system.domain.resp.RoleMenuResp;
 import com.hlw.system.domain.resp.UserRoleResp;
+import com.hlw.system.entity.*;
+import com.hlw.system.mapper.*;
+import com.hlw.system.service.converter.AuthorizationConverter;
+import com.hlw.system.service.support.MybatisTenantHelpers;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,8 +21,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 授权聚合服务，负责用户角色与角色菜单两类绑定关系的查询、绑定及成员数维护。
@@ -59,7 +50,7 @@ public class AuthorizationService {
     @Transactional(readOnly = true)
     public List<UserRoleResp> listUserRoles() {
         log.info("查询用户角色授权列表");
-        Map<Long, String> userMap = sysUserMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted))
+        Map<Long, String> userMap = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserEntity>())
             .stream()
             .collect(Collectors.toMap(SysUserEntity::getId, SysUserEntity::getUsername));
         Map<Long, String> roleMap = sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted))
@@ -243,7 +234,6 @@ public class AuthorizationService {
      */
     private SysUserEntity requireActiveUser(Long userId) {
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(new LambdaQueryWrapper<SysUserEntity>()
-            .eq(SysUserEntity::getDeleted, 0)
             .eq(SysUserEntity::getId, userId)
             .last("limit 1")), "用户不存在");
     }

@@ -13,9 +13,8 @@ import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysUserMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 /**
  * 内部用户查询服务，承接 hospital-auth 通过 OpenFeign 发起的登录认证与资料查询。
@@ -42,7 +41,6 @@ public class InternalUserService {
     public InternalUserResp findByTenantIdAndUsername(Long tenantId, String username) {
         log.info("内部查询用户，tenantId={}，username={}", tenantId, username);
         LambdaQueryWrapper<SysUserEntity> queryWrapper = new LambdaQueryWrapper<SysUserEntity>()
-                .eq(SysUserEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
                 .eq(SysUserEntity::getTenantId, tenantId)
                 .eq(SysUserEntity::getUsername, username)
                 .eq(SysUserEntity::getStatus, CommonStatusEnum.ENABLED.getStatus())
@@ -67,7 +65,6 @@ public class InternalUserService {
      */
     public InternalUserResp findByIdAndTenantId(Long uid, Long tenantId) {
         LambdaQueryWrapper<SysUserEntity> queryWrapper = new LambdaQueryWrapper<SysUserEntity>()
-                .eq(SysUserEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
                 .eq(SysUserEntity::getId, uid)
                 .eq(SysUserEntity::getTenantId, tenantId)
                 .last("limit 1");
@@ -84,7 +81,6 @@ public class InternalUserService {
      */
     private String queryRoleCodeByUserIdAndTenantId(Long uid, Long tenantId) {
         LambdaQueryWrapper<SysUserRoleEntity> userRoleQueryWrapper = new LambdaQueryWrapper<SysUserRoleEntity>()
-                .eq(SysUserRoleEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
                 .eq(SysUserRoleEntity::getUserId, uid)
                 .eq(SysUserRoleEntity::getTenantId, tenantId)
                 .last("limit 1");

@@ -9,6 +9,7 @@ import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.security.PasswordEncoder;
 import com.hlw.system.domain.req.CreateUserReq;
+import com.hlw.system.domain.resp.UserResp;
 import com.hlw.system.entity.SysDeptEntity;
 import com.hlw.system.entity.SysPostEntity;
 import com.hlw.system.entity.SysUserEntity;
@@ -19,21 +20,14 @@ import com.hlw.system.mapper.SysUserMapper;
 import com.hlw.system.mapper.SysUserPostMapper;
 import com.hlw.system.service.converter.UserConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
-import com.hlw.system.domain.resp.UserResp;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 后台用户聚合服务，负责用户的查询、创建编排。
@@ -65,7 +59,7 @@ public class UserService {
             query.getPageNum(), query.getPageSize(), query.getKeyword());
 
         Page<SysUserEntity> page = query.toPage();
-        LambdaQueryWrapper<SysUserEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted);
+        LambdaQueryWrapper<SysUserEntity> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.like(SysUserEntity::getUsername, query.getKeyword());
         }
@@ -182,7 +176,6 @@ public class UserService {
      */
     private SysUserEntity requireActiveUser(Long userId) {
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(new LambdaQueryWrapper<SysUserEntity>()
-            .eq(SysUserEntity::getDeleted, 0)
             .eq(SysUserEntity::getId, userId)
             .last("limit 1")), "用户不存在");
     }

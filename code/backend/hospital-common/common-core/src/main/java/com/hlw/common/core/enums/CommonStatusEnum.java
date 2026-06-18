@@ -11,8 +11,8 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum CommonStatusEnum {
-    ENABLED("0", "启用"),
-    DISABLED("1", "禁用"),
+    DISABLED("0", "禁用"),
+    ENABLED("1", "启用"),
     ;
     private final String status;
     private final String desc;

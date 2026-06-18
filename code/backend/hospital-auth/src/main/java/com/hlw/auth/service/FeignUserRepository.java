@@ -1,15 +1,14 @@
 package com.hlw.auth.service;
 
-import com.hlw.auth.client.SystemUserFeignClient;
+import com.hlw.auth.client.UserFeignClient;
 import com.hlw.auth.domain.resp.LoginUserResp;
 import com.hlw.auth.domain.resp.UserDetailResp;
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.common.core.exception.BizException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Repository;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Repository;
 
 /**
  * 基于 OpenFeign 的用户仓储，通过调用 hospital-system 内部接口完成用户查询。
@@ -19,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class FeignUserRepository implements UserRepository {
     /** 系统用户 Feign 客户端。 */
-    private final SystemUserFeignClient systemUserFeignClient;
+    private final UserFeignClient userFeignClient;
 
     /**
      * 按租户编号和登录账号查询用户。
@@ -31,7 +30,7 @@ public class FeignUserRepository implements UserRepository {
     @Override
     public LoginUserResp findByTenantIdAndUsername(Long tenantId, String username) {
         log.info("Feign 调用 hospital-system 查询用户，tenantId={}，username={}", tenantId, username);
-        R<InternalUserResp> response = systemUserFeignClient.users(tenantId, username);
+        R<InternalUserResp> response = userFeignClient.users(tenantId, username);
         InternalUserResp data = requireOk(response, "查询用户失败");
         if (data == null) {
             return null;
@@ -55,7 +54,7 @@ public class FeignUserRepository implements UserRepository {
     @Override
     public UserDetailResp findProfileById(Long id, Long tenantId) {
         log.info("Feign 调用 hospital-system 查询用户资料，id={}，tenantId={}", id, tenantId);
-        R<InternalUserResp> response = systemUserFeignClient.detail(id, tenantId);
+        R<InternalUserResp> response = userFeignClient.detail(id, tenantId);
         InternalUserResp data = requireOk(response, "查询用户资料失败");
         if (data == null) {
             return null;

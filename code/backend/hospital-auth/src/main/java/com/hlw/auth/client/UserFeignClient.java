@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
  * 因此 internal/** 路径不应被网关对外暴露。</p>
  */
 @FeignClient(name = "hospital-system", contextId = "systemUserFeignClient")
-public interface SystemUserFeignClient {
+public interface UserFeignClient {
     /**
      * 按租户编号和登录账号查询用户。
      *
@@ -21,7 +21,7 @@ public interface SystemUserFeignClient {
      * @param username 登录账号
      * @return 用户数据，不存在时 data 为 null
      */
-    @GetMapping("/internal/system/users")
+    @GetMapping("/internal/users")
     R<InternalUserResp> users(@RequestParam("tenantId") Long tenantId, @RequestParam("username") String username);
 
     /**
@@ -31,6 +31,6 @@ public interface SystemUserFeignClient {
      * @param tenantId 租户编号
      * @return 用户数据，不存在时 data 为 null
      */
-    @GetMapping("/internal/system/users/{id}")
+    @GetMapping("/internal/users/{id}")
     R<InternalUserResp> detail(@PathVariable("id") Long id, @RequestParam("tenantId") Long tenantId);
 }

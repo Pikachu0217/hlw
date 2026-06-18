@@ -16,14 +16,13 @@ import com.hlw.common.redis.service.RedisService;
 import com.hlw.common.security.PasswordEncoder;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.util.Date;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 认证业务服务，负责账号登录和登录用户资料读取。
@@ -182,9 +181,9 @@ public class AuthService {
      * @return 有效租户编号
      */
     private Long requireLoginTenantId(Long tenantId) {
-        if (tenantId == null || tenantId <= 0L) {
+        if (tenantId == null || tenantId < 0L) {
             log.warn("用户登录认证失败，租户编号无效，tenantId={}", tenantId);
-            throw new BizException(400, "租户不能为空");
+            throw new BizException(HttpStatusEnum.LOGIN_PARAMETERS_CANNOT_BE_NULL);
         }
         return tenantId;
     }

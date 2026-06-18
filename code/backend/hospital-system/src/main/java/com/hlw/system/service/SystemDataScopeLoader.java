@@ -18,13 +18,7 @@ import com.hlw.system.service.support.MybatisTenantHelpers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayDeque;
-import java.util.Comparator;
-import java.util.Deque;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 系统服务的数据权限上下文加载器。
@@ -87,7 +81,7 @@ public class SystemDataScopeLoader implements DataScopeLoader {
     }
 
     private SysUserEntity loadUser(Long userId, Long tenantId) {
-        LambdaQueryWrapper<SysUserEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+        LambdaQueryWrapper<SysUserEntity> wrapper = new LambdaQueryWrapper<SysUserEntity>()
                 .eq(SysUserEntity::getId, userId)
                 .last("limit 1");
         if (tenantId != null) {

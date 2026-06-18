@@ -10,15 +10,14 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * 租户上下文过滤器，从 JWT 令牌或请求头解析租户上下文并写入线程变量。
@@ -72,8 +71,7 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
 
         if (StringUtils.hasText(tenantHeader)) {
             try {
-                Long parsed = TenantJwtResolver.resolveTenantId(tenantHeader, jwtSecret);
-                tenantId = parsed >= 0 ? parsed : CommonConstants.ISOLATED_TENANT_ID;
+                tenantId = Long.parseLong(tenantHeader);
                 platformRequest = CommonConstants.PLATFORM_TENANT_ID.equals(tenantId);
                 userId = TenantJwtResolver.resolve(tenantHeader, jwtSecret, CommonConstants.JWT_USER_ID);
 
