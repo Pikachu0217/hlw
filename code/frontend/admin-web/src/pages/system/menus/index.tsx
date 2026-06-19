@@ -7,14 +7,25 @@ import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface MenuRecord {
   key: string;
-  parentId?: string;
+  parentId?: number;
   menuName: string;
   menuType: string;
-  permission: string;
-  routePath: string;
-  sort?: number;
+  perms?: string;
+  path?: string;
+  component?: string;
+  isFrame?: number;
+  visible?: string;
+  orderNum?: number;
+  icon?: string;
   status: string;
+  remark?: string;
 }
+
+const menuTypeMap: Record<string, string> = {
+  M: '目录',
+  C: '菜单',
+  F: '按钮',
+};
 
 function MenusPage() {
   const { records, loading, refresh } = useModuleRecords(fetchMenus, '菜单');
@@ -26,7 +37,7 @@ function MenusPage() {
   const handleOpenCreate = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ menuType: '菜单', parentId: 0, sort: 0, status: '0' });
+    form.setFieldsValue({ menuType: 'C', parentId: 0, orderNum: 0, isFrame: 1, visible: '0', status: '0' });
     setOpen(true);
   };
 
@@ -80,10 +91,16 @@ function MenusPage() {
   const columns = useMemo<ColumnsType<MenuRecord>>(
     () => [
       { title: '菜单名称', dataIndex: 'menuName' },
-      { title: '类型', dataIndex: 'menuType' },
-      { title: '权限标识', dataIndex: 'permission' },
-      { title: '路由路径', dataIndex: 'routePath' },
-      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
+      { title: '类型', dataIndex: 'menuType', render: (value: string) => menuTypeMap[value] ?? value },
+      { title: '权限标识', dataIndex: 'perms' },
+      { title: '路由路径', dataIndex: 'path' },
+      { title: '组件路径', dataIndex: 'component' },
+      { title: '排序', dataIndex: 'orderNum' },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag>,
+      },
       {
         title: '操作',
         key: 'actions',
@@ -106,19 +123,19 @@ function MenusPage() {
     <>
       <ModulePage<MenuRecord>
         eyebrow="系统管理"
-        title="菜单与权限标识"
-        description="把路由、权限标识与按钮位关系先搭好。"
+        title="菜单与按钮权限"
+        description="维护路由节点、组件路径与按钮权限标识，权限控制统一读取菜单 perms。"
         metrics={[
           { label: '菜单节点', value: String(records.length), hint: '来自后端菜单接口' },
           { label: '启用菜单', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
-          { label: '权限标识', value: String(records.filter((record) => record.permission).length), hint: '覆盖当前返回菜单' },
+          { label: '按钮权限', value: String(records.filter((record) => record.menuType === 'F' || record.perms).length), hint: '覆盖当前返回菜单' },
         ]}
         columns={columns}
         dataSource={records}
         loading={loading}
         tableTitle="菜单配置"
         searchPlaceholder="搜索菜单、权限标识或路由"
-        getSearchText={(record) => `${record.menuName} ${record.permission} ${record.routePath}`}
+        getSearchText={(record) => `${record.menuName} ${record.perms ?? ''} ${record.path ?? ''} ${record.component ?? ''}`}
         onCreate={handleOpenCreate}
       />
       <Modal
@@ -133,26 +150,48 @@ function MenusPage() {
           <Form.Item name="menuName" label="菜单名称" rules={[{ required: true, message: '请输入菜单名称' }]}>
             <Input placeholder="请输入菜单名称" />
           </Form.Item>
-          <Form.Item name="permission" label="权限标识" rules={[{ required: true, message: '请输入权限标识' }]}>
+          <Form.Item name="perms" label="权限标识">
             <Input placeholder="例如：system:user:list" />
           </Form.Item>
-          <Form.Item name="routePath" label="路由路径" rules={[{ required: true, message: '请输入路由路径' }]}>
-            <Input placeholder="例如：/system/user" />
+          <Form.Item name="path" label="路由路径">
+            <Input placeholder="例如：system/user" />
+          </Form.Item>
+          <Form.Item name="component" label="组件路径">
+            <Input placeholder="例如：system/user/index" />
           </Form.Item>
           <Form.Item name="menuType" label="菜单类型">
             <Select
               options={[
-                { label: '目录', value: '目录' },
-                { label: '菜单', value: '菜单' },
-                { label: '按钮', value: '按钮' },
+                { label: '目录', value: 'M' },
+                { label: '菜单', value: 'C' },
+                { label: '按钮', value: 'F' },
               ]}
             />
           </Form.Item>
           <Form.Item name="parentId" label="父级编号">
             <InputNumber min={0} className="module-form__number" />
           </Form.Item>
-          <Form.Item name="sort" label="排序">
+          <Form.Item name="orderNum" label="排序">
             <InputNumber min={0} className="module-form__number" />
+          </Form.Item>
+          <Form.Item name="icon" label="图标">
+            <Input placeholder="例如：user" />
+          </Form.Item>
+          <Form.Item name="visible" label="显示状态">
+            <Select
+              options={[
+                { label: '显示', value: '0' },
+                { label: '隐藏', value: '1' },
+              ]}
+            />
+          </Form.Item>
+          <Form.Item name="isFrame" label="外链">
+            <Select
+              options={[
+                { label: '否', value: 1 },
+                { label: '是', value: 0 },
+              ]}
+            />
           </Form.Item>
           <Form.Item name="status" label="状态">
             <Select

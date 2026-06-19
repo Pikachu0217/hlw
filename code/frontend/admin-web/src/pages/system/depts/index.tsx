@@ -16,7 +16,7 @@ function SystemDeptsPage() {
   const handleOpenCreate = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ parentId: 0, status: '0', sort: 0 });
+    form.setFieldsValue({ parentId: 0, status: 0, orderNum: 0 });
     setOpen(true);
   };
 
@@ -71,9 +71,15 @@ function SystemDeptsPage() {
     () => [
       { title: '部门名称', dataIndex: 'deptName' },
       { title: '父级编号', dataIndex: 'parentId' },
-      { title: '排序', dataIndex: 'sort' },
+      { title: '排序', dataIndex: 'orderNum' },
+      { title: '负责人', dataIndex: 'leader' },
+      { title: '电话', dataIndex: 'phone' },
       { title: '祖级列表', dataIndex: 'ancestors' },
-      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        render: (value: number) => <Tag color={value === 0 ? 'green' : 'default'}>{value === 0 ? '启用' : '禁用'}</Tag>,
+      },
       {
         title: '操作',
         key: 'actions',
@@ -101,14 +107,14 @@ function SystemDeptsPage() {
         metrics={[
           { label: '部门数', value: String(records.length), hint: '来自后端系统部门接口' },
           { label: '根部门', value: String(records.filter((record) => record.parentId === 0).length), hint: '按父级编号统计' },
-          { label: '启用部门', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
+          { label: '启用部门', value: String(records.filter((record) => record.status === 0).length), hint: '按状态实时统计' },
         ]}
         columns={columns}
         dataSource={records}
         loading={loading}
         tableTitle="部门列表"
-        searchPlaceholder="搜索部门名称或祖级列表"
-        getSearchText={(record) => `${record.deptName} ${record.ancestors} ${record.parentId}`}
+        searchPlaceholder="搜索部门名称、负责人或祖级列表"
+        getSearchText={(record) => `${record.deptName} ${record.leader ?? ''} ${record.ancestors} ${record.parentId}`}
         onCreate={handleOpenCreate}
       />
       <Modal
@@ -130,14 +136,23 @@ function SystemDeptsPage() {
               options={[{ label: '根部门', value: 0 }, ...records.map((dept) => ({ label: `${dept.deptName} (#${dept.id})`, value: dept.id }))]}
             />
           </Form.Item>
-          <Form.Item name="sort" label="排序">
+          <Form.Item name="orderNum" label="排序">
             <InputNumber min={0} className="module-form__number" />
+          </Form.Item>
+          <Form.Item name="leader" label="负责人">
+            <Input placeholder="请输入负责人" />
+          </Form.Item>
+          <Form.Item name="phone" label="联系电话">
+            <Input placeholder="请输入联系电话" />
+          </Form.Item>
+          <Form.Item name="email" label="邮箱">
+            <Input placeholder="请输入邮箱" />
           </Form.Item>
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '0' },
-                { label: '禁用', value: '1' },
+                { label: '启用', value: 0 },
+                { label: '禁用', value: 1 },
               ]}
             />
           </Form.Item>

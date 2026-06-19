@@ -11,7 +11,9 @@ import DictsPage from '@/pages/system/dicts';
 import ConfigsPage from '@/pages/system/configs';
 import PostsPage from '@/pages/system/posts';
 import SystemDeptsPage from '@/pages/system/depts';
-import PermissionsPage from '@/pages/system/permissions';
+import TenantPackagesPage from '@/pages/system/tenant-packages';
+import NoticesPage from '@/pages/system/notices';
+import SystemLogsPage from '@/pages/system/logs';
 import DoctorPage from '@/pages/doctor';
 import DepartmentsPage from '@/pages/doctor/departments';
 import PatientPage from '@/pages/patient';
@@ -43,7 +45,9 @@ export const appRouter = createBrowserRouter([
       { path: 'system/config', element: <ConfigsPage /> },
       { path: 'system/post', element: <PostsPage /> },
       { path: 'system/dept', element: <SystemDeptsPage /> },
-      { path: 'system/permission', element: <PermissionsPage /> },
+      { path: 'system/tenant-package', element: <TenantPackagesPage /> },
+      { path: 'system/notice', element: <NoticesPage /> },
+      { path: 'system/logs', element: <SystemLogsPage /> },
       { path: 'auth/login-record', element: <LoginRecordPage /> },
       { path: 'gateway/routes', element: <GatewayRoutesPage /> },
       { path: 'doctor', element: <DoctorPage /> },

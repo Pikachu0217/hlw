@@ -10,6 +10,7 @@ import com.hlw.system.mapper.SysOperatorLogMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -27,6 +28,22 @@ public class OperatorLogService {
 
     /** 操作日志数据访问组件。 */
     private final SysOperatorLogMapper sysOperatorLogMapper;
+
+    /**
+     * 记录系统操作日志。
+     *
+     * @param entity 操作日志持久化对象
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordOperatorLog(SysOperatorLogEntity entity) {
+        if (entity == null) {
+            log.warn("记录操作日志失败，日志对象为空");
+            return;
+        }
+        log.info("记录操作日志，tenantId={}，title={}，method={}，status={}",
+            entity.getTenantId(), entity.getTitle(), entity.getMethod(), entity.getStatus());
+        sysOperatorLogMapper.insert(entity);
+    }
 
     /**
      * 分页查询操作日志。

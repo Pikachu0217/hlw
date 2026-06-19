@@ -37,12 +37,12 @@ export function HospitalPage() {
             key={hospital.key}
             description={
               <Space>
-                <Tag color="primary">{hospital.packageName}</Tag>
-                <span>{hospital.status}</span>
+                <Tag color="primary">{hospital.status === "0" ? "可选租户" : "暂停服务"}</Tag>
+                <span>{hospital.tenantId}</span>
               </Space>
             }
           >
-            {hospital.tenantName}
+            {hospital.companyName}
           </List.Item>
         ))}
       </List>

@@ -5,6 +5,7 @@ import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.domain.R;
 import com.hlw.system.domain.req.CreateTenantReq;
 import com.hlw.system.domain.req.UpdateTenantReq;
+import com.hlw.system.domain.resp.TenantOptionResp;
 import com.hlw.system.service.TenantService;
 import com.hlw.system.domain.resp.TenantResp;
 import jakarta.validation.Valid;
@@ -19,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * 租户管理控制器。
  */
@@ -29,6 +32,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class TenantController {
     /** 租户聚合服务。 */
     private final TenantService tenantService;
+
+    /**
+     * 查询登录前可选择的租户选项。
+     *
+     * @return 租户选项列表
+     */
+    @GetMapping("/options")
+    public R<List<TenantOptionResp>> options() {
+        log.info("查询登录前租户选项");
+        return R.ok(tenantService.listTenantOptions());
+    }
 
     /**
      * 分页查询租户列表。

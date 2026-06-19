@@ -6,6 +6,13 @@ interface ApiResult<T> {
   data: T;
 }
 
+interface BackendPageResult<T> {
+  records: T[];
+  total: number;
+  pageNum: number;
+  pageSize: number;
+}
+
 export interface PatientProfile {
   id: number;
   name: string;
@@ -15,10 +22,8 @@ export interface PatientProfile {
 
 export interface HospitalItem {
   key: string;
-  tenantName: string;
-  packageName: string;
-  adminName: string;
-  expireAt: string;
+  tenantId: string;
+  companyName: string;
   status: string;
 }
 
@@ -111,7 +116,7 @@ export async function fetchPatientProfile(): Promise<PatientProfile> {
 
 export async function fetchHospitals(): Promise<HospitalItem[]> {
   console.info("[patient] 查询医院租户列表");
-  const response = await http.get<ApiResult<HospitalItem[]>>("/system/tenant");
+  const response = await http.get<ApiResult<HospitalItem[]>>("/system/tenant/options");
   return response.data.data;
 }
 

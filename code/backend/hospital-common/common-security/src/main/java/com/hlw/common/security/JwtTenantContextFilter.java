@@ -125,6 +125,10 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
             log.warn("租户请求头与 JWT 租户不一致，headerTenantId={}，tokenTenantId={}", headerTenantId, tokenTenantId);
             return CommonConstants.ISOLATED_TENANT_ID;
         }
+        if (CommonConstants.PLATFORM_TENANT_ID.equals(headerTenantId) && tokenTenantId == null) {
+            log.warn("拒绝无令牌的平台租户请求头，headerTenantId={}", headerTenantId);
+            return CommonConstants.ISOLATED_TENANT_ID;
+        }
         if (headerTenantId != null) {
             return headerTenantId;
         }

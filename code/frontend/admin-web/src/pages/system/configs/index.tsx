@@ -1,4 +1,4 @@
-import { Button, Form, Input, Modal, Select, Space, Tag, message } from 'antd';
+import { Button, Form, Input, Modal, Space, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { createConfig, deleteConfig, fetchConfigs, updateConfig } from '@/api/modules';
@@ -7,11 +7,10 @@ import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface ConfigRecord {
   key: string;
+  configName: string;
   configKey: string;
   configValue: string;
-  configType: string;
-  status: string;
-  remark: string;
+  remark?: string;
 }
 
 function ConfigsPage() {
@@ -24,7 +23,6 @@ function ConfigsPage() {
   const handleOpenCreate = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ configType: '业务参数', status: '0' });
     setOpen(true);
   };
 
@@ -39,7 +37,7 @@ function ConfigsPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateConfig(editingRecord.key, { configValue: values.configValue, remark: values.remark });
+        await updateConfig(editingRecord.key, values);
         message.success('参数配置更新成功');
       } else {
         await createConfig(values);
@@ -77,11 +75,10 @@ function ConfigsPage() {
 
   const columns = useMemo<ColumnsType<ConfigRecord>>(
     () => [
+      { title: '配置名称', dataIndex: 'configName' },
       { title: '配置键', dataIndex: 'configKey' },
       { title: '配置值', dataIndex: 'configValue' },
-      { title: '配置类型', dataIndex: 'configType' },
       { title: '备注', dataIndex: 'remark' },
-      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
       {
         title: '操作',
         key: 'actions',
@@ -108,15 +105,15 @@ function ConfigsPage() {
         description="集中沉淀问诊时长、放号窗口、安全策略等可运营参数。"
         metrics={[
           { label: '配置项', value: String(records.length), hint: '来自后端配置接口' },
-          { label: '配置类型', value: String(new Set(records.map((record) => record.configType)).size), hint: '按配置类型聚合' },
-          { label: '启用配置', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
+          { label: '配置键', value: String(new Set(records.map((record) => record.configKey)).size), hint: '按配置键去重' },
+          { label: '有备注项', value: String(records.filter((record) => record.remark).length), hint: '按备注字段实时统计' },
         ]}
         columns={columns}
         dataSource={records}
         loading={loading}
         tableTitle="参数配置列表"
-        searchPlaceholder="搜索配置键、类型或备注"
-        getSearchText={(record) => `${record.configKey} ${record.configType} ${record.configValue} ${record.remark}`}
+        searchPlaceholder="搜索配置名称、键或备注"
+        getSearchText={(record) => `${record.configName} ${record.configKey} ${record.configValue} ${record.remark ?? ''}`}
         onCreate={handleOpenCreate}
       />
       <Modal
@@ -128,23 +125,14 @@ function ConfigsPage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" className="module-form">
-          <Form.Item name="configKey" label="配置键" rules={[{ required: !editingRecord, message: '请输入配置键' }]}>
-            <Input placeholder="请输入配置键" disabled={Boolean(editingRecord)} />
+          <Form.Item name="configName" label="配置名称" rules={[{ required: true, message: '请输入配置名称' }]}>
+            <Input placeholder="请输入配置名称" />
+          </Form.Item>
+          <Form.Item name="configKey" label="配置键" rules={[{ required: true, message: '请输入配置键' }]}>
+            <Input placeholder="请输入配置键" />
           </Form.Item>
           <Form.Item name="configValue" label="配置值" rules={[{ required: true, message: '请输入配置值' }]}>
             <Input placeholder="请输入配置值" />
-          </Form.Item>
-          <Form.Item name="configType" label="配置类型">
-            <Input placeholder="例如：业务参数" disabled={Boolean(editingRecord)} />
-          </Form.Item>
-          <Form.Item name="status" label="状态">
-            <Select
-              disabled={Boolean(editingRecord)}
-              options={[
-                { label: '启用', value: '0' },
-                { label: '禁用', value: '1' },
-              ]}
-            />
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <Input.TextArea rows={3} placeholder="请输入备注" />

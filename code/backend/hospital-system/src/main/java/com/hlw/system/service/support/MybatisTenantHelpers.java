@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.exception.BizException;
+import com.hlw.common.core.security.TokenPrincipal;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
 
 /**
@@ -56,7 +57,8 @@ public final class MybatisTenantHelpers {
      * @param message 不满足条件时的错误消息
      */
     public static void ensurePlatformContext(String message) {
-        if (!TokenPrincipalContext.get().getPlatformRequest()) {
+        TokenPrincipal principal = TokenPrincipalContext.get();
+        if (principal == null || !Boolean.TRUE.equals(principal.getPlatformRequest())) {
             throw new BizException(403, message);
         }
     }

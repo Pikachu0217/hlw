@@ -10,6 +10,7 @@ DIRECT_MODE="${HLW_API_DIRECT_MODE:-0}"
 USERNAME="${HLW_API_USERNAME:-门诊运营}"
 PASSWORD="${HLW_API_PASSWORD:-123456}"
 TENANT_HEADER="${HLW_API_TENANT_ID:-100}"
+RUN_PLATFORM_CASES="${HLW_API_RUN_PLATFORM_CASES:-0}"
 TOKEN_HEADER_NAME="${HLW_API_TOKEN_NAME:-Authorization}"
 TOKEN_PREFIX="${HLW_API_TOKEN_PREFIX:-Bearer}"
 TENANT_HEADER_NAME="${HLW_API_TENANT_HEADER_NAME:-X-Tenant-Id}"
@@ -113,6 +114,7 @@ print_usage() {
   HLW_API_USERNAME=门诊运营                  登录账号
   HLW_API_PASSWORD=123456                    登录密码
   HLW_API_TENANT_ID=100                      租户请求头
+  HLW_API_RUN_PLATFORM_CASES=1               执行租户、租户套餐等平台级全局配置用例
   HLW_API_TIMEOUT_SECONDS=10                 单接口超时时间
   HLW_API_REPORT_DIR=resources/reports/api-test 报告输出目录
 
@@ -367,17 +369,21 @@ run_login_case() {
   response_file="$(mktemp)"
   meta_file="$(mktemp)"
   started_at="$(now_ms)"
-  http_code="$(curl \
+  local curl_args=(
     --silent \
     --show-error \
     --max-time "${TIMEOUT_SECONDS}" \
     --request "${method}" \
     --header "Content-Type: application/json" \
-    --header "${TENANT_HEADER_NAME}: ${TENANT_HEADER}" \
     --data "${body}" \
     --output "${response_file}" \
     --write-out "%{http_code}" \
-    "$(resolve_base_url "${path}")${path}" 2>"${meta_file}")"
+    "$(resolve_base_url "${path}")${path}"
+  )
+  if [ "${TENANT_HEADER}" != "0" ]; then
+    curl_args=(--header "${TENANT_HEADER_NAME}: ${TENANT_HEADER}" "${curl_args[@]}")
+  fi
+  http_code="$(curl "${curl_args[@]}" 2>"${meta_file}")"
   curl_status=$?
   ended_at="$(now_ms)"
   duration_ms=$((ended_at - started_at))
@@ -553,6 +559,7 @@ print_summary() {
 
 # 按前后端主要业务路径编排接口用例。
 run_all_cases() {
+  run_case "查询登录前租户选项" "GET" "/system/tenant/options"
   run_login_case
 
   # 认证模块接口。
@@ -572,27 +579,32 @@ run_all_cases() {
   # 系统管理接口。
   run_case "查询登录用户信息" "GET" "/system/getInfo"
   run_case "查询登录用户路由" "GET" "/system/getRouters"
-  run_case "查询租户列表" "GET" "/system/tenant"
-  run_case "查询租户套餐列表" "GET" "/system/tenant-package"
-  run_case "创建租户套餐" "POST" "/system/tenant-package" "{\"packageName\":\"接口测试套餐\",\"menuIds\":[1],\"remark\":\"脚本自动创建\"}"
-  local tenant_package_id
-  tenant_package_id="$(extract_data_id "${last_body}")"
-  if [ -n "${tenant_package_id}" ]; then
-    run_case "查询租户套餐详情" "GET" "/system/tenant-package/${tenant_package_id}"
-    run_case "更新租户套餐" "PUT" "/system/tenant-package/${tenant_package_id}" "{\"packageName\":\"接口测试套餐更新\",\"menuIds\":[1],\"remark\":\"脚本自动更新\"}"
-    run_case "删除租户套餐" "DELETE" "/system/tenant-package/${tenant_package_id}"
+  if [ "${RUN_PLATFORM_CASES}" = "1" ]; then
+    run_case "查询租户列表" "GET" "/system/tenant"
+    run_case "查询租户套餐列表" "GET" "/system/tenant-package"
+    run_case "创建租户套餐" "POST" "/system/tenant-package" "{\"packageName\":\"接口测试套餐\",\"menuIds\":[1],\"remark\":\"脚本自动创建\"}"
+    local tenant_package_id
+    tenant_package_id="$(extract_data_id "${last_body}")"
+    if [ -n "${tenant_package_id}" ]; then
+      run_case "查询租户套餐详情" "GET" "/system/tenant-package/${tenant_package_id}"
+      run_case "更新租户套餐" "PUT" "/system/tenant-package/${tenant_package_id}" "{\"packageName\":\"接口测试套餐更新\",\"menuIds\":[1],\"remark\":\"脚本自动更新\"}"
+      run_case "删除租户套餐" "DELETE" "/system/tenant-package/${tenant_package_id}"
+    else
+      record_skip_case "租户套餐详情更新删除" "GET/PUT/DELETE" "/system/tenant-package/{id}" "-" "创建租户套餐未返回 data.key 或 data.id，跳过串联用例"
+    fi
+    run_case "创建租户" "POST" "/system/tenant" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008888\",\"companyName\":\"接口测试医院\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址\",\"intro\":\"脚本自动创建\",\"domain\":\"api-test\",\"remark\":\"接口测试租户\",\"packageId\":1,\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":50,\"status\":\"0\"}"
+    local tenant_id
+    tenant_id="$(extract_data_id "${last_body}")"
+    if [ -n "${tenant_id}" ]; then
+      run_case "查询租户详情" "GET" "/system/tenant/${tenant_id}"
+      run_case "更新租户" "PUT" "/system/tenant/${tenant_id}" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008889\",\"companyName\":\"接口测试医院更新\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址更新\",\"intro\":\"脚本自动更新\",\"domain\":\"api-test\",\"remark\":\"接口测试租户更新\",\"packageId\":1,\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":60,\"status\":\"0\"}"
+      run_case "删除租户" "DELETE" "/system/tenant/${tenant_id}"
+    else
+      record_skip_case "租户详情更新删除" "GET/PUT/DELETE" "/system/tenant/{id}" "-" "创建租户未返回 data.key 或 data.id，跳过串联用例"
+    fi
   else
-    record_skip_case "租户套餐详情更新删除" "GET/PUT/DELETE" "/system/tenant-package/{id}" "-" "创建租户套餐未返回 data.key 或 data.id，跳过串联用例"
-  fi
-  run_case "创建租户" "POST" "/system/tenant" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008888\",\"companyName\":\"接口测试医院\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址\",\"intro\":\"脚本自动创建\",\"domain\":\"api-test\",\"remark\":\"接口测试租户\",\"packageId\":1,\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":50,\"status\":\"0\"}"
-  local tenant_id
-  tenant_id="$(extract_data_id "${last_body}")"
-  if [ -n "${tenant_id}" ]; then
-    run_case "查询租户详情" "GET" "/system/tenant/${tenant_id}"
-    run_case "更新租户" "PUT" "/system/tenant/${tenant_id}" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008889\",\"companyName\":\"接口测试医院更新\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址更新\",\"intro\":\"脚本自动更新\",\"domain\":\"api-test\",\"remark\":\"接口测试租户更新\",\"packageId\":1,\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":60,\"status\":\"0\"}"
-    run_case "删除租户" "DELETE" "/system/tenant/${tenant_id}"
-  else
-    record_skip_case "租户详情更新删除" "GET/PUT/DELETE" "/system/tenant/{id}" "-" "创建租户未返回 data.key 或 data.id，跳过串联用例"
+    record_skip_case "平台级租户管理" "GET/POST/PUT/DELETE" "/system/tenant" "-" "默认业务租户脚本不执行全局租户管理用例，设置 HLW_API_RUN_PLATFORM_CASES=1 后使用平台账号执行"
+    record_skip_case "平台级租户套餐管理" "GET/POST/PUT/DELETE" "/system/tenant-package" "-" "默认业务租户脚本不执行全局套餐管理用例，设置 HLW_API_RUN_PLATFORM_CASES=1 后使用平台账号执行"
   fi
   run_case "查询后台用户列表" "GET" "/system/user"
   run_case "创建后台用户" "POST" "/system/user" "{\"userName\":\"api_user\",\"nickName\":\"接口测试用户\",\"deptId\":1,\"userType\":\"ADMIN\",\"phone\":\"13800006666\",\"email\":\"api_user@example.com\",\"sex\":\"0\",\"password\":\"123456\",\"status\":0,\"remark\":\"脚本自动创建\"}"

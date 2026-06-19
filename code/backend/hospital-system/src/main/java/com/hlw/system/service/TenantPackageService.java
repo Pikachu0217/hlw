@@ -42,6 +42,7 @@ public class TenantPackageService {
      */
     @Transactional(readOnly = true)
     public PageResult<TenantPackageResp> listPackages(PageQuery query) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以查询租户套餐列表");
         log.info("查询租户套餐列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
         LambdaQueryWrapper<SysTenantPackageEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysTenantPackageEntity::getDeleted);
@@ -62,6 +63,7 @@ public class TenantPackageService {
      */
     @Transactional(rollbackFor = Exception.class)
     public TenantPackageResp createPackage(CreateTenantPackageReq request) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以创建租户套餐");
         log.info("创建租户套餐，packageName={}", request.getPackageName());
         SysTenantPackageEntity entity = new SysTenantPackageEntity();
         fillPackage(entity, request);
@@ -81,6 +83,7 @@ public class TenantPackageService {
      */
     @Transactional(readOnly = true)
     public TenantPackageResp getPackage(Long id) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以查询租户套餐详情");
         log.info("查询租户套餐详情，id={}", id);
         return toResp(requirePackage(id));
     }
@@ -94,6 +97,7 @@ public class TenantPackageService {
      */
     @Transactional(rollbackFor = Exception.class)
     public TenantPackageResp updatePackage(Long id, CreateTenantPackageReq request) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以更新租户套餐");
         log.info("更新租户套餐，id={}，packageName={}", id, request.getPackageName());
         SysTenantPackageEntity entity = requirePackage(id);
         fillPackage(entity, request);
@@ -110,6 +114,7 @@ public class TenantPackageService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deletePackage(Long id) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以删除租户套餐");
         log.info("删除租户套餐，id={}", id);
         SysTenantPackageEntity entity = requirePackage(id);
         entity.setDeleted(DeletedStatusEnum.DELETED.getType());

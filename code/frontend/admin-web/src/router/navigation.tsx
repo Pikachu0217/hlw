@@ -40,7 +40,9 @@ export const navigationTree: NavigationItem[] = [
       { key: 'system-config', label: '参数配置', path: '/system/config' },
       { key: 'system-post', label: '岗位管理', path: '/system/post' },
       { key: 'system-dept', label: '部门管理', path: '/system/dept' },
-      { key: 'system-permission', label: '权限管理', path: '/system/permission' },
+      { key: 'system-tenant-package', label: '套餐管理', path: '/system/tenant-package' },
+      { key: 'system-notice', label: '通知公告', path: '/system/notice' },
+      { key: 'system-logs', label: '系统日志', path: '/system/logs' },
     ],
   },
   {

@@ -3,8 +3,7 @@ import { Button, Card, Checkbox, Form, Input, Select, Space, Tag, Typography, me
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { loginAdmin } from '@/api/auth';
-import { fetchTenants } from '@/api/modules';
-import type { TenantRecord } from '@/pages/tenant';
+import { fetchTenantOptions, type TenantOptionRecord } from '@/api/modules';
 import { useAuthStore } from '@/store/auth-store';
 
 interface LoginFormValues {
@@ -19,7 +18,7 @@ function LoginPage() {
   const location = useLocation();
   const { login } = useAuthStore();
   const [form] = Form.useForm<LoginFormValues>();
-  const [tenants, setTenants] = useState<TenantRecord[]>([]);
+  const [tenants, setTenants] = useState<TenantOptionRecord[]>([]);
   const [tenantLoading, setTenantLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -29,13 +28,13 @@ function LoginPage() {
     async function loadTenants(): Promise<void> {
       setTenantLoading(true);
       try {
-        const tenantRecords = await fetchTenants();
+        const tenantRecords = await fetchTenantOptions();
         if (ignore) {
           return;
         }
         setTenants(tenantRecords);
         if (tenantRecords.length > 0) {
-          form.setFieldValue('tenantId', tenantRecords[0].tenantId);
+          form.setFieldValue('tenantId', Number(tenantRecords[0].tenantId));
         }
       } catch {
         if (!ignore) {
@@ -109,8 +108,8 @@ function LoginPage() {
               loading={tenantLoading}
               placeholder="请选择登录租户"
               options={tenants.map((tenant) => ({
-                label: tenant.tenantName,
-                value: tenant.tenantId,
+                label: tenant.companyName,
+                value: Number(tenant.tenantId),
               }))}
               showSearch
               optionFilterProp="label"

@@ -65,7 +65,7 @@ code/backend/
 
 | 组件 | 版本 | 地址 |
 | --- | --- | --- |
-| MySQL | 8 | `localhost:3306` |
+| MySQL | 8 | `localhost:23308` |
 | Redis | 7 | `localhost:6379` |
 | Nacos | 2.3 | `localhost:8848` |
 | RabbitMQ | 3 management | `localhost:5672`，控制台 `localhost:15672` |
@@ -75,7 +75,7 @@ code/backend/
 
 ```text
 MySQL 用户：root
-MySQL 密码：hospital123
+MySQL 密码：root
 MinIO Root 用户：minio
 MinIO Root 密码：minio123
 ```
@@ -147,17 +147,18 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 - Service 统一负责系统管理业务编排、关系绑定校验和 VO 转换。
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再在系统模块中保留 `JdbcOperations` 直查实现。
 - 系统服务会优先读取网关透传的可信租户头写入租户上下文，只有缺少租户头时才兜底解析登录令牌；默认请求头为 `Authorization: Bearer <token>`，实际名称和前缀以 `hlw.auth` 公共配置为准。无法识别租户时会进入隔离上下文，不再默认落到平台租户。
-- 涉及平台级租户主数据的创建，会在 Service 中显式忽略租户行过滤，并且仅允许平台令牌上下文访问；登录前租户选择接口不鉴权，公开查询所有未删除租户的基础展示信息。
+- 涉及租户、租户套餐等平台级全局配置的列表、详情、新增、更新和删除，会在 Service 中校验平台令牌上下文；登录前租户选项接口不鉴权，仅公开租户编号、企业名称和状态。
+- 系统模块通过本地 MVC 拦截器自动记录 `/system/**` 操作日志并写入 `sys_operator_log`，日志查询接口 `/system/log/**` 会被排除，避免查询日志时递归产生日志。
 
 ## 认证与租户上下文
 
 当前认证链路约定如下：
 
-- 登录页可在未登录状态通过 `GET /system/tenant` 读取所有未删除租户选项，用于选择管理端登录租户。
+- 登录页可在未登录状态通过 `GET /system/tenant/options` 读取所有启用租户的最小选项信息，用于选择管理端登录租户。
 - 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 查询认证库 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
 - 网关只信任 `hlw.auth.token-name` 请求头中的登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `hlw.auth.tenant-header-name` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
-- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenant`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
+- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenant/options`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
 - 登录接口属于公开接口，允许携带正数可信租户头辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
 - 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，优先消费网关透传的可信租户头，缺少租户头时再兜底解析 JWT；令牌无效或租户缺失时进入隔离租户 `-1`。
 
@@ -172,12 +173,13 @@ HLW_API_TENANT_HEADER_NAME=X-Tenant-Id
 HLW_API_USERNAME=门诊运营
 HLW_API_PASSWORD=123456
 HLW_API_TENANT_ID=100
-HLW_AUTH_DB_URL=jdbc:mysql://127.0.0.1:3306/hospital_auth?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+HLW_API_RUN_PLATFORM_CASES=0
+HLW_AUTH_DB_URL=jdbc:mysql://127.0.0.1:23308/hospital_auth?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
 HLW_AUTH_DB_USERNAME=root
-HLW_AUTH_DB_PASSWORD=hospital123
-HLW_GATEWAY_DB_URL=jdbc:mysql://127.0.0.1:3306/hospital_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+HLW_AUTH_DB_PASSWORD=root
+HLW_GATEWAY_DB_URL=jdbc:mysql://127.0.0.1:23308/hospital_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
 HLW_GATEWAY_DB_USERNAME=root
-HLW_GATEWAY_DB_PASSWORD=hospital123
+HLW_GATEWAY_DB_PASSWORD=root
 ```
 
 `resources/sql/001-mysql8-baseline.sql` 是当前 MySQL 8 初始化脚本，兼作现有领域设计基线和本地联调用脚本；每个表和字段必须补充中文 `COMMENT`。
@@ -426,6 +428,7 @@ PUT /auth/login-record/{id}
 DELETE /auth/login-record/{id}
 GET /system/getInfo
 GET /system/getRouters
+GET /system/tenant/options
 GET /system/tenant
 POST /system/tenant
 GET /system/tenant/{id}
@@ -493,7 +496,7 @@ PUT /gateway/route/{id}
 DELETE /gateway/route/{id}
 ```
 
-认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。登录成功和失败会自动写入 `auth_login_record`，退出登录会按令牌摘要回写退出时间。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_role` 和 `sys_role_menu` 表；租户、租户套餐、用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
+认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。登录成功和失败会自动写入 `auth_login_record`，退出登录会按令牌摘要回写退出时间。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_role` 和 `sys_role_menu` 表；登录前租户选项接口仅返回最小展示字段，租户和租户套餐管理接口仅允许平台租户上下文访问，用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。系统模块会自动采集 `/system/**` 请求的操作日志并写入 `sys_operator_log`，网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
 
 `hospital-auth` 当前约定补充如下：
 

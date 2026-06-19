@@ -21,7 +21,10 @@
 - `system/dict`
 - `system/config`
 - `system/post`
-- `system/permission`
+- `system/dept`
+- `system/tenant-package`
+- `system/notice`
+- `system/logs`
 - `auth/login-record`
 - `gateway/routes`
 - `doctor`
@@ -35,7 +38,7 @@
 
 管理端登录页已接入登录前租户选择，会调用公开租户列表接口加载可登录租户，并在提交认证时携带租户编号。
 
-管理端 `tenant` 页面已接入租户新增弹窗；`doctor` 页面已接入新增医生、医生状态切换和医生排班创建操作，`doctor/departments` 页面已接入新增科室弹窗，提交后会刷新后端列表数据；`patient` 页面已接入患者档案创建、患者资料更新和健康档案创建操作，并同步展示患者详情与档案列表。
+管理端 `tenant` 页面已接入租户新增、编辑和删除弹窗，字段同步当前 `sys_tenant` 企业主体模型；`doctor` 页面已接入新增医生、医生状态切换和医生排班创建操作，`doctor/departments` 页面已接入新增科室弹窗，提交后会刷新后端列表数据；`patient` 页面已接入患者档案创建、患者资料更新和健康档案创建操作，并同步展示患者详情与档案列表。
 
 `patient-h5` 当前已覆盖以下页面骨架：
 
@@ -142,14 +145,21 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 - `/system/dict`
 - `/system/config`
 - `/system/post`
-- `/system/permission`
+- `/system/dept`
+- `/system/tenant/options`
+- `/system/tenant-package`
+- `/system/notice`
+- `/system/log/login`
+- `/system/log/operator`
 - `/auth/login-record`
 - `/gateway/route`
 - `/doctor/departments`
 
-管理端登录页会在未登录状态调用 `GET /system/tenant` 获取所有未删除租户选项，并在 `POST /auth/login` 请求体和请求头中携带租户编号，确保后台账号按租户隔离登录。
+管理端登录页会在未登录状态调用 `GET /system/tenant/options` 获取租户编号、企业名称和状态等最小选项字段，并在 `POST /auth/login` 请求体和请求头中携带租户编号，确保后台账号按租户隔离登录。
 
-系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。用户、角色、菜单、字典、参数配置、岗位、权限码页面均已接入新增、编辑、删除弹窗；提交后调用对应 `POST /system/*`、`PUT /system/*/{id}` 和 `DELETE /system/*/{id}` 接口并刷新列表。
+系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。用户、角色、菜单、字典、参数配置、岗位、部门、租户套餐和通知公告页面均已接入新增、编辑、删除弹窗；租户和租户套餐页面属于平台级全局配置，后端要求平台租户上下文；提交后调用对应 `POST /system/*`、`PUT /system/*/{id}` 和 `DELETE /system/*/{id}` 接口并刷新列表。按钮权限统一维护在菜单 `perms` 字段，不再保留独立权限码页面。
+
+系统日志页面已接入 `GET /system/log/login` 和 `GET /system/log/operator`，用于查看后台登录日志与操作日志；该页面只读展示，不提供写操作。
 
 认证中心已新增 `auth/login-record` 页面，支持登录记录列表、详情、创建、编辑和删除；网关管理已新增 `gateway/routes` 页面，支持路由配置列表、详情、创建、编辑和删除。两个页面均复用 `ModulePage` 和 `src/styles/global.css` 的统一样式约束。
 

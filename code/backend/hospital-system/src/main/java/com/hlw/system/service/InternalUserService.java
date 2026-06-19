@@ -1,6 +1,7 @@
 package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.system.entity.SysMenuEntity;
 import com.hlw.system.entity.SysRoleEntity;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -50,10 +52,10 @@ public class InternalUserService {
     @Transactional(readOnly = true)
     public InternalUserResp findByTenantIdAndUsername(Long tenantId, String username) {
         log.info("内部查询用户，tenantId={}，username={}", tenantId, username);
-        SysUserEntity entity = sysUserMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+        SysUserEntity entity = ignoreTenantLine(() -> sysUserMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
             .eq(SysUserEntity::getTenantId, String.valueOf(tenantId))
             .eq(SysUserEntity::getUserName, username)
-            .last("limit 1"));
+            .last("limit 1")));
         return entity == null ? null : toInternalUserResp(entity);
     }
 
@@ -67,10 +69,10 @@ public class InternalUserService {
     @Transactional(readOnly = true)
     public InternalUserResp findByIdAndTenantId(Long id, Long tenantId) {
         log.info("内部查询用户资料，id={}，tenantId={}", id, tenantId);
-        SysUserEntity entity = sysUserMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+        SysUserEntity entity = ignoreTenantLine(() -> sysUserMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
             .eq(SysUserEntity::getId, id)
             .eq(SysUserEntity::getTenantId, String.valueOf(tenantId))
-            .last("limit 1"));
+            .last("limit 1")));
         return entity == null ? null : toInternalUserResp(entity);
     }
 
@@ -81,9 +83,9 @@ public class InternalUserService {
      * @return 内部用户展示对象
      */
     private InternalUserResp toInternalUserResp(SysUserEntity entity) {
-        List<SysRoleEntity> roles = loadRoles(entity.getUserId());
+        List<SysRoleEntity> roles = loadRoles(entity.getUserId(), entity.getTenantId());
         Set<Long> roleIds = roles.stream().map(SysRoleEntity::getId).collect(Collectors.toSet());
-        List<String> perms = loadPerms(roleIds);
+        List<String> perms = loadPerms(roleIds, entity.getTenantId());
         InternalUserResp resp = new InternalUserResp();
         resp.setId(entity.getId());
         resp.setUserId(entity.getUserId());
@@ -103,43 +105,48 @@ public class InternalUserService {
      * 加载用户角色。
      *
      * @param userId 用户业务编号
+     * @param tenantId 租户编号
      * @return 角色列表
      */
-    private List<SysRoleEntity> loadRoles(String userId) {
-        List<Long> roleIds = sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>()
-                .eq(SysUserRoleEntity::getUserId, userId)).stream()
+    private List<SysRoleEntity> loadRoles(String userId, String tenantId) {
+        List<Long> roleIds = ignoreTenantLine(() -> sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>()
+                .eq(SysUserRoleEntity::getTenantId, tenantId)
+                .eq(SysUserRoleEntity::getUserId, userId))).stream()
             .map(SysUserRoleEntity::getRoleId)
             .distinct()
             .toList();
         if (roleIds.isEmpty()) {
             return List.of();
         }
-        return sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+        return ignoreTenantLine(() -> sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+            .eq(SysRoleEntity::getTenantId, tenantId)
             .eq(SysRoleEntity::getStatus, 0)
-            .in(SysRoleEntity::getId, roleIds));
+            .in(SysRoleEntity::getId, roleIds)));
     }
 
     /**
      * 加载角色权限标识。
      *
      * @param roleIds 角色编号集合
+     * @param tenantId 租户编号
      * @return 权限标识列表
      */
-    private List<String> loadPerms(Set<Long> roleIds) {
+    private List<String> loadPerms(Set<Long> roleIds, String tenantId) {
         if (roleIds.isEmpty()) {
             return List.of();
         }
-        List<Long> menuIds = sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenuEntity>()
-                .in(SysRoleMenuEntity::getRoleId, roleIds)).stream()
+        List<Long> menuIds = ignoreTenantLine(() -> sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenuEntity>()
+                .eq(SysRoleMenuEntity::getTenantId, tenantId)
+                .in(SysRoleMenuEntity::getRoleId, roleIds))).stream()
             .map(SysRoleMenuEntity::getMenuId)
             .distinct()
             .toList();
         if (menuIds.isEmpty()) {
             return List.of();
         }
-        return sysMenuMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted)
+        return ignoreTenantLine(() -> sysMenuMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted)
                 .eq(SysMenuEntity::getStatus, "0")
-                .in(SysMenuEntity::getId, menuIds)).stream()
+                .in(SysMenuEntity::getId, menuIds))).stream()
             .map(SysMenuEntity::getPerms)
             .filter(value -> value != null && !value.isBlank())
             .distinct()
@@ -159,5 +166,16 @@ public class InternalUserService {
             log.warn("租户编号无法转换为 Long，tenantId={}", tenantId);
             return -1L;
         }
+    }
+
+    /**
+     * 执行显式租户条件查询并跳过 MyBatis Plus 自动租户拼接。
+     *
+     * @param supplier 查询执行器
+     * @param <T> 返回值类型
+     * @return 查询返回值
+     */
+    private <T> T ignoreTenantLine(Supplier<T> supplier) {
+        return InterceptorIgnoreHelper.execute(MybatisTenantHelpers.ignoreTenantLine(), supplier);
     }
 }

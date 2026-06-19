@@ -7,13 +7,19 @@ import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface UserRecord {
   key: string;
-  username: string;
+  userId: string;
+  userName: string;
+  nickName?: string;
   deptId?: number;
-  deptName: string;
-  roleName: string;
-  phone: string;
-  lastLogin: string;
-  status: string;
+  deptName?: string;
+  roleName?: string;
+  postName?: string;
+  phone?: string;
+  email?: string;
+  userType?: string;
+  lastLogin?: string;
+  status: number;
+  remark?: string;
 }
 
 function UsersPage() {
@@ -27,35 +33,34 @@ function UsersPage() {
   const handleOpenCreate = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ userType: 'ADMIN', status: '0', roleName: '系统管理员' });
+    form.setFieldsValue({ userType: 'ADMIN', status: 0 });
     setOpen(true);
   };
 
   const handleOpenEdit = (record: UserRecord) => {
     setEditingRecord(record);
     form.setFieldsValue({
-      username: record.username,
+      userName: record.userName,
+      nickName: record.nickName,
       phone: record.phone,
+      email: record.email,
       deptId: record.deptId,
-      deptName: record.deptName,
-      roleName: record.roleName,
-      userType: 'ADMIN',
+      userType: record.userType ?? 'ADMIN',
       status: record.status,
+      remark: record.remark,
     });
     setOpen(true);
   };
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
-    const selectedDept = deptOptions.find((dept) => dept.id === values.deptId);
-    const payload = { ...values, deptName: selectedDept?.deptName ?? values.deptName };
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateUser(editingRecord.key, payload);
+        await updateUser(editingRecord.key, values);
         message.success('用户更新成功');
       } else {
-        await createUser(payload);
+        await createUser(values);
         message.success('用户创建成功');
       }
       setOpen(false);
@@ -72,7 +77,7 @@ function UsersPage() {
   const handleDelete = (record: UserRecord) => {
     Modal.confirm({
       title: '确认删除',
-      content: `确定要删除用户"${record.username}"吗？`,
+      content: `确定要删除用户"${record.userName}"吗？`,
       okText: '确认',
       okType: 'danger',
       cancelText: '取消',
@@ -90,12 +95,18 @@ function UsersPage() {
 
   const columns = useMemo<ColumnsType<UserRecord>>(
     () => [
-      { title: '账号名称', dataIndex: 'username' },
+      { title: '账号', dataIndex: 'userName' },
+      { title: '昵称', dataIndex: 'nickName' },
       { title: '部门', dataIndex: 'deptName' },
       { title: '角色', dataIndex: 'roleName' },
       { title: '联系电话', dataIndex: 'phone' },
+      { title: '邮箱', dataIndex: 'email' },
       { title: '最近登录', dataIndex: 'lastLogin' },
-      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        render: (value: number) => <Tag color={value === 0 ? 'green' : 'default'}>{value === 0 ? '启用' : '禁用'}</Tag>,
+      },
       {
         title: '操作',
         key: 'actions',
@@ -111,7 +122,7 @@ function UsersPage() {
         ),
       },
     ],
-    [deptOptions],
+    [],
   );
 
   return (
@@ -119,18 +130,18 @@ function UsersPage() {
       <ModulePage<UserRecord>
         eyebrow="系统管理"
         title="后台用户清单"
-        description="沉淀账号、角色、部门和登录信息。"
+        description="沉淀账号、昵称、部门、角色和登录信息。"
         metrics={[
-          { label: '启用账号', value: String(records.filter((record) => record.status === '0').length), hint: '来自后端用户接口' },
+          { label: '启用账号', value: String(records.filter((record) => record.status === 0).length), hint: '来自后端用户接口' },
           { label: '用户总数', value: String(records.length), hint: '覆盖当前后台账号' },
-          { label: '业务组', value: String(new Set(records.map((record) => record.deptName)).size), hint: '按部门字段实时统计' },
+          { label: '业务组', value: String(new Set(records.map((record) => record.deptName).filter(Boolean)).size), hint: '按部门字段实时统计' },
         ]}
         columns={columns}
         dataSource={records}
         loading={loading}
         tableTitle="用户列表"
-        searchPlaceholder="搜索账号、部门、角色"
-        getSearchText={(record) => `${record.username} ${record.deptName} ${record.roleName} ${record.phone}`}
+        searchPlaceholder="搜索账号、昵称、部门、角色"
+        getSearchText={(record) => `${record.userName} ${record.nickName ?? ''} ${record.deptName ?? ''} ${record.roleName ?? ''} ${record.phone ?? ''}`}
         onCreate={handleOpenCreate}
       />
       <Modal
@@ -142,11 +153,17 @@ function UsersPage() {
         destroyOnClose
       >
         <Form form={form} layout="vertical" className="module-form">
-          <Form.Item name="username" label="账号名称" rules={[{ required: true, message: '请输入账号名称' }]}>
-            <Input placeholder="请输入账号名称" />
+          <Form.Item name="userName" label="账号" rules={[{ required: true, message: '请输入账号' }]}>
+            <Input placeholder="请输入账号" />
+          </Form.Item>
+          <Form.Item name="nickName" label="昵称">
+            <Input placeholder="请输入昵称" />
           </Form.Item>
           <Form.Item name="phone" label="联系电话">
             <Input placeholder="请输入联系电话" />
+          </Form.Item>
+          <Form.Item name="email" label="邮箱">
+            <Input placeholder="请输入邮箱" />
           </Form.Item>
           <Form.Item name="password" label="登录密码">
             <Input.Password placeholder={editingRecord ? '留空则不修改密码' : '默认 123456'} />
@@ -160,9 +177,6 @@ function UsersPage() {
               options={deptOptions.map((dept) => ({ label: dept.deptName, value: dept.id }))}
             />
           </Form.Item>
-          <Form.Item name="roleName" label="角色">
-            <Input placeholder="请输入角色" />
-          </Form.Item>
           <Form.Item name="userType" label="用户类型">
             <Select
               options={[
@@ -175,10 +189,13 @@ function UsersPage() {
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '0' },
-                { label: '禁用', value: '1' },
+                { label: '启用', value: 0 },
+                { label: '禁用', value: 1 },
               ]}
             />
+          </Form.Item>
+          <Form.Item name="remark" label="备注">
+            <Input.TextArea rows={3} placeholder="请输入备注" />
           </Form.Item>
         </Form>
       </Modal>

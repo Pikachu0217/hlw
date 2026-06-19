@@ -11,10 +11,12 @@ import type { ConfigRecord } from '@/pages/system/configs';
 import type { DictRecord } from '@/pages/system/dicts';
 import type { GatewayRouteRecord } from '@/pages/gateway/routes';
 import type { LoginRecord } from '@/pages/auth/login-record';
+import type { SystemLogRecord } from '@/pages/system/logs';
 import type { MenuRecord } from '@/pages/system/menus';
-import type { PermissionRecord } from '@/pages/system/permissions';
+import type { NoticeRecord } from '@/pages/system/notices';
 import type { PostRecord } from '@/pages/system/posts';
 import type { RoleRecord } from '@/pages/system/roles';
+import type { TenantPackageRecord } from '@/pages/system/tenant-packages';
 import type { UserRecord } from '@/pages/system/users';
 import type { TenantRecord } from '@/pages/tenant';
 
@@ -33,22 +35,38 @@ export interface CreateDepartmentPayload {
 }
 
 export interface CreateTenantPayload {
-  tenantName: string;
-  packageName: string;
-  adminName: string;
-  expireAt: string;
+  contactUserName: string;
+  contactPhone: string;
+  companyName: string;
+  licenseNumber?: string;
+  address?: string;
+  intro?: string;
+  domain?: string;
+  packageId?: number;
+  expireTime?: string;
+  accountCount?: number;
   status?: string;
+  remark?: string;
+}
+
+export interface TenantOptionRecord {
+  key: string;
+  tenantId: string;
+  companyName: string;
+  status: string;
 }
 
 export interface CreateUserPayload {
-  username: string;
+  userName: string;
+  nickName?: string;
   phone?: string;
+  email?: string;
   userType?: string;
   deptId?: number;
-  deptName?: string;
-  roleName?: string;
-  status?: string;
+  sex?: string;
+  status?: number;
   password?: string;
+  remark?: string;
 }
 
 export interface SystemDeptRecord {
@@ -57,69 +75,85 @@ export interface SystemDeptRecord {
   parentId: number;
   deptName: string;
   ancestors: string;
-  sort: number;
-  status: string;
+  orderNum: number;
+  leader?: string;
+  phone?: string;
+  email?: string;
+  status: number;
 }
 
 export interface CreateSystemDeptPayload {
   parentId?: number;
   deptName: string;
-  sort?: number;
-  status?: string;
+  orderNum?: number;
+  leader?: string;
+  phone?: string;
+  email?: string;
+  status?: number;
 }
 
 export interface CreateRolePayload {
   roleName: string;
   roleCode: string;
-  dataScope?: string;
-  status?: string;
+  orderNum?: number;
+  dataScope?: number;
+  status?: number;
+  remark?: string;
 }
 
 export interface CreateMenuPayload {
   menuName: string;
-  permission: string;
-  routePath: string;
-  menuType?: string;
   parentId?: number;
-  sort?: number;
+  orderNum?: number;
+  path?: string;
+  component?: string;
+  isFrame?: number;
+  menuType?: string;
+  visible?: string;
   status?: string;
-}
-
-export interface CreatePermissionPayload {
-  permissionName: string;
-  permissionCode: string;
-  resourceType?: string;
-  menuId?: number;
-  status?: string;
+  perms?: string;
+  icon?: string;
+  remark?: string;
 }
 
 export interface CreateDictPayload {
+  dictName?: string;
   dictType: string;
   dictLabel: string;
   dictValue: string;
-  sort?: number;
-  status?: string;
+  dictSort?: number;
   remark?: string;
 }
 
 export interface CreatePostPayload {
   postName: string;
   postCode: string;
-  sort?: number;
-  status?: string;
+  orderNum?: number;
+  status?: number;
   remark?: string;
 }
 
 export interface CreateConfigPayload {
+  configName: string;
   configKey: string;
   configValue: string;
-  configType?: string;
-  status?: string;
   remark?: string;
 }
 
-export interface UpdateConfigPayload {
-  configValue: string;
+export interface UpdateConfigPayload extends CreateConfigPayload {}
+
+export interface CreateTenantPackagePayload {
+  packageName: string;
+  menuIds?: number[];
+  status?: number;
+  remark?: string;
+}
+
+export interface CreateNoticePayload {
+  noticeTitle: string;
+  noticeType?: string;
+  noticeContent?: string;
+  status?: string;
   remark?: string;
 }
 
@@ -327,6 +361,11 @@ async function fetchModulePage<T>(
 // 查询租户列表。
 export function fetchTenants(): Promise<TenantRecord[]> {
   return fetchModulePage<TenantRecord>('/system/tenant', '租户');
+}
+
+// 查询登录前可选择的租户选项。
+export function fetchTenantOptions(): Promise<TenantOptionRecord[]> {
+  return fetchModuleRecords<TenantOptionRecord>('/system/tenant/options', '租户选项');
 }
 
 // 创建租户。
@@ -578,36 +617,78 @@ export async function deletePost(id: string): Promise<void> {
   await apiClient.delete(`/system/post/${id}`);
 }
 
-// 查询权限码列表。
-export function fetchPermissions(): Promise<PermissionRecord[]> {
-  return fetchModulePage<PermissionRecord>('/system/permission', '权限码');
+// 查询租户套餐列表。
+export function fetchTenantPackages(): Promise<TenantPackageRecord[]> {
+  return fetchModulePage<TenantPackageRecord>('/system/tenant-package', '租户套餐');
 }
 
-// 创建权限码。
-export async function createPermission(payload: CreatePermissionPayload): Promise<PermissionRecord> {
-  console.info('[admin-module] 创建权限码', payload);
-  const response = await apiClient.post<ApiResult<PermissionRecord>>('/system/permission', payload);
+// 创建租户套餐。
+export async function createTenantPackage(payload: CreateTenantPackagePayload): Promise<TenantPackageRecord> {
+  console.info('[admin-module] 创建租户套餐', payload);
+  const response = await apiClient.post<ApiResult<TenantPackageRecord>>('/system/tenant-package', payload);
   return response.data.data;
 }
 
-// 查询权限码详情。
-export async function fetchPermissionDetail(id: string): Promise<PermissionRecord> {
-  console.info('[admin-module] 查询权限码详情', id);
-  const response = await apiClient.get<ApiResult<PermissionRecord>>(`/system/permission/${id}`);
+// 查询租户套餐详情。
+export async function fetchTenantPackageDetail(id: string): Promise<TenantPackageRecord> {
+  console.info('[admin-module] 查询租户套餐详情', id);
+  const response = await apiClient.get<ApiResult<TenantPackageRecord>>(`/system/tenant-package/${id}`);
   return response.data.data;
 }
 
-// 更新权限码。
-export async function updatePermission(id: string, payload: CreatePermissionPayload): Promise<PermissionRecord> {
-  console.info('[admin-module] 更新权限码', id, payload);
-  const response = await apiClient.put<ApiResult<PermissionRecord>>(`/system/permission/${id}`, payload);
+// 更新租户套餐。
+export async function updateTenantPackage(id: string, payload: CreateTenantPackagePayload): Promise<TenantPackageRecord> {
+  console.info('[admin-module] 更新租户套餐', id, payload);
+  const response = await apiClient.put<ApiResult<TenantPackageRecord>>(`/system/tenant-package/${id}`, payload);
   return response.data.data;
 }
 
-// 删除权限码。
-export async function deletePermission(id: string): Promise<void> {
-  console.info('[admin-module] 删除权限码', id);
-  await apiClient.delete(`/system/permission/${id}`);
+// 删除租户套餐。
+export async function deleteTenantPackage(id: string): Promise<void> {
+  console.info('[admin-module] 删除租户套餐', id);
+  await apiClient.delete(`/system/tenant-package/${id}`);
+}
+
+// 查询通知公告列表。
+export function fetchNotices(): Promise<NoticeRecord[]> {
+  return fetchModulePage<NoticeRecord>('/system/notice', '通知公告');
+}
+
+// 创建通知公告。
+export async function createNotice(payload: CreateNoticePayload): Promise<NoticeRecord> {
+  console.info('[admin-module] 创建通知公告', payload);
+  const response = await apiClient.post<ApiResult<NoticeRecord>>('/system/notice', payload);
+  return response.data.data;
+}
+
+// 查询通知公告详情。
+export async function fetchNoticeDetail(id: string): Promise<NoticeRecord> {
+  console.info('[admin-module] 查询通知公告详情', id);
+  const response = await apiClient.get<ApiResult<NoticeRecord>>(`/system/notice/${id}`);
+  return response.data.data;
+}
+
+// 更新通知公告。
+export async function updateNotice(id: string, payload: CreateNoticePayload): Promise<NoticeRecord> {
+  console.info('[admin-module] 更新通知公告', id, payload);
+  const response = await apiClient.put<ApiResult<NoticeRecord>>(`/system/notice/${id}`, payload);
+  return response.data.data;
+}
+
+// 删除通知公告。
+export async function deleteNotice(id: string): Promise<void> {
+  console.info('[admin-module] 删除通知公告', id);
+  await apiClient.delete(`/system/notice/${id}`);
+}
+
+// 查询系统登录日志。
+export function fetchSystemLoginLogs(): Promise<SystemLogRecord[]> {
+  return fetchModulePage<SystemLogRecord>('/system/log/login', '系统登录日志');
+}
+
+// 查询系统操作日志。
+export function fetchSystemOperatorLogs(): Promise<SystemLogRecord[]> {
+  return fetchModulePage<SystemLogRecord>('/system/log/operator', '系统操作日志');
 }
 
 // 查询登录记录列表。

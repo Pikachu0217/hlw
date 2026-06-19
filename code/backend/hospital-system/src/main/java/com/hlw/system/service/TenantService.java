@@ -8,6 +8,7 @@ import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateTenantReq;
 import com.hlw.system.domain.req.UpdateTenantReq;
+import com.hlw.system.domain.resp.TenantOptionResp;
 import com.hlw.system.domain.resp.TenantResp;
 import com.hlw.system.entity.SysTenantEntity;
 import com.hlw.system.entity.SysTenantPackageEntity;
@@ -52,6 +53,7 @@ public class TenantService {
      */
     @Transactional(readOnly = true)
     public PageResult<TenantResp> listTenants(PageQuery query) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以查询租户列表");
         log.info("查询租户列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
         LambdaQueryWrapper<SysTenantEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysTenantEntity::getDeleted);
@@ -72,6 +74,22 @@ public class TenantService {
     }
 
     /**
+     * 查询登录前可选择的租户选项。
+     *
+     * @return 租户选项列表
+     */
+    @Transactional(readOnly = true)
+    public List<TenantOptionResp> listTenantOptions() {
+        log.info("查询登录前租户选项");
+        return sysTenantMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysTenantEntity::getDeleted)
+                .eq(SysTenantEntity::getStatus, "0")
+                .orderByAsc(SysTenantEntity::getId))
+            .stream()
+            .map(this::toTenantOption)
+            .toList();
+    }
+
+    /**
      * 创建租户。
      *
      * @param request 租户创建请求
@@ -79,6 +97,7 @@ public class TenantService {
      */
     @Transactional(rollbackFor = Exception.class)
     public TenantResp createTenant(CreateTenantReq request) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以创建租户");
         log.info("创建租户，companyName={}，packageId={}", request.getCompanyName(), request.getPackageId());
         SysTenantEntity entity = new SysTenantEntity();
         entity.setTenantId(nextTenantId());
@@ -98,6 +117,7 @@ public class TenantService {
      */
     @Transactional(readOnly = true)
     public TenantResp getTenant(Long id) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以查询租户详情");
         log.info("查询租户详情，id={}", id);
         SysTenantEntity entity = requireTenant(id);
         return tenantConverter.toTenantVO(entity, loadPackage(entity.getPackageId()));
@@ -112,6 +132,7 @@ public class TenantService {
      */
     @Transactional(rollbackFor = Exception.class)
     public TenantResp updateTenant(Long id, UpdateTenantReq request) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以更新租户");
         log.info("更新租户，id={}，companyName={}", id, request.getCompanyName());
         SysTenantEntity entity = requireTenant(id);
         entity.setContactUserName(request.getContactUserName());
@@ -138,11 +159,27 @@ public class TenantService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteTenant(Long id) {
+        MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以删除租户");
         log.info("删除租户，id={}", id);
         SysTenantEntity entity = requireTenant(id);
         entity.setDeleted(DeletedStatusEnum.DELETED.getType());
         entity.setUpdateTime(LocalDateTime.now());
         sysTenantMapper.updateById(entity);
+    }
+
+    /**
+     * 转换为登录前租户选项展示对象。
+     *
+     * @param entity 租户实体
+     * @return 租户选项展示对象
+     */
+    private TenantOptionResp toTenantOption(SysTenantEntity entity) {
+        TenantOptionResp resp = new TenantOptionResp();
+        resp.setKey(String.valueOf(entity.getId()));
+        resp.setTenantId(entity.getTenantId());
+        resp.setCompanyName(entity.getCompanyName());
+        resp.setStatus(entity.getStatus());
+        return resp;
     }
 
     /**

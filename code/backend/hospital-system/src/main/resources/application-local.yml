@@ -6,9 +6,9 @@ hlw:
     username: nacos
     password: nacos
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/hospital_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    url: jdbc:mysql://127.0.0.1:23308/hospital_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: root
-    password: hospital123
+    password: root
   redis:
     host: 127.0.0.1
     port: 6379

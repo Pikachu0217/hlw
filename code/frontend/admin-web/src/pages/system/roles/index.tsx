@@ -1,4 +1,4 @@
-import { Button, Form, Input, Modal, Select, Space, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { createRole, deleteRole, fetchRoles, updateRole } from '@/api/modules';
@@ -9,11 +9,21 @@ export interface RoleRecord {
   key: string;
   roleName: string;
   roleCode: string;
-  dataScope: string;
-  memberCount: number;
-  updatedAt: string;
-  status: string;
+  orderNum?: number;
+  dataScope: number;
+  memberCount?: number;
+  updatedAt?: string;
+  status: number;
+  remark?: string;
 }
+
+const dataScopeMap: Record<number, string> = {
+  1: '全部数据',
+  2: '自定义数据',
+  3: '本部门数据',
+  4: '本部门及以下数据',
+  5: '仅本人数据',
+};
 
 function RolesPage() {
   const { records, loading, refresh } = useModuleRecords(fetchRoles, '角色');
@@ -21,12 +31,12 @@ function RolesPage() {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RoleRecord | null>(null);
-  const memberCount = records.reduce((sum, record) => sum + record.memberCount, 0);
+  const memberCount = records.reduce((sum, record) => sum + (record.memberCount ?? 0), 0);
 
   const handleOpenCreate = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ dataScope: '本租户数据', status: '0' });
+    form.setFieldsValue({ dataScope: 1, orderNum: 0, status: 0 });
     setOpen(true);
   };
 
@@ -81,10 +91,15 @@ function RolesPage() {
     () => [
       { title: '角色名称', dataIndex: 'roleName' },
       { title: '角色编码', dataIndex: 'roleCode' },
-      { title: '数据范围', dataIndex: 'dataScope' },
+      { title: '排序', dataIndex: 'orderNum' },
+      { title: '数据范围', dataIndex: 'dataScope', render: (value: number) => dataScopeMap[value] ?? value },
       { title: '成员数', dataIndex: 'memberCount' },
       { title: '更新时间', dataIndex: 'updatedAt' },
-      { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag> },
+      {
+        title: '状态',
+        dataIndex: 'status',
+        render: (value: number) => <Tag color={value === 0 ? 'green' : 'default'}>{value === 0 ? '启用' : '禁用'}</Tag>,
+      },
       {
         title: '操作',
         key: 'actions',
@@ -108,18 +123,18 @@ function RolesPage() {
       <ModulePage<RoleRecord>
         eyebrow="系统管理"
         title="角色与数据范围"
-        description="先把角色列表、数据范围和启停状态搭清楚。"
+        description="维护角色编码、排序、数据范围和启停状态。"
         metrics={[
           { label: '角色数', value: String(records.length), hint: '来自后端角色接口' },
           { label: '成员数', value: String(memberCount), hint: '汇总当前角色成员' },
-          { label: '启用角色', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
+          { label: '启用角色', value: String(records.filter((record) => record.status === 0).length), hint: '按状态实时统计' },
         ]}
         columns={columns}
         dataSource={records}
         loading={loading}
         tableTitle="角色列表"
-        searchPlaceholder="搜索角色名称或数据范围"
-        getSearchText={(record) => `${record.roleName} ${record.roleCode} ${record.dataScope} ${record.status}`}
+        searchPlaceholder="搜索角色名称、编码或数据范围"
+        getSearchText={(record) => `${record.roleName} ${record.roleCode} ${dataScopeMap[record.dataScope] ?? ''} ${record.status}`}
         onCreate={handleOpenCreate}
       />
       <Modal
@@ -137,22 +152,30 @@ function RolesPage() {
           <Form.Item name="roleCode" label="角色编码" rules={[{ required: true, message: '请输入角色编码' }]}>
             <Input placeholder="例如：OPERATOR" />
           </Form.Item>
+          <Form.Item name="orderNum" label="排序">
+            <InputNumber min={0} className="module-form__number" />
+          </Form.Item>
           <Form.Item name="dataScope" label="数据范围">
             <Select
               options={[
-                { label: '本租户数据', value: '本租户数据' },
-                { label: '本科室数据', value: '本科室数据' },
-                { label: '全部数据', value: '全部数据' },
+                { label: '全部数据', value: 1 },
+                { label: '自定义数据', value: 2 },
+                { label: '本部门数据', value: 3 },
+                { label: '本部门及以下数据', value: 4 },
+                { label: '仅本人数据', value: 5 },
               ]}
             />
           </Form.Item>
           <Form.Item name="status" label="状态">
             <Select
               options={[
-                { label: '启用', value: '0' },
-                { label: '禁用', value: '1' },
+                { label: '启用', value: 0 },
+                { label: '禁用', value: 1 },
               ]}
             />
+          </Form.Item>
+          <Form.Item name="remark" label="备注">
+            <Input.TextArea rows={3} placeholder="请输入备注" />
           </Form.Item>
         </Form>
       </Modal>
