@@ -7,7 +7,7 @@ import PageHero from '@/components/PageHero';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface SystemLogRecord {
-  key: string;
+  id: number;
   tenantId?: string;
   userName?: string;
   clientKey?: string;
@@ -155,7 +155,7 @@ function SystemLogsPage() {
                       <Tag color="blue">当前 {filteredLoginLogs.length} 条</Tag>
                     </Space>
                   </div>
-                  <Table<SystemLogRecord> rowKey="key" columns={loginColumns} dataSource={filteredLoginLogs} loading={loginLoading} pagination={false} />
+                  <Table<SystemLogRecord> rowKey="id" columns={loginColumns} dataSource={filteredLoginLogs} loading={loginLoading} pagination={false} />
                 </>
               ),
             },
@@ -184,7 +184,7 @@ function SystemLogsPage() {
                     </Space>
                   </div>
                   <Table<SystemLogRecord>
-                    rowKey="key"
+                    rowKey="id"
                     columns={operatorColumns}
                     dataSource={filteredOperatorLogs}
                     loading={operatorLoading}

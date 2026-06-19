@@ -1,6 +1,7 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_dept")
-public class SysDeptEntity extends SystemBaseEntity {
+public class SysDeptEntity extends BaseEntity {
     /** 父部门编号，根部门为 0。 */
     private Long parentId;
     /** 祖级列表，逗号分隔。 */

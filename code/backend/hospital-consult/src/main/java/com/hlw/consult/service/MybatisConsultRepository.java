@@ -44,7 +44,6 @@ public class MybatisConsultRepository implements ConsultRepository {
     @Override
     public List<Consult> findInProgress() {
         return conConsultMapper.selectList(new LambdaQueryWrapper<ConConsultEntity>()
-                .eq(ConConsultEntity::getDeleted, 0)
                 .eq(ConConsultEntity::getStatus, ConsultStatus.IN_PROGRESS.dbValue()))
                 .stream()
                 .map(this::toConsult)

@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface DrugRecord {
-  key: string;
+  id: number;
   drugName: string;
   spec: string;
   inventory: number;

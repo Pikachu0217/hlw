@@ -21,7 +21,7 @@ public class UserConverter {
      */
     public UserResp toUserVO(SysUserEntity entity, String postName) {
         UserResp vo = new UserResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setUserId(entity.getUserId());
         vo.setUserName(entity.getUserName());
         vo.setNickName(entity.getNickName());

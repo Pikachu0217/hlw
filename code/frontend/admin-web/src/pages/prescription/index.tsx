@@ -12,7 +12,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface PrescriptionRecord {
-  key: string;
+  id: number;
   prescriptionNo: string;
   patientName: string;
   doctorName: string;
@@ -83,7 +83,7 @@ function PrescriptionPage() {
   async function handleSubmit(record: PrescriptionRecord) {
     setSubmitting(true);
     try {
-      await submitPrescription(record.key);
+      await submitPrescription(record.id);
       message.success('处方提交成功');
       refresh();
     } catch (error) {
@@ -108,10 +108,10 @@ function PrescriptionPage() {
     setSubmitting(true);
     try {
       if (auditMode === 'approve') {
-        await approvePrescription(currentRecord.key, values);
+        await approvePrescription(currentRecord.id, values);
         message.success('处方审核通过');
       } else {
-        await rejectPrescription(currentRecord.key, values);
+        await rejectPrescription(currentRecord.id, values);
         message.success('处方已驳回');
       }
       setAuditOpen(false);

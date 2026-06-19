@@ -127,7 +127,6 @@ public class AppointmentWorkflowService {
         entity.setSource(defaultIfBlank(request.getSource(), DEFAULT_SOURCE));
         entity.setStatus(AppointmentStatus.PENDING_PAY.dbValue());
         entity.setFeeAmount(defaultDecimal(request.getFeeAmount(), new BigDecimal("30")));
-        entity.setDeleted(0);
         aptAppointmentMapper.insert(entity);
         entity.setAppointmentNo(resolveAppointmentNo(entity.getId()));
         aptAppointmentMapper.updateById(entity);
@@ -229,7 +228,6 @@ public class AppointmentWorkflowService {
             int updated = aptNumberSourceMapper.update(null, new LambdaUpdateWrapper<AptNumberSourceEntity>()
                 .eq(AptNumberSourceEntity::getId, entity.getId())
                 .eq(AptNumberSourceEntity::getStatus, NUMBER_STATUS_AVAILABLE)
-                .eq(AptNumberSourceEntity::getDeleted, 0)
                 .set(AptNumberSourceEntity::getStatus, NUMBER_STATUS_LOCKED)
                 .set(AptNumberSourceEntity::getLockTime, LocalDateTime.now()));
             if (updated == 0) {
@@ -264,7 +262,6 @@ public class AppointmentWorkflowService {
         entity.setReleaseTime(releaseTime);
         entity.setReleaseCount(releaseCount);
         entity.setStatus(defaultIfBlank(request.getStatus(), DEFAULT_RELEASE_STATUS));
-        entity.setDeleted(0);
         aptReleaseConfigMapper.insert(entity);
         releaseNumberSources(request.getScheduleId(), releaseCount);
         return toReleaseConfigVO(entity);
@@ -276,7 +273,7 @@ public class AppointmentWorkflowService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<AptAppointmentEntity> activeAppointmentWrapper() {
-        return new LambdaQueryWrapper<AptAppointmentEntity>().eq(AptAppointmentEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<AptAppointmentEntity>();
     }
 
     /**
@@ -285,7 +282,7 @@ public class AppointmentWorkflowService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<AptNumberSourceEntity> activeNumberSourceWrapper() {
-        return new LambdaQueryWrapper<AptNumberSourceEntity>().eq(AptNumberSourceEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<AptNumberSourceEntity>();
     }
 
     /**
@@ -308,7 +305,6 @@ public class AppointmentWorkflowService {
      */
     private AptAppointmentEntity requireActiveAppointment(Long id) {
         AptAppointmentEntity entity = aptAppointmentMapper.selectOne(new LambdaQueryWrapper<AptAppointmentEntity>()
-            .eq(AptAppointmentEntity::getDeleted, 0)
             .eq(AptAppointmentEntity::getId, id)
             .last("limit 1"));
         if (entity == null) {
@@ -325,7 +321,6 @@ public class AppointmentWorkflowService {
      */
     private AptNumberSourceEntity requireFirstAvailableNumberSource(Long scheduleId) {
         AptNumberSourceEntity entity = aptNumberSourceMapper.selectOne(new LambdaQueryWrapper<AptNumberSourceEntity>()
-            .eq(AptNumberSourceEntity::getDeleted, 0)
             .eq(AptNumberSourceEntity::getScheduleId, scheduleId)
             .eq(AptNumberSourceEntity::getStatus, NUMBER_STATUS_AVAILABLE)
             .orderByAsc(AptNumberSourceEntity::getNumberSeq)
@@ -348,7 +343,6 @@ public class AppointmentWorkflowService {
         }
         aptNumberSourceMapper.update(null, new LambdaUpdateWrapper<AptNumberSourceEntity>()
             .eq(AptNumberSourceEntity::getId, numberSourceId)
-            .eq(AptNumberSourceEntity::getDeleted, 0)
             .set(AptNumberSourceEntity::getStatus, NUMBER_STATUS_USED));
     }
 
@@ -360,7 +354,6 @@ public class AppointmentWorkflowService {
      */
     private void releaseNumberSources(Long scheduleId, Integer releaseCount) {
         int startSeq = aptNumberSourceMapper.selectList(new LambdaQueryWrapper<AptNumberSourceEntity>()
-                .eq(AptNumberSourceEntity::getDeleted, 0)
                 .eq(AptNumberSourceEntity::getScheduleId, scheduleId))
             .stream()
             .map(AptNumberSourceEntity::getNumberSeq)
@@ -371,7 +364,6 @@ public class AppointmentWorkflowService {
             numberSource.setScheduleId(scheduleId);
             numberSource.setNumberSeq(startSeq + index);
             numberSource.setStatus(NUMBER_STATUS_AVAILABLE);
-            numberSource.setDeleted(0);
             aptNumberSourceMapper.insert(numberSource);
         }
     }
@@ -384,7 +376,6 @@ public class AppointmentWorkflowService {
      */
     private AppointmentVO toAppointmentVO(AptAppointmentEntity entity) {
         AppointmentVO vo = new AppointmentVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setAppointmentNo(defaultIfBlank(entity.getAppointmentNo(), resolveAppointmentNo(entity.getId())));
         vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));

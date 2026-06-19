@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface MenuRecord {
-  key: string;
+  id: number;
   parentId?: number;
   menuName: string;
   menuType: string;
@@ -52,7 +52,7 @@ function MenusPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateMenu(editingRecord.key, values);
+        await updateMenu(editingRecord.id, values);
         message.success('菜单更新成功');
       } else {
         await createMenu(values);
@@ -78,7 +78,7 @@ function MenusPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteMenu(record.key);
+          await deleteMenu(record.id);
           message.success('菜单删除成功');
           refresh();
         } catch {

@@ -20,7 +20,7 @@ public class ConfigConverter {
      */
     public ConfigResp toConfigVO(SysConfigEntity entity) {
         ConfigResp vo = new ConfigResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setConfigName(entity.getConfigName());
         vo.setConfigKey(entity.getConfigKey());
         vo.setConfigValue(entity.getConfigValue());

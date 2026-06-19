@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ConfigResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 参数名称。 */
     private String configName;
     /** 参数键名。 */

@@ -1,6 +1,7 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_post")
-public class SysPostEntity extends SystemBaseEntity {
+public class SysPostEntity extends BaseEntity {
     /** 岗位编码。 */
     private String postCode;
     /** 岗位名称。 */

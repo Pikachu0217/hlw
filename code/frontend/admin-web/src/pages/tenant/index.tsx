@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface TenantRecord {
-  key: string;
+  id: number;
   tenantId: string;
   contactUserName: string;
   contactPhone: string;
@@ -49,7 +49,7 @@ function TenantPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateTenant(editingRecord.key, values);
+        await updateTenant(editingRecord.id, values);
         message.success('租户更新成功');
       } else {
         await createTenant(values);
@@ -75,7 +75,7 @@ function TenantPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteTenant(record.key);
+          await deleteTenant(record.id);
           message.success('租户删除成功');
           refresh();
         } catch {

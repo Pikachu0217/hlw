@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RouteConfigResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 路由编码。 */
     private String routeCode;
     /** 服务地址。 */

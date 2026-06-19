@@ -19,7 +19,6 @@ import DepartmentsPage from '@/pages/doctor/departments';
 import PatientPage from '@/pages/patient';
 import ConsultPage from '@/pages/consult';
 import AppointmentPage from '@/pages/appointment';
-import LoginRecordPage from '@/pages/auth/login-record';
 import PrescriptionPage from '@/pages/prescription';
 import DrugPage from '@/pages/drug';
 import GatewayRoutesPage from '@/pages/gateway/routes';
@@ -48,7 +47,6 @@ export const appRouter = createBrowserRouter([
       { path: 'system/tenant-package', element: <TenantPackagesPage /> },
       { path: 'system/notice', element: <NoticesPage /> },
       { path: 'system/logs', element: <SystemLogsPage /> },
-      { path: 'auth/login-record', element: <LoginRecordPage /> },
       { path: 'gateway/routes', element: <GatewayRoutesPage /> },
       { path: 'doctor', element: <DoctorPage /> },
       { path: 'doctor/departments', element: <DepartmentsPage /> },

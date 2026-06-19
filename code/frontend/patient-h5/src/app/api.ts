@@ -21,7 +21,7 @@ export interface PatientProfile {
 }
 
 export interface HospitalItem {
-  key: string;
+  id: number;
   tenantId: string;
   companyName: string;
   status: string;
@@ -79,7 +79,7 @@ export interface CreatedConsult {
 }
 
 export interface AppointmentItem {
-  key: string;
+  id: number;
   appointmentNo: string;
   patientName: string;
   doctorName: string;
@@ -89,7 +89,7 @@ export interface AppointmentItem {
 }
 
 export interface PrescriptionItem {
-  key: string;
+  id: number;
   prescriptionNo: string;
   patientName: string;
   doctorName: string;
@@ -99,7 +99,7 @@ export interface PrescriptionItem {
 }
 
 export interface OrderItem {
-  key: string;
+  id: number;
   orderNo: string;
   businessType: string;
   patientName: string;

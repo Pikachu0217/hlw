@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface OrderRecord {
-  key: string;
+  id: number;
   orderNo: string;
   businessType: string;
   patientName: string;
@@ -74,7 +74,7 @@ function OrderPage() {
     const values = await payForm.validateFields();
     setSubmitting(true);
     try {
-      await payOrder(currentRecord.key, values);
+      await payOrder(currentRecord.id, values);
       message.success('订单支付成功');
       setPayOpen(false);
       setCurrentRecord(null);

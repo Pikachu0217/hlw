@@ -4,8 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 
 export interface DoctorRecord {
-  key: string;
-  id?: number;
+  id: number;
   name: string;
   title: string;
   department: string;
@@ -97,7 +96,7 @@ function DoctorList({ doctors, onCreateDoctor, onCreateSchedule, onToggleStatus 
           <Tag color="cyan">筛选后 {filteredDoctors.length} 位</Tag>
         </Space>
       </div>
-      <Table<DoctorRecord> rowKey="key" columns={columns} dataSource={filteredDoctors} pagination={false} />
+      <Table<DoctorRecord> rowKey="id" columns={columns} dataSource={filteredDoctors} pagination={false} />
     </Card>
   );
 }

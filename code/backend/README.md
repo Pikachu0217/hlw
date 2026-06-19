@@ -16,7 +16,7 @@
 本阶段新增：
 
 - `hospital-gateway`：网关租户请求头透传过滤器，会基于 JWT 登录令牌生成可信 `X-Tenant-Id`，并新增平台级网关路由配置 CRUD 管理接口。
-- `hospital-auth`：登录服务与认证资料接口已改造为 MyBatis Plus + VO 分层实现，登录令牌改为 JWT，密码校验改为 BCrypt，并新增登录记录自动写入与 CRUD 管理接口。
+- `hospital-auth`：登录服务与认证资料接口已无库化，用户资料通过 Feign 回查 `hospital-system`，登录令牌使用 JWT，密码校验使用 BCrypt，登录审计写入系统模块登录日志。
 - `hospital-system`：按当前 `hospital_system` schema 重构为类 RuoYi 后台管理模块，覆盖租户、租户套餐、用户、角色、菜单、字典、参数配置、岗位、通知公告、登录日志、操作日志、用户角色和角色菜单，并补齐后台登录信息与路由接口。
 - `hospital-doctor`：医生、科室、医生科室绑定、排班和挂号费规则已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-patient`：患者档案、健康档案、风险等级、身份证与就诊信息已改造为 MyBatis Plus + DTO/VO 分层实现。
@@ -98,7 +98,6 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 
 脚本会创建以下逻辑库：
 
-- `hospital_auth`
 - `hospital_gateway`
 - `hospital_system`
 - `hospital_patient`
@@ -109,7 +108,7 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 - `hospital_drug`
 - `hospital_order`
 
-每个服务库包含本服务业务表，并包含一张 `local_message` 表，用于本地队列兜底。`common-mq` 在服务上下文存在 `JdbcOperations` 时会优先将本地消息写入该表；没有数据库上下文的单元测试场景保留内存存储。
+除无库化的 `hospital-auth` 外，每个服务库包含本服务业务表，并包含一张 `local_message` 表，用于本地队列兜底。`common-mq` 在服务上下文存在 `JdbcOperations` 时会优先将本地消息写入该表；没有数据库上下文的单元测试场景保留内存存储。
 
 `common-redis` 当前提供 `RedisService` 通用工具能力，覆盖字符串、对象 JSON、Hash、Set、List、ZSet、过期时间、扫描、删除和基于请求标识的轻量分布式锁释放；复杂锁场景继续使用 Redisson 封装。
 
@@ -133,10 +132,6 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 - `sys_login_info`：系统登录日志表。
 - `sys_operator_log`：系统操作日志表。
 
-`hospital_auth` 当前已补齐认证审计表：
-
-- `auth_login_record`：登录记录表，登录成功、失败和退出登录会自动写入或回写记录，也支持管理端分页查询、详情、新增、更新和删除。
-
 `hospital_gateway` 当前已补齐网关配置表：
 
 - `gw_route_config`：网关路由配置表，统一按平台租户 `0` 存储。当前版本只做配置管理和展示，不替换 `application.yml` 中的 Spring Cloud Gateway 静态路由加载。
@@ -155,11 +150,11 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 当前认证链路约定如下：
 
 - 登录页可在未登录状态通过 `GET /system/tenant/options` 读取所有启用租户的最小选项信息，用于选择管理端登录租户。
-- 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 查询认证库 `sys_user.password` 中的 BCrypt 哈希，默认初始化账号为 `门诊运营 / 123456`。
+- 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 通过 Feign 查询 `hospital-system` 的 `sys_user.password` 中的 BCrypt 哈希，默认初始化平台账号为 `hlw_admin / 123456`，租户编号为 `0`。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
 - 网关只信任 `hlw.auth.token-name` 请求头中的登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `hlw.auth.tenant-header-name` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
 - 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenant/options`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
-- 登录接口属于公开接口，允许携带正数可信租户头辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
+- 登录接口属于公开接口，平台账号使用请求体 `tenantId=0` 登录；业务租户账号允许携带正数可信租户头辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
 - 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，优先消费网关透传的可信租户头，缺少租户头时再兜底解析 JWT；令牌无效或租户缺失时进入隔离租户 `-1`。
 
 认证与租户相关环境变量：
@@ -170,13 +165,10 @@ HLW_NACOS_PASSWORD=Nacos登录口令，本地开发可设为nacos，生产必须
 HLW_API_TOKEN_NAME=Authorization
 HLW_API_TOKEN_PREFIX=Bearer
 HLW_API_TENANT_HEADER_NAME=X-Tenant-Id
-HLW_API_USERNAME=门诊运营
+HLW_API_USERNAME=hlw_admin
 HLW_API_PASSWORD=123456
-HLW_API_TENANT_ID=100
+HLW_API_TENANT_ID=0
 HLW_API_RUN_PLATFORM_CASES=0
-HLW_AUTH_DB_URL=jdbc:mysql://127.0.0.1:23308/hospital_auth?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
-HLW_AUTH_DB_USERNAME=root
-HLW_AUTH_DB_PASSWORD=root
 HLW_GATEWAY_DB_URL=jdbc:mysql://127.0.0.1:23308/hospital_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
 HLW_GATEWAY_DB_USERNAME=root
 HLW_GATEWAY_DB_PASSWORD=root
@@ -184,7 +176,7 @@ HLW_GATEWAY_DB_PASSWORD=root
 
 `resources/sql/001-mysql8-baseline.sql` 是当前 MySQL 8 初始化脚本，兼作现有领域设计基线和本地联调用脚本；每个表和字段必须补充中文 `COMMENT`。
 
-MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护。后续每次修改 schema 时新增一份独立 SQL 执行文件，例如 `002-xxx.sql`、`003-xxx.sql`，不要继续把所有变更堆叠到 `init.sql` 中。
+MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护。已提供 `resources/sql/002-mysql8-auth-stateless.sql` 用于认证服务无库化清理，`resources/sql/003-mysql8-platform-admin-tenant.sql` 用于把默认平台管理员迁移到平台租户 `0`。后续每次修改 schema 时新增一份独立 SQL 执行文件，例如 `004-xxx.sql`，不要继续把所有变更堆叠到 `init.sql` 中。
 
 ## 构建与测试
 
@@ -421,11 +413,6 @@ PRD 规划端口：
 POST /auth/login
 GET /auth/detail
 POST /auth/logout
-GET /auth/login-record
-POST /auth/login-record
-GET /auth/login-record/{id}
-PUT /auth/login-record/{id}
-DELETE /auth/login-record/{id}
 GET /system/getInfo
 GET /system/getRouters
 GET /system/tenant/options
@@ -496,14 +483,14 @@ PUT /gateway/route/{id}
 DELETE /gateway/route/{id}
 ```
 
-认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。登录成功和失败会自动写入 `auth_login_record`，退出登录会按令牌摘要回写退出时间。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_role` 和 `sys_role_menu` 表；登录前租户选项接口仅返回最小展示字段，租户和租户套餐管理接口仅允许平台租户上下文访问，用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。系统模块会自动采集 `/system/**` 请求的操作日志并写入 `sys_operator_log`，网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
+认证资料接口会从登录令牌解析用户编号和租户编号，并通过 Feign 回查 `hospital-system` 的 `sys_user` 返回登录用户资料。登录成功和失败会通过 internal Feign 写入系统模块 `sys_login_info`；退出登录只写入 Redis 黑名单，不再回写数据库。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_role` 和 `sys_role_menu` 表；登录前租户选项接口仅返回最小展示字段，租户和租户套餐管理接口仅允许平台租户上下文访问，用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。系统模块会自动采集 `/system/**` 请求的操作日志并写入 `sys_operator_log`，网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
 
 `hospital-auth` 当前约定补充如下：
 
 - 控制器统一接收登录命令并返回登录结果或 `UserProfileVO`，不再返回 `Map`。
 - Service 负责账号密码校验、令牌解析、登录资料读取和业务异常转换。
-- 用户仓储统一基于 MyBatis Plus `BaseMapper` 查询认证库 `sys_user`，不再保留 `JdbcOperations` 直查实现。
-- 登录记录仓储统一基于 MyBatis Plus `BaseMapper` 查询认证库 `auth_login_record`，登录记录读写会显式忽略租户拦截，避免公开登录链路依赖业务租户上下文。
+- 用户仓储统一通过 OpenFeign 查询 `hospital-system` 内部用户接口，认证服务不再保留 MyBatis、数据源和认证业务表。
+- 登录成功和失败会调用 `hospital-system` 的 `/internal/log/login` 写入 `sys_login_info`，该 internal 接口不应通过网关对外暴露，接口测试脚本仍以 `GET /system/log/login` 校验管理端查询结果。
 
 `hospital-gateway` 当前约定补充如下：
 

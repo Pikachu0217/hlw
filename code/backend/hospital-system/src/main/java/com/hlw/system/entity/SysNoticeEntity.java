@@ -1,6 +1,7 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_notice")
-public class SysNoticeEntity extends SystemBaseEntity {
+public class SysNoticeEntity extends BaseEntity {
     /** 公告标题。 */
     private String noticeTitle;
     /** 公告类型。 */

@@ -52,7 +52,7 @@ public class InternalUserService {
     @Transactional(readOnly = true)
     public InternalUserResp findByTenantIdAndUsername(Long tenantId, String username) {
         log.info("内部查询用户，tenantId={}，username={}", tenantId, username);
-        SysUserEntity entity = ignoreTenantLine(() -> sysUserMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+        SysUserEntity entity = ignoreTenantLine(() -> sysUserMapper.selectOne(new LambdaQueryWrapper<SysUserEntity>()
             .eq(SysUserEntity::getTenantId, String.valueOf(tenantId))
             .eq(SysUserEntity::getUserName, username)
             .last("limit 1")));
@@ -69,7 +69,7 @@ public class InternalUserService {
     @Transactional(readOnly = true)
     public InternalUserResp findByIdAndTenantId(Long id, Long tenantId) {
         log.info("内部查询用户资料，id={}，tenantId={}", id, tenantId);
-        SysUserEntity entity = ignoreTenantLine(() -> sysUserMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+        SysUserEntity entity = ignoreTenantLine(() -> sysUserMapper.selectOne(new LambdaQueryWrapper<SysUserEntity>()
             .eq(SysUserEntity::getId, id)
             .eq(SysUserEntity::getTenantId, String.valueOf(tenantId))
             .last("limit 1")));
@@ -118,7 +118,7 @@ public class InternalUserService {
         if (roleIds.isEmpty()) {
             return List.of();
         }
-        return ignoreTenantLine(() -> sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+        return ignoreTenantLine(() -> sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
             .eq(SysRoleEntity::getTenantId, tenantId)
             .eq(SysRoleEntity::getStatus, 0)
             .in(SysRoleEntity::getId, roleIds)));
@@ -144,7 +144,7 @@ public class InternalUserService {
         if (menuIds.isEmpty()) {
             return List.of();
         }
-        return ignoreTenantLine(() -> sysMenuMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted)
+        return ignoreTenantLine(() -> sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
                 .eq(SysMenuEntity::getStatus, "0")
                 .in(SysMenuEntity::getId, menuIds))).stream()
             .map(SysMenuEntity::getPerms)

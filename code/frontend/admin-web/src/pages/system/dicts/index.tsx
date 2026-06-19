@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface DictRecord {
-  key: string;
+  id: number;
   dictName?: string;
   dictType: string;
   dictLabel: string;
@@ -41,7 +41,7 @@ function DictsPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateDict(editingRecord.key, values);
+        await updateDict(editingRecord.id, values);
         message.success('字典项更新成功');
       } else {
         await createDict(values);
@@ -67,7 +67,7 @@ function DictsPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteDict(record.key);
+          await deleteDict(record.id);
           message.success('字典项删除成功');
           refresh();
         } catch {

@@ -99,7 +99,6 @@ public class ConsultWorkflowService {
         entity.setDurationLimit(DEFAULT_DURATION_LIMIT);
         entity.setRemainingSeconds(DEFAULT_DURATION_LIMIT * 60);
         entity.setUpdatedAt(currentDisplayTime());
-        entity.setDeleted(0);
         conConsultMapper.insert(entity);
         entity.setConsultNo(resolveConsultNo(entity.getId()));
         conConsultMapper.updateById(entity);
@@ -204,7 +203,6 @@ public class ConsultWorkflowService {
         message.setContentType("TEXT");
         message.setReadFlag(false);
         message.setIsRead(0);
-        message.setDeleted(0);
         conMessageMapper.insert(message);
     }
 
@@ -214,7 +212,7 @@ public class ConsultWorkflowService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<ConConsultEntity> activeConsultWrapper() {
-        return new LambdaQueryWrapper<ConConsultEntity>().eq(ConConsultEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<ConConsultEntity>();
     }
 
     /**
@@ -237,7 +235,6 @@ public class ConsultWorkflowService {
      */
     private ConConsultEntity requireActiveConsult(Long id) {
         ConConsultEntity entity = conConsultMapper.selectOne(new LambdaQueryWrapper<ConConsultEntity>()
-            .eq(ConConsultEntity::getDeleted, 0)
             .eq(ConConsultEntity::getId, id)
             .last("limit 1"));
         if (entity == null) {
@@ -254,7 +251,6 @@ public class ConsultWorkflowService {
      */
     private ConsultVO toConsultVO(ConConsultEntity entity) {
         ConsultVO vo = new ConsultVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setConsultNo(defaultIfBlank(entity.getConsultNo(), resolveConsultNo(entity.getId())));
         vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));

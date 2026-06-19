@@ -21,7 +21,6 @@ public class DeptConverter {
      */
     public DeptResp toDeptVO(SysDeptEntity entity) {
         DeptResp vo = new DeptResp();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setParentId(DefaultValueUtils.defaultIfNull(entity.getParentId(), 0L));
         vo.setDeptName(entity.getDeptName());

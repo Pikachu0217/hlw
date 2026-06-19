@@ -1,8 +1,6 @@
 -- Internet Hospital MVP PostgreSQL 16 baseline schema.
 -- Execute with psql. Database creation uses \gexec so reruns are idempotent.
 
-SELECT 'CREATE DATABASE hospital_auth'
-WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_auth')\gexec
 SELECT 'CREATE DATABASE hospital_gateway'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_gateway')\gexec
 SELECT 'CREATE DATABASE hospital_system'
@@ -21,77 +19,6 @@ SELECT 'CREATE DATABASE hospital_drug'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_drug')\gexec
 SELECT 'CREATE DATABASE hospital_order'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'hospital_order')\gexec
-
-\connect hospital_auth
-
-CREATE TABLE IF NOT EXISTS auth_login_record (
-    id BIGSERIAL PRIMARY KEY,
-    tenant_id BIGINT NOT NULL,
-    user_id BIGINT,
-    username VARCHAR(64) NOT NULL,
-    user_type VARCHAR(32) NOT NULL DEFAULT '',
-    login_status VARCHAR(32) NOT NULL,
-    failure_reason VARCHAR(256) NOT NULL DEFAULT '',
-    token_digest VARCHAR(64) NOT NULL DEFAULT '',
-    login_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    logout_time TIMESTAMP,
-    client_ip VARCHAR(64) NOT NULL DEFAULT '',
-    user_agent VARCHAR(512) NOT NULL DEFAULT '',
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    create_by BIGINT,
-    update_by BIGINT,
-    deleted SMALLINT NOT NULL DEFAULT 0
-);
-
-CREATE INDEX IF NOT EXISTS idx_auth_login_record_tenant_username ON auth_login_record (tenant_id, username);
-CREATE INDEX IF NOT EXISTS idx_auth_login_record_login_time ON auth_login_record (login_time DESC);
-CREATE INDEX IF NOT EXISTS idx_auth_login_record_token_digest ON auth_login_record (token_digest);
-
-COMMENT ON TABLE auth_login_record IS '认证登录记录表';
-COMMENT ON COLUMN auth_login_record.id IS '主键编号';
-COMMENT ON COLUMN auth_login_record.tenant_id IS '租户编号';
-COMMENT ON COLUMN auth_login_record.user_id IS '用户编号';
-COMMENT ON COLUMN auth_login_record.username IS '登录账号';
-COMMENT ON COLUMN auth_login_record.user_type IS '用户类型';
-COMMENT ON COLUMN auth_login_record.login_status IS '登录状态';
-COMMENT ON COLUMN auth_login_record.failure_reason IS '失败原因';
-COMMENT ON COLUMN auth_login_record.token_digest IS '令牌摘要';
-COMMENT ON COLUMN auth_login_record.login_time IS '登录时间';
-COMMENT ON COLUMN auth_login_record.logout_time IS '退出时间';
-COMMENT ON COLUMN auth_login_record.client_ip IS '客户端 IP';
-COMMENT ON COLUMN auth_login_record.user_agent IS '客户端标识';
-COMMENT ON COLUMN auth_login_record.create_time IS '创建时间';
-COMMENT ON COLUMN auth_login_record.update_time IS '更新时间';
-COMMENT ON COLUMN auth_login_record.create_by IS '创建人编号';
-COMMENT ON COLUMN auth_login_record.update_by IS '更新人编号';
-COMMENT ON COLUMN auth_login_record.deleted IS '逻辑删除标识';
-
-CREATE TABLE IF NOT EXISTS local_message (
-    id BIGSERIAL PRIMARY KEY,
-    topic VARCHAR(128) NOT NULL,
-    body TEXT NOT NULL,
-    retry_count INTEGER NOT NULL DEFAULT 0,
-    max_retry INTEGER NOT NULL DEFAULT 3,
-    next_retry_time TIMESTAMP,
-    -- status: PENDING, SENT, FAILED
-    status VARCHAR(16) NOT NULL,
-    error_msg TEXT,
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-COMMENT ON TABLE local_message IS '认证服务本地消息表';
-COMMENT ON COLUMN local_message.id IS '主键编号';
-COMMENT ON COLUMN local_message.topic IS '消息主题';
-COMMENT ON COLUMN local_message.body IS '消息内容';
-COMMENT ON COLUMN local_message.retry_count IS '已重试次数';
-COMMENT ON COLUMN local_message.max_retry IS '最大重试次数';
-COMMENT ON COLUMN local_message.next_retry_time IS '下次重试时间';
-COMMENT ON COLUMN local_message.status IS '消息状态';
-COMMENT ON COLUMN local_message.error_msg IS '错误信息';
-COMMENT ON COLUMN local_message.create_time IS '创建时间';
-COMMENT ON COLUMN local_message.update_time IS '更新时间';
 
 \connect hospital_gateway
 
@@ -573,24 +500,35 @@ COMMENT ON COLUMN sys_role_menu.deleted IS '逻辑删除标识';
 
 INSERT INTO sys_tenant (id, tenant_id, name, tenant_name, package_name, admin_name, expire_at, status)
 VALUES
-    (1, 100, '互联网医院平台租户', '互联网医院平台租户', '平台租户管理员', 'hlw_admin', '2026-12-31', '0')
+    (1, 100, '明亮互联网医院', '明亮互联网医院', '平台租户管理员', 'tenant_admin', '2026-12-31', '0')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_dept (id, tenant_id, parent_id, dept_name, ancestors, sort, status)
 VALUES
-    (1, 100, 0, '运营中心', '0', 1, '0'),
-    (2, 100, 1, '药房组', '0,1', 2, '0')
+    (1, 0, 0, '平台运营中心', '0', 1, '0'),
+    (2, 100, 0, '药房组', '0', 2, '0')
 ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
                                dept_name = EXCLUDED.dept_name,
                                ancestors = EXCLUDED.ancestors,
                                sort = EXCLUDED.sort,
                                status = EXCLUDED.status;
 
+DELETE FROM sys_user
+WHERE id <> 1;
+
 INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_id, dept_name, role_name, last_login, status)
 VALUES
-    (1, 100, '门诊运营', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'ADMIN', 1, '运营中心', '运营管理员', '今天 08:40', '0'),
-    (2, 100, '药房主管', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800002222', 'ADMIN', 2, '药房组', '库存专员', '今天 07:58', '0')
-ON CONFLICT DO NOTHING;
+    (1, 0, 'hlw_admin', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'sys_user', 1, '平台运营中心', '系统管理员', '2026-06-19 09:21:52', '0')
+ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id,
+                               username = EXCLUDED.username,
+                               password = EXCLUDED.password,
+                               phone = EXCLUDED.phone,
+                               user_type = EXCLUDED.user_type,
+                               dept_id = EXCLUDED.dept_id,
+                               dept_name = EXCLUDED.dept_name,
+                               role_name = EXCLUDED.role_name,
+                               last_login = EXCLUDED.last_login,
+                               status = EXCLUDED.status;
 
 UPDATE sys_user user_table
 SET dept_id = dept_table.id
@@ -603,22 +541,22 @@ WHERE user_table.tenant_id = dept_table.tenant_id
 
 INSERT INTO sys_role (id, tenant_id, role_name, role_code, data_scope, member_count, status)
 VALUES
-    (1, 100, '系统管理员', 'SYSTEM_ADMIN', '全部数据', 1, '0'),
+    (1, 0, '系统管理员', 'SYSTEM_ADMIN', '全部数据', 1, '0'),
     (2, 100, '运营管理员', 'OPERATOR_ADMIN', '本租户数据', 1, '0')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sys_menu (id, tenant_id, parent_id, menu_name, menu_type, permission, route_path, sort, status)
 VALUES
-    (1, 100, 0, '工作台', '菜单', 'dashboard:view', '/dashboard', 1, '0'),
-    (2, 100, 0, '医生管理', '菜单', 'doctor:list', '/doctor', 2, '0'),
-    (3, 100, 0, '用户管理', '菜单', 'system:user:list', '/system/user', 3, '0'),
-    (4, 100, 0, '角色管理', '菜单', 'system:role:list', '/system/role', 4, '0'),
-    (5, 100, 0, '菜单管理', '菜单', 'system:menu:list', '/system/menu', 5, '0'),
-    (6, 100, 0, '字典管理', '菜单', 'system:dict:list', '/system/dict', 6, '0'),
-    (7, 100, 0, '参数配置', '菜单', 'system:config:list', '/system/config', 7, '0'),
-    (8, 100, 0, '岗位管理', '菜单', 'system:post:list', '/system/post', 8, '0'),
-    (9, 100, 0, '权限管理', '菜单', 'system:permission:list', '/system/permission', 9, '0'),
-    (10, 100, 2, '科室管理', '菜单', 'doctor:department:list', '/doctor/departments', 10, '0')
+    (1, 0, 0, '工作台', '菜单', 'dashboard:view', '/dashboard', 1, '0'),
+    (2, 0, 0, '医生管理', '菜单', 'doctor:list', '/doctor', 2, '0'),
+    (3, 0, 0, '用户管理', '菜单', 'system:user:list', '/system/user', 3, '0'),
+    (4, 0, 0, '角色管理', '菜单', 'system:role:list', '/system/role', 4, '0'),
+    (5, 0, 0, '菜单管理', '菜单', 'system:menu:list', '/system/menu', 5, '0'),
+    (6, 0, 0, '字典管理', '菜单', 'system:dict:list', '/system/dict', 6, '0'),
+    (7, 0, 0, '参数配置', '菜单', 'system:config:list', '/system/config', 7, '0'),
+    (8, 0, 0, '岗位管理', '菜单', 'system:post:list', '/system/post', 8, '0'),
+    (9, 0, 0, '权限管理', '菜单', 'system:permission:list', '/system/permission', 9, '0'),
+    (10, 0, 2, '科室管理', '菜单', 'doctor:department:list', '/doctor/departments', 10, '0')
 ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
                                menu_name = EXCLUDED.menu_name,
                                menu_type = EXCLUDED.menu_type,
@@ -629,11 +567,11 @@ ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
 
 INSERT INTO sys_dict (id, tenant_id, dict_type, dict_label, dict_value, sort, status, remark)
 VALUES
-    (1, 100, 'account_status', '启用', '0', 1, '0', '后台账号可登录'),
-    (2, 100, 'account_status', '停用', '1', 2, '0', '后台账号禁止登录'),
-    (3, 100, 'menu_type', '目录', '目录', 1, '0', '菜单目录节点'),
-    (4, 100, 'menu_type', '菜单', '菜单', 2, '0', '可访问页面菜单'),
-    (5, 100, 'menu_type', '按钮', '按钮', 3, '0', '页面按钮权限')
+    (1, 0, 'account_status', '启用', '0', 1, '0', '后台账号可登录'),
+    (2, 0, 'account_status', '停用', '1', 2, '0', '后台账号禁止登录'),
+    (3, 0, 'menu_type', '目录', '目录', 1, '0', '菜单目录节点'),
+    (4, 0, 'menu_type', '菜单', '菜单', 2, '0', '可访问页面菜单'),
+    (5, 0, 'menu_type', '按钮', '按钮', 3, '0', '页面按钮权限')
 ON CONFLICT (id) DO UPDATE SET dict_type = EXCLUDED.dict_type,
                                dict_label = EXCLUDED.dict_label,
                                dict_value = EXCLUDED.dict_value,
@@ -643,9 +581,9 @@ ON CONFLICT (id) DO UPDATE SET dict_type = EXCLUDED.dict_type,
 
 INSERT INTO sys_config (id, tenant_id, config_key, config_value, config_type, status, remark)
 VALUES
-    (1, 100, 'consult.default_duration_minutes', '30', '问诊配置', '0', '默认问诊时长'),
-    (2, 100, 'appointment.release_window_minutes', '15', '预约配置', '0', '放号提前窗口'),
-    (3, 100, 'security.password_expire_days', '90', '安全配置', '0', '密码过期天数')
+    (1, 0, 'consult.default_duration_minutes', '30', '问诊配置', '0', '默认问诊时长'),
+    (2, 0, 'appointment.release_window_minutes', '15', '预约配置', '0', '放号提前窗口'),
+    (3, 0, 'security.password_expire_days', '90', '安全配置', '0', '密码过期天数')
 ON CONFLICT (id) DO UPDATE SET config_key = EXCLUDED.config_key,
                                config_value = EXCLUDED.config_value,
                                config_type = EXCLUDED.config_type,
@@ -654,7 +592,7 @@ ON CONFLICT (id) DO UPDATE SET config_key = EXCLUDED.config_key,
 
 INSERT INTO sys_post (id, tenant_id, post_name, post_code, sort, status, remark)
 VALUES
-    (1, 100, '运营管理员', 'OPERATIONS_ADMIN', 1, '0', '负责平台日常运营'),
+    (1, 0, '运营管理员', 'OPERATIONS_ADMIN', 1, '0', '负责平台日常运营'),
     (2, 100, '药房主管', 'PHARMACY_MANAGER', 2, '0', '负责药品库存和发药'),
     (3, 100, '客服专员', 'SERVICE_AGENT', 3, '0', '负责患者咨询和预约协助')
 ON CONFLICT (id) DO UPDATE SET post_name = EXCLUDED.post_name,
@@ -663,10 +601,13 @@ ON CONFLICT (id) DO UPDATE SET post_name = EXCLUDED.post_name,
                                status = EXCLUDED.status,
                                remark = EXCLUDED.remark;
 
+DELETE FROM sys_user_post
+WHERE user_id <> 1
+   OR tenant_id <> 0;
+
 INSERT INTO sys_user_post (id, tenant_id, user_id, post_id, status)
 VALUES
-    (1, 100, 1, 1, '0'),
-    (2, 100, 2, 2, '0')
+    (1, 0, 1, 1, '0')
 ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
                                post_id = EXCLUDED.post_id,
                                status = EXCLUDED.status;
@@ -684,24 +625,27 @@ ON CONFLICT (id) DO UPDATE SET permission_name = EXCLUDED.permission_name,
                                menu_id = EXCLUDED.menu_id,
                                status = EXCLUDED.status;
 
+DELETE FROM sys_user_role
+WHERE user_id <> 1
+   OR tenant_id <> 0;
+
 INSERT INTO sys_user_role (id, tenant_id, user_id, role_id, status)
 VALUES
-    (1, 100, 1, 1, '0'),
-    (2, 100, 2, 2, '0')
+    (1, 0, 1, 1, '0')
 ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
                                role_id = EXCLUDED.role_id,
                                status = EXCLUDED.status;
 
 INSERT INTO sys_role_menu (id, tenant_id, role_id, menu_id, status)
 VALUES
-    (1, 100, 1, 1, '0'),
-    (2, 100, 1, 3, '0'),
-    (3, 100, 1, 4, '0'),
-    (4, 100, 1, 5, '0'),
-    (5, 100, 1, 6, '0'),
-    (6, 100, 1, 7, '0'),
-    (7, 100, 1, 8, '0'),
-    (8, 100, 1, 9, '0'),
+    (1, 0, 1, 1, '0'),
+    (2, 0, 1, 3, '0'),
+    (3, 0, 1, 4, '0'),
+    (4, 0, 1, 5, '0'),
+    (5, 0, 1, 6, '0'),
+    (6, 0, 1, 7, '0'),
+    (7, 0, 1, 8, '0'),
+    (8, 0, 1, 9, '0'),
     (9, 100, 2, 1, '0'),
     (10, 100, 2, 3, '0')
 ON CONFLICT (id) DO UPDATE SET role_id = EXCLUDED.role_id,

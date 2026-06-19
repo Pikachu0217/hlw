@@ -1,6 +1,7 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_dict_data")
-public class SysDictDataEntity extends SystemBaseEntity {
+public class SysDictDataEntity extends BaseEntity {
     /** 字典排序。 */
     private Integer dictSort;
     /** 字典标签。 */

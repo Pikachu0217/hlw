@@ -2,9 +2,9 @@ package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateTenantPackageReq;
 import com.hlw.system.domain.resp.TenantPackageResp;
@@ -45,7 +45,7 @@ public class TenantPackageService {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以查询租户套餐列表");
         log.info("查询租户套餐列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        LambdaQueryWrapper<SysTenantPackageEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysTenantPackageEntity::getDeleted);
+        LambdaQueryWrapper<SysTenantPackageEntity> wrapper = new LambdaQueryWrapper<SysTenantPackageEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.like(SysTenantPackageEntity::getPackageName, query.getKeyword());
         }
@@ -66,8 +66,8 @@ public class TenantPackageService {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以创建租户套餐");
         log.info("创建租户套餐，packageName={}", request.getPackageName());
         SysTenantPackageEntity entity = new SysTenantPackageEntity();
+        entity.setTenantId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID));
         fillPackage(entity, request);
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysTenantPackageMapper.insert(entity);
@@ -116,10 +116,8 @@ public class TenantPackageService {
     public void deletePackage(Long id) {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以删除租户套餐");
         log.info("删除租户套餐，id={}", id);
-        SysTenantPackageEntity entity = requirePackage(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysTenantPackageMapper.updateById(entity);
+        requirePackage(id);
+        sysTenantPackageMapper.deleteById(id);
     }
 
     /**
@@ -129,13 +127,13 @@ public class TenantPackageService {
      * @param menuIds 菜单编号列表
      */
     private void replacePackageMenus(Long packageId, List<Long> menuIds) {
-        sysTenantPackageMenuMapper.delete(new LambdaQueryWrapper<SysTenantPackageMenuEntity>()
-            .eq(SysTenantPackageMenuEntity::getPackageId, packageId));
+        sysTenantPackageMenuMapper.physicalDeleteByPackageId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID), packageId);
         if (menuIds == null || menuIds.isEmpty()) {
             return;
         }
         for (Long menuId : menuIds) {
             SysTenantPackageMenuEntity relation = new SysTenantPackageMenuEntity();
+            relation.setTenantId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID));
             relation.setPackageId(packageId);
             relation.setMenuId(menuId);
             sysTenantPackageMenuMapper.insert(relation);
@@ -150,7 +148,6 @@ public class TenantPackageService {
      */
     private TenantPackageResp toResp(SysTenantPackageEntity entity) {
         TenantPackageResp resp = new TenantPackageResp();
-        resp.setKey(String.valueOf(entity.getId()));
         resp.setId(entity.getId());
         resp.setPackageName(entity.getPackageName());
         resp.setRemark(entity.getRemark());
@@ -183,7 +180,7 @@ public class TenantPackageService {
      */
     private SysTenantPackageEntity requirePackage(Long id) {
         return MybatisTenantHelpers.requireEntity(sysTenantPackageMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysTenantPackageEntity::getDeleted)
+            new LambdaQueryWrapper<SysTenantPackageEntity>()
                 .eq(SysTenantPackageEntity::getId, id)
                 .last("limit 1")), "租户套餐不存在");
     }

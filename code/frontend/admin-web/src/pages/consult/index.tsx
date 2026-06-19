@@ -12,7 +12,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface ConsultRecord {
-  key: string;
+  id: number;
   consultNo: string;
   patientName: string;
   doctorName: string;
@@ -91,7 +91,7 @@ function ConsultPage() {
     const values = await acceptForm.validateFields();
     setSubmitting(true);
     try {
-      await acceptConsult(currentRecord.key, values);
+      await acceptConsult(currentRecord.id, values);
       message.success('问诊接单成功');
       setAcceptOpen(false);
       setCurrentRecord(null);
@@ -107,7 +107,7 @@ function ConsultPage() {
   async function handleComplete(record: ConsultRecord) {
     setSubmitting(true);
     try {
-      await completeConsult(record.key);
+      await completeConsult(record.id);
       message.success('问诊已完成');
       refresh();
     } catch (error) {
@@ -120,7 +120,7 @@ function ConsultPage() {
   async function handleExtend(record: ConsultRecord) {
     setSubmitting(true);
     try {
-      await extendConsult(record.key);
+      await extendConsult(record.id);
       message.success('问诊已延长');
       refresh();
     } catch (error) {

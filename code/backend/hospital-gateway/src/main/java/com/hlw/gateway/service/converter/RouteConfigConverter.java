@@ -19,7 +19,7 @@ public class RouteConfigConverter {
      */
     public RouteConfigResp toResp(GwRouteConfigEntity entity) {
         RouteConfigResp resp = new RouteConfigResp();
-        resp.setKey(String.valueOf(entity.getId()));
+        resp.setId(entity.getId());
         resp.setRouteCode(entity.getRouteCode());
         resp.setUri(entity.getUri());
         resp.setPathPredicate(entity.getPathPredicate());

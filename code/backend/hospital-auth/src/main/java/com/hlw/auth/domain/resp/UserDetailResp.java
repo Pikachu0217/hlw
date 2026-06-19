@@ -11,8 +11,8 @@ import java.util.List;
 @Getter
 @Setter
 public class UserDetailResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 用户编号。 */
     private Long userId;
     /** 用户业务编号。 */

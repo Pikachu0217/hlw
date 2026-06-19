@@ -23,7 +23,7 @@ public class AuthorizationConverter {
      */
     public RelationBindingResp toRelationBindingVO(SysUserRoleEntity entity, String userId, Long roleId) {
         RelationBindingResp vo = new RelationBindingResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setUserId(userId);
         vo.setRoleId(roleId);
         vo.setMenuId(null);
@@ -40,7 +40,7 @@ public class AuthorizationConverter {
      */
     public RelationBindingResp toRelationBindingVO(SysRoleMenuEntity entity, Long roleId, Long menuId) {
         RelationBindingResp vo = new RelationBindingResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setUserId(null);
         vo.setRoleId(roleId);
         vo.setMenuId(menuId);

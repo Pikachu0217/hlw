@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RelationBindingResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 用户编号。 */
     private String userId;
     /** 角色编号。 */

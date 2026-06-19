@@ -98,7 +98,6 @@ public class DrugCatalogService {
         entity.setInventory(inventory);
         entity.setUnit(unit);
         entity.setWarningStatus(warningStatus);
-        entity.setDeleted(0);
         drugInfoMapper.insert(entity);
         if (inventory > 0) {
             createStockEntity(entity.getId(), DEFAULT_WAREHOUSE_NAME, inventory, warningStatus);
@@ -167,7 +166,6 @@ public class DrugCatalogService {
         stock.setInventory(inventory);
         stock.setWarningStatus(warningStatus);
         stock.setStockQty(BigDecimal.valueOf(inventory));
-        stock.setDeleted(0);
         drugStockMapper.insert(stock);
         return stock;
     }
@@ -180,7 +178,6 @@ public class DrugCatalogService {
     private void refreshDrugInventory(Long drugId) {
         DrugInfoEntity drug = requireActiveDrug(drugId);
         int totalInventory = drugStockMapper.selectList(new LambdaQueryWrapper<DrugStockEntity>()
-                .eq(DrugStockEntity::getDeleted, 0)
                 .eq(DrugStockEntity::getDrugId, drugId))
             .stream()
             .map(DrugStockEntity::getInventory)
@@ -196,7 +193,7 @@ public class DrugCatalogService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<DrugInfoEntity> activeDrugWrapper() {
-        return new LambdaQueryWrapper<DrugInfoEntity>().eq(DrugInfoEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<DrugInfoEntity>();
     }
 
     /**
@@ -205,7 +202,7 @@ public class DrugCatalogService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<DrugStockEntity> activeStockWrapper() {
-        return new LambdaQueryWrapper<DrugStockEntity>().eq(DrugStockEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<DrugStockEntity>();
     }
 
     /**
@@ -228,7 +225,6 @@ public class DrugCatalogService {
      */
     private DrugInfoEntity requireActiveDrug(Long drugId) {
         DrugInfoEntity entity = drugInfoMapper.selectOne(new LambdaQueryWrapper<DrugInfoEntity>()
-            .eq(DrugInfoEntity::getDeleted, 0)
             .eq(DrugInfoEntity::getId, drugId)
             .last("limit 1"));
         if (entity == null) {
@@ -245,7 +241,6 @@ public class DrugCatalogService {
      */
     private DrugDeliveryEntity requireActiveDelivery(Long deliveryId) {
         DrugDeliveryEntity entity = drugDeliveryMapper.selectOne(new LambdaQueryWrapper<DrugDeliveryEntity>()
-            .eq(DrugDeliveryEntity::getDeleted, 0)
             .eq(DrugDeliveryEntity::getId, deliveryId)
             .last("limit 1"));
         if (entity == null) {
@@ -262,7 +257,6 @@ public class DrugCatalogService {
      */
     private DrugVO toDrugVO(DrugInfoEntity entity) {
         DrugVO vo = new DrugVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setDrugName(defaultIfBlank(entity.getDrugName(), entity.getName()));
         vo.setSpec(defaultIfBlank(entity.getSpec(), ""));
@@ -280,7 +274,6 @@ public class DrugCatalogService {
      */
     private StockVO toStockVO(DrugStockEntity entity) {
         StockVO vo = new StockVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setDrugName(requireActiveDrug(entity.getDrugId()).getDrugName());
         vo.setWarehouseName(defaultIfBlank(entity.getWarehouseName(), DEFAULT_WAREHOUSE_NAME));

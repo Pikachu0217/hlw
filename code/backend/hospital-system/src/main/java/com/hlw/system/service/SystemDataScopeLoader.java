@@ -79,7 +79,7 @@ public class SystemDataScopeLoader implements DataScopeLoader {
         if (roleIds.isEmpty()) {
             return DataScopeContext.builder().userId(userId).deptId(user.getDeptId()).effectiveType(DataScopeType.SELF).build();
         }
-        List<SysRoleEntity> roles = sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+        List<SysRoleEntity> roles = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
             .eq(SysRoleEntity::getStatus, 0)
             .in(SysRoleEntity::getId, roleIds));
         DataScopeType effectiveType = roles.stream()
@@ -106,7 +106,7 @@ public class SystemDataScopeLoader implements DataScopeLoader {
      * @return 用户实体
      */
     private SysUserEntity loadUser(Long userId, Long tenantId) {
-        LambdaQueryWrapper<SysUserEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+        LambdaQueryWrapper<SysUserEntity> wrapper = new LambdaQueryWrapper<SysUserEntity>()
             .eq(SysUserEntity::getId, userId);
         if (tenantId != null) {
             wrapper.eq(SysUserEntity::getTenantId, String.valueOf(tenantId));
@@ -175,7 +175,7 @@ public class SystemDataScopeLoader implements DataScopeLoader {
      * @return 部门列表
      */
     private List<SysDeptEntity> loadActiveDepts(Long tenantId) {
-        LambdaQueryWrapper<SysDeptEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted)
+        LambdaQueryWrapper<SysDeptEntity> wrapper = new LambdaQueryWrapper<SysDeptEntity>()
             .eq(SysDeptEntity::getStatus, 0);
         if (tenantId != null) {
             wrapper.eq(SysDeptEntity::getTenantId, String.valueOf(tenantId));

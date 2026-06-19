@@ -6,7 +6,6 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface TenantPackageRecord {
-  key: string;
   id: number;
   packageName: string;
   remark?: string;
@@ -67,7 +66,7 @@ function TenantPackagesPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateTenantPackage(editingRecord.key, payload);
+        await updateTenantPackage(editingRecord.id, payload);
         message.success('租户套餐更新成功');
       } else {
         await createTenantPackage(payload);
@@ -93,7 +92,7 @@ function TenantPackagesPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteTenantPackage(record.key);
+          await deleteTenantPackage(record.id);
           message.success('租户套餐删除成功');
           refresh();
         } catch {

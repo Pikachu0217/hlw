@@ -7,11 +7,6 @@ spring:
     import:
       - optional:nacos:hlw-common-auth.yml?group=${HLW_NACOS_GROUP:DEFAULT_GROUP}
       - optional:nacos:hospital-auth.yml?group=${HLW_NACOS_GROUP:DEFAULT_GROUP}
-  datasource:
-    url: ${hlw.datasource.url}
-    username: ${hlw.datasource.username}
-    password: ${hlw.datasource.password}
-    driver-class-name: com.mysql.cj.jdbc.Driver
   cloud:
     nacos:
       server-addr: ${HLW_NACOS_SERVER_ADDR:127.0.0.1:8848}
@@ -38,10 +33,6 @@ management:
       exposure:
         include: health,info
 
-mybatis-plus:
-  configuration:
-    map-underscore-to-camel-case: true
-
 logging:
   level:
     root: INFO
@@ -62,7 +53,3 @@ hlw:
     group: ${HLW_NACOS_GROUP:DEFAULT_GROUP}
     username: ${HLW_NACOS_USERNAME:nacos}
     password: ${HLW_NACOS_PASSWORD}
-  datasource:
-    url: ${HLW_AUTH_DB_URL}
-    username: ${HLW_AUTH_DB_USERNAME}
-    password: ${HLW_AUTH_DB_PASSWORD}

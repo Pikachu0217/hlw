@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateDeptReq;
 import com.hlw.system.domain.resp.DeptResp;
@@ -73,7 +72,6 @@ public class DeptService {
         SysDeptEntity entity = new SysDeptEntity();
         fillDept(entity, request);
         entity.setAncestors(resolveAncestors(entity.getParentId()));
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysDeptMapper.insert(entity);
@@ -118,10 +116,8 @@ public class DeptService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteDept(Long id) {
         log.info("删除部门，id={}", id);
-        SysDeptEntity entity = requireDept(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysDeptMapper.updateById(entity);
+        requireDept(id);
+        sysDeptMapper.deleteById(id);
     }
 
     /**
@@ -131,7 +127,7 @@ public class DeptService {
      * @return 查询包装器
      */
     private LambdaQueryWrapper<SysDeptEntity> buildListWrapper(PageQuery query) {
-        LambdaQueryWrapper<SysDeptEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted);
+        LambdaQueryWrapper<SysDeptEntity> wrapper = new LambdaQueryWrapper<SysDeptEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.like(SysDeptEntity::getDeptName, query.getKeyword());
         }
@@ -176,7 +172,7 @@ public class DeptService {
      */
     private SysDeptEntity requireDept(Long id) {
         return MybatisTenantHelpers.requireEntity(sysDeptMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted)
+            new LambdaQueryWrapper<SysDeptEntity>()
                 .eq(SysDeptEntity::getId, id)
                 .last("limit 1")), "部门不存在");
     }

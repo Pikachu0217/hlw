@@ -49,8 +49,8 @@ public class AuthorizationController {
      * @return 绑定结果
      */
     @PostMapping("/user-role")
-    public R<RelationBindingResp> bindUserRole(@Valid @RequestBody BindUserRoleReq request) {
-        log.info("绑定用户角色，userId={}，roleId={}", request.getUserId(), request.getRoleId());
+    public R<List<RelationBindingResp>> bindUserRole(@Valid @RequestBody BindUserRoleReq request) {
+        log.info("绑定用户角色，userId={}，roleIds={}", request.getUserId(), request.getRoleIds());
         return R.ok(authorizationService.bindUserRole(request));
     }
 
@@ -97,8 +97,8 @@ public class AuthorizationController {
      * @return 绑定结果
      */
     @PostMapping("/role-menu")
-    public R<RelationBindingResp> bindRoleMenu(@Valid @RequestBody BindRoleMenuReq request) {
-        log.info("绑定角色菜单，roleId={}，menuId={}", request.getRoleId(), request.getMenuId());
+    public R<List<RelationBindingResp>> bindRoleMenu(@Valid @RequestBody BindRoleMenuReq request) {
+        log.info("绑定角色菜单，roleId={}，menuIds={}", request.getRoleId(), request.getMenuIds());
         return R.ok(authorizationService.bindRoleMenu(request));
     }
 

@@ -8,10 +8,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class ConsultVO {
-    /** 表格主键。 */
-    private String key;
-    /** 问诊编号。 */
+public class ConsultVO {    /** 问诊编号。 */
     private Long id;
     /** 问诊单号。 */
     private String consultNo;

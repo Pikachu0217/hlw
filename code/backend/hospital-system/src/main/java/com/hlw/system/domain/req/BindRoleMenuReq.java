@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 /**
  * 绑定角色菜单请求。
  */
@@ -13,7 +15,7 @@ public class BindRoleMenuReq {
     /** 角色编号。 */
     @NotNull(message = "角色编号不能为空")
     private Long roleId;
-    /** 菜单编号。 */
-    @NotNull(message = "菜单编号不能为空")
-    private Long menuId;
+    /** 菜单编号列表。 */
+    @NotNull(message = "菜单编号列表不能为空")
+    private List<Long> menuIds;
 }

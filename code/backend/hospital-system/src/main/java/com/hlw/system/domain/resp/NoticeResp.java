@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class NoticeResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 公告标题。 */
     private String noticeTitle;
     /** 公告类型。 */

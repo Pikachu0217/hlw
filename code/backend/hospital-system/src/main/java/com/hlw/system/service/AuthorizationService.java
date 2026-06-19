@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -55,10 +56,10 @@ public class AuthorizationService {
     @Transactional(readOnly = true)
     public java.util.List<UserRoleResp> listUserRoles() {
         log.info("查询用户角色授权列表");
-        Map<String, SysUserEntity> userMap = sysUserMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted))
+        Map<String, SysUserEntity> userMap = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserEntity>())
             .stream()
             .collect(Collectors.toMap(SysUserEntity::getUserId, user -> user, (left, right) -> left));
-        Map<Long, String> roleMap = sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted))
+        Map<Long, String> roleMap = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>())
             .stream()
             .collect(Collectors.toMap(SysRoleEntity::getId, SysRoleEntity::getRoleName, (left, right) -> left));
         return sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>())
@@ -67,9 +68,10 @@ public class AuthorizationService {
             .map(relation -> {
                 UserRoleResp resp = new UserRoleResp();
                 SysUserEntity user = userMap.get(relation.getUserId());
-                resp.setKey(String.valueOf(relation.getId()));
+                resp.setId(relation.getId());
                 resp.setUserId(relation.getUserId());
                 resp.setUserName(user == null ? "-" : user.getUserName());
+                resp.setRoleId(relation.getRoleId());
                 resp.setRoleName(roleMap.getOrDefault(relation.getRoleId(), "-"));
                 return resp;
             })
@@ -89,9 +91,10 @@ public class AuthorizationService {
         SysUserEntity user = requireUser(relation.getUserId());
         SysRoleEntity role = requireRole(relation.getRoleId());
         UserRoleResp resp = new UserRoleResp();
-        resp.setKey(String.valueOf(relation.getId()));
+        resp.setId(relation.getId());
         resp.setUserId(relation.getUserId());
         resp.setUserName(user.getUserName());
+        resp.setRoleId(relation.getRoleId());
         resp.setRoleName(role.getRoleName());
         return resp;
     }
@@ -103,23 +106,22 @@ public class AuthorizationService {
      * @return 绑定结果
      */
     @Transactional(rollbackFor = Exception.class)
-    public RelationBindingResp bindUserRole(BindUserRoleReq request) {
-        log.info("绑定用户角色，userId={}，roleId={}", request.getUserId(), request.getRoleId());
-        requireUser(request.getUserId());
-        requireRole(request.getRoleId());
-        SysUserRoleEntity existed = sysUserRoleMapper.selectOne(new LambdaQueryWrapper<SysUserRoleEntity>()
-            .eq(SysUserRoleEntity::getUserId, request.getUserId())
-            .eq(SysUserRoleEntity::getRoleId, request.getRoleId())
-            .last("limit 1"));
-        if (existed != null) {
-            log.info("用户角色关系已存在，userId={}，roleId={}", request.getUserId(), request.getRoleId());
-            return authorizationConverter.toRelationBindingVO(existed, request.getUserId(), request.getRoleId());
-        }
-        SysUserRoleEntity entity = new SysUserRoleEntity();
-        entity.setUserId(request.getUserId());
-        entity.setRoleId(request.getRoleId());
-        sysUserRoleMapper.insert(entity);
-        return authorizationConverter.toRelationBindingVO(entity, request.getUserId(), request.getRoleId());
+    public List<RelationBindingResp> bindUserRole(BindUserRoleReq request) {
+        log.info("绑定用户角色，userId={}，roleIds={}", request.getUserId(), request.getRoleIds());
+        SysUserEntity user = requireUser(request.getUserId());
+        request.getRoleIds().forEach(this::requireRole);
+        sysUserRoleMapper.physicalDeleteByUserId(user.getTenantId(), request.getUserId());
+        return request.getRoleIds().stream()
+            .distinct()
+            .map(roleId -> {
+                SysUserRoleEntity entity = new SysUserRoleEntity();
+                entity.setTenantId(user.getTenantId());
+                entity.setUserId(request.getUserId());
+                entity.setRoleId(roleId);
+                sysUserRoleMapper.insert(entity);
+                return authorizationConverter.toRelationBindingVO(entity, request.getUserId(), roleId);
+            })
+            .toList();
     }
 
     /**
@@ -131,7 +133,7 @@ public class AuthorizationService {
     public void deleteUserRole(Long relationId) {
         log.info("删除用户角色授权，relationId={}", relationId);
         requireUserRole(relationId);
-        sysUserRoleMapper.deleteById(relationId);
+        sysUserRoleMapper.physicalDeleteById(relationId);
     }
 
     /**
@@ -142,10 +144,10 @@ public class AuthorizationService {
     @Transactional(readOnly = true)
     public java.util.List<RoleMenuResp> listRoleMenus() {
         log.info("查询角色菜单授权列表");
-        Map<Long, String> roleMap = sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted))
+        Map<Long, String> roleMap = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>())
             .stream()
             .collect(Collectors.toMap(SysRoleEntity::getId, SysRoleEntity::getRoleName, (left, right) -> left));
-        Map<Long, SysMenuEntity> menuMap = sysMenuMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted))
+        Map<Long, SysMenuEntity> menuMap = sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>())
             .stream()
             .collect(Collectors.toMap(SysMenuEntity::getId, menu -> menu, (left, right) -> left));
         return sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenuEntity>())
@@ -154,8 +156,10 @@ public class AuthorizationService {
             .map(relation -> {
                 RoleMenuResp resp = new RoleMenuResp();
                 SysMenuEntity menu = menuMap.get(relation.getMenuId());
-                resp.setKey(String.valueOf(relation.getId()));
+                resp.setId(relation.getId());
+                resp.setRoleId(relation.getRoleId());
                 resp.setRoleName(roleMap.getOrDefault(relation.getRoleId(), "-"));
+                resp.setMenuId(relation.getMenuId());
                 resp.setMenuName(menu == null ? "-" : menu.getMenuName());
                 resp.setPerms(menu == null ? "-" : menu.getPerms());
                 return resp;
@@ -176,8 +180,10 @@ public class AuthorizationService {
         SysRoleEntity role = requireRole(relation.getRoleId());
         SysMenuEntity menu = requireMenu(relation.getMenuId());
         RoleMenuResp resp = new RoleMenuResp();
-        resp.setKey(String.valueOf(relation.getId()));
+        resp.setId(relation.getId());
+        resp.setRoleId(relation.getRoleId());
         resp.setRoleName(role.getRoleName());
+        resp.setMenuId(relation.getMenuId());
         resp.setMenuName(menu.getMenuName());
         resp.setPerms(menu.getPerms());
         return resp;
@@ -190,23 +196,22 @@ public class AuthorizationService {
      * @return 绑定结果
      */
     @Transactional(rollbackFor = Exception.class)
-    public RelationBindingResp bindRoleMenu(BindRoleMenuReq request) {
-        log.info("绑定角色菜单，roleId={}，menuId={}", request.getRoleId(), request.getMenuId());
-        requireRole(request.getRoleId());
-        requireMenu(request.getMenuId());
-        SysRoleMenuEntity existed = sysRoleMenuMapper.selectOne(new LambdaQueryWrapper<SysRoleMenuEntity>()
-            .eq(SysRoleMenuEntity::getRoleId, request.getRoleId())
-            .eq(SysRoleMenuEntity::getMenuId, request.getMenuId())
-            .last("limit 1"));
-        if (existed != null) {
-            log.info("角色菜单关系已存在，roleId={}，menuId={}", request.getRoleId(), request.getMenuId());
-            return authorizationConverter.toRelationBindingVO(existed, request.getRoleId(), request.getMenuId());
-        }
-        SysRoleMenuEntity entity = new SysRoleMenuEntity();
-        entity.setRoleId(request.getRoleId());
-        entity.setMenuId(request.getMenuId());
-        sysRoleMenuMapper.insert(entity);
-        return authorizationConverter.toRelationBindingVO(entity, request.getRoleId(), request.getMenuId());
+    public List<RelationBindingResp> bindRoleMenu(BindRoleMenuReq request) {
+        log.info("绑定角色菜单，roleId={}，menuIds={}", request.getRoleId(), request.getMenuIds());
+        SysRoleEntity role = requireRole(request.getRoleId());
+        request.getMenuIds().forEach(this::requireMenu);
+        sysRoleMenuMapper.physicalDeleteByRoleId(role.getTenantId(), request.getRoleId());
+        return request.getMenuIds().stream()
+            .distinct()
+            .map(menuId -> {
+                SysRoleMenuEntity entity = new SysRoleMenuEntity();
+                entity.setTenantId(role.getTenantId());
+                entity.setRoleId(request.getRoleId());
+                entity.setMenuId(menuId);
+                sysRoleMenuMapper.insert(entity);
+                return authorizationConverter.toRelationBindingVO(entity, request.getRoleId(), menuId);
+            })
+            .toList();
     }
 
     /**
@@ -218,7 +223,7 @@ public class AuthorizationService {
     public void deleteRoleMenu(Long relationId) {
         log.info("删除角色菜单授权，relationId={}", relationId);
         requireRoleMenu(relationId);
-        sysRoleMenuMapper.deleteById(relationId);
+        sysRoleMenuMapper.physicalDeleteById(relationId);
     }
 
     /**
@@ -229,7 +234,7 @@ public class AuthorizationService {
      */
     private SysUserEntity requireUser(String userId) {
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+            new LambdaQueryWrapper<SysUserEntity>()
                 .eq(SysUserEntity::getUserId, userId)
                 .last("limit 1")), "用户不存在");
     }
@@ -242,7 +247,7 @@ public class AuthorizationService {
      */
     private SysRoleEntity requireRole(Long roleId) {
         return MybatisTenantHelpers.requireEntity(sysRoleMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+            new LambdaQueryWrapper<SysRoleEntity>()
                 .eq(SysRoleEntity::getId, roleId)
                 .last("limit 1")), "角色不存在");
     }
@@ -255,7 +260,7 @@ public class AuthorizationService {
      */
     private SysMenuEntity requireMenu(Long menuId) {
         return MybatisTenantHelpers.requireEntity(sysMenuMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted)
+            new LambdaQueryWrapper<SysMenuEntity>()
                 .eq(SysMenuEntity::getId, menuId)
                 .last("limit 1")), "菜单不存在");
     }

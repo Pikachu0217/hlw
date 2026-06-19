@@ -94,7 +94,6 @@ public class DoctorTenantContextService {
         entity.setSort(defaultInt(request.getSort(), 0));
         entity.setStatus(defaultIfBlank(request.getStatus(), DEFAULT_STATUS));
         entity.setDescription(defaultIfBlank(request.getDescription(), ""));
-        entity.setDeleted(0);
         docDepartmentMapper.insert(entity);
         return toDepartmentVO(entity, 0L);
     }
@@ -146,7 +145,6 @@ public class DoctorTenantContextService {
         entity.setStatus(defaultIfBlank(request.getStatus(), DEFAULT_DOCTOR_STATUS));
         entity.setScheduleDesc(defaultIfBlank(request.getSchedule(), DEFAULT_SCHEDULE));
         entity.setPatientCount(0);
-        entity.setDeleted(0);
         docDoctorMapper.insert(entity);
         return toDoctorVO(entity);
     }
@@ -183,7 +181,6 @@ public class DoctorTenantContextService {
         requireActiveDoctor(doctorId);
         requireActiveDepartment(request.getDepartmentId());
         DocDoctorDepartmentEntity relation = docDoctorDepartmentMapper.selectOne(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
-            .eq(DocDoctorDepartmentEntity::getDeleted, 0)
             .eq(DocDoctorDepartmentEntity::getDoctorId, doctorId)
             .eq(DocDoctorDepartmentEntity::getDepartmentId, request.getDepartmentId())
             .last("limit 1"));
@@ -191,7 +188,6 @@ public class DoctorTenantContextService {
             relation = new DocDoctorDepartmentEntity();
             relation.setDoctorId(doctorId);
             relation.setDepartmentId(request.getDepartmentId());
-            relation.setDeleted(0);
             relation.setIsFree(boolToInt(request.getFree(), 0));
             relation.setAppointmentFee(defaultDecimal(request.getAppointmentFee(), BigDecimal.ZERO));
             docDoctorDepartmentMapper.insert(relation);
@@ -240,7 +236,6 @@ public class DoctorTenantContextService {
         entity.setTimeSlot(defaultIfBlank(request.getTimeSlot(), request.getSlot()));
         entity.setTotalNumber(defaultInt(request.getTotalNumber(), 30));
         entity.setRemainNumber(defaultInt(request.getRemainNumber(), entity.getTotalNumber()));
-        entity.setDeleted(0);
         docScheduleMapper.insert(entity);
         doctor.setScheduleDesc(entity.getSlot());
         docDoctorMapper.updateById(doctor);
@@ -253,7 +248,7 @@ public class DoctorTenantContextService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<DocDepartmentEntity> activeDepartmentWrapper() {
-        return new LambdaQueryWrapper<DocDepartmentEntity>().eq(DocDepartmentEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<DocDepartmentEntity>();
     }
 
     /**
@@ -262,7 +257,7 @@ public class DoctorTenantContextService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<DocDoctorEntity> activeDoctorWrapper() {
-        return new LambdaQueryWrapper<DocDoctorEntity>().eq(DocDoctorEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<DocDoctorEntity>();
     }
 
     /**
@@ -271,7 +266,7 @@ public class DoctorTenantContextService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<DocDoctorDepartmentEntity> activeDoctorDepartmentWrapper() {
-        return new LambdaQueryWrapper<DocDoctorDepartmentEntity>().eq(DocDoctorDepartmentEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<DocDoctorDepartmentEntity>();
     }
 
     /**
@@ -280,7 +275,7 @@ public class DoctorTenantContextService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<DocScheduleEntity> activeScheduleWrapper() {
-        return new LambdaQueryWrapper<DocScheduleEntity>().eq(DocScheduleEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<DocScheduleEntity>();
     }
 
     /**
@@ -291,7 +286,6 @@ public class DoctorTenantContextService {
     private void refreshDepartmentDoctorCount(Long departmentId) {
         DocDepartmentEntity department = requireActiveDepartment(departmentId);
         int doctorCount = Math.toIntExact(docDoctorDepartmentMapper.selectCount(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
-            .eq(DocDoctorDepartmentEntity::getDeleted, 0)
             .eq(DocDoctorDepartmentEntity::getDepartmentId, departmentId)));
         department.setDoctorCount(doctorCount);
         docDepartmentMapper.updateById(department);
@@ -332,7 +326,6 @@ public class DoctorTenantContextService {
      */
     private DocDoctorEntity requireActiveDoctor(Long id) {
         return requireEntity(docDoctorMapper.selectOne(new LambdaQueryWrapper<DocDoctorEntity>()
-            .eq(DocDoctorEntity::getDeleted, 0)
             .eq(DocDoctorEntity::getId, id)
             .last("limit 1")), "医生不存在");
     }
@@ -345,7 +338,6 @@ public class DoctorTenantContextService {
      */
     private DocDepartmentEntity requireActiveDepartment(Long id) {
         return requireEntity(docDepartmentMapper.selectOne(new LambdaQueryWrapper<DocDepartmentEntity>()
-            .eq(DocDepartmentEntity::getDeleted, 0)
             .eq(DocDepartmentEntity::getId, id)
             .last("limit 1")), "科室不存在");
     }
@@ -450,7 +442,6 @@ public class DoctorTenantContextService {
      */
     private DepartmentVO toDepartmentVO(DocDepartmentEntity entity, Long relationDoctorCount) {
         DepartmentVO vo = new DepartmentVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setName(defaultIfBlank(entity.getDepartmentName(), entity.getName()));
         vo.setDoctorCount(relationDoctorCount == null || relationDoctorCount == 0L ? defaultInt(entity.getDoctorCount(), 0) : relationDoctorCount.intValue());
@@ -468,7 +459,6 @@ public class DoctorTenantContextService {
     private DoctorVO toDoctorVO(DocDoctorEntity entity) {
         DoctorVO vo = new DoctorVO();
         vo.setId(entity.getId());
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setName(defaultIfBlank(entity.getDoctorName(), entity.getName()));
         vo.setTitle(entity.getTitle());
         vo.setDepartment(entity.getDepartment());
@@ -489,7 +479,7 @@ public class DoctorTenantContextService {
      */
     private DoctorDepartmentBindingVO toDoctorDepartmentBindingVO(DocDoctorDepartmentEntity entity) {
         DoctorDepartmentBindingVO vo = new DoctorDepartmentBindingVO();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setDoctorId(entity.getDoctorId());
         vo.setDepartmentId(entity.getDepartmentId());
         vo.setFree(Objects.equals(entity.getIsFree(), 1));
@@ -507,7 +497,6 @@ public class DoctorTenantContextService {
     private ScheduleVO toScheduleVO(DocScheduleEntity entity, String doctorName) {
         ScheduleVO vo = new ScheduleVO();
         vo.setId(entity.getId());
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setDoctorId(entity.getDoctorId());
         vo.setDoctorName(defaultIfBlank(doctorName, ""));
         vo.setSlot(entity.getSlot());

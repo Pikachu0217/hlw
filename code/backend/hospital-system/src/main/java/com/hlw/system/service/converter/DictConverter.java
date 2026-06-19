@@ -23,7 +23,7 @@ public class DictConverter {
      */
     public DictResp toDictVO(SysDictDataEntity entity, SysDictTypeEntity typeEntity) {
         DictResp vo = new DictResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setDictName(typeEntity == null ? "" : typeEntity.getDictName());
         vo.setDictType(entity.getDictType());
         vo.setDictLabel(entity.getDictLabel());

@@ -8,7 +8,6 @@ import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.enums.CommonStatusEnum;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.gateway.domain.req.CreateRouteConfigReq;
@@ -74,14 +73,13 @@ public class RouteConfigService {
         log.info("创建网关路由配置，routeCode={}，uri={}，pathPredicate={}",
             request.getRouteCode(), request.getUri(), request.getPathPredicate());
         GwRouteConfigEntity entity = new GwRouteConfigEntity();
-        entity.setTenantId(CommonConstants.PLATFORM_TENANT_ID);
+        entity.setTenantId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID));
         entity.setRouteCode(request.getRouteCode());
         entity.setUri(request.getUri());
         entity.setPathPredicate(request.getPathPredicate());
         entity.setSort(DefaultValueUtils.defaultIfNull(request.getSort(), 0));
         entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
         entity.setRemark(DefaultValueUtils.defaultIfBlank(request.getRemark(), ""));
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         ignoreTenantLine(() -> gwRouteConfigMapper.insert(entity));
         return routeConfigConverter.toResp(entity);
     }
@@ -127,9 +125,8 @@ public class RouteConfigService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteRoute(Long routeId) {
         log.info("删除网关路由配置，routeId={}", routeId);
-        GwRouteConfigEntity entity = requireActiveRoute(routeId);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        ignoreTenantLine(() -> gwRouteConfigMapper.updateById(entity));
+        requireActiveRoute(routeId);
+        ignoreTenantLine(() -> gwRouteConfigMapper.deleteById(routeId));
     }
 
     /**
@@ -138,8 +135,7 @@ public class RouteConfigService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<GwRouteConfigEntity> activeWrapper() {
-        return new LambdaQueryWrapper<GwRouteConfigEntity>()
-            .eq(GwRouteConfigEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType());
+        return new LambdaQueryWrapper<GwRouteConfigEntity>();
     }
 
     /**

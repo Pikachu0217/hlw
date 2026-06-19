@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateRoleReq;
 import com.hlw.system.domain.resp.RoleResp;
@@ -47,7 +46,7 @@ public class RoleService {
     public PageResult<RoleResp> listRoles(PageQuery query) {
         log.info("查询角色列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        LambdaQueryWrapper<SysRoleEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted);
+        LambdaQueryWrapper<SysRoleEntity> wrapper = new LambdaQueryWrapper<SysRoleEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysRoleEntity::getRoleName, query.getKeyword())
                 .or()
@@ -72,7 +71,6 @@ public class RoleService {
         log.info("创建角色，roleCode={}，roleName={}", request.getRoleCode(), request.getRoleName());
         SysRoleEntity entity = new SysRoleEntity();
         fillRole(entity, request);
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysRoleMapper.insert(entity);
@@ -117,10 +115,8 @@ public class RoleService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteRole(Long id) {
         log.info("删除角色，id={}", id);
-        SysRoleEntity entity = requireRole(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysRoleMapper.updateById(entity);
+        requireRole(id);
+        sysRoleMapper.deleteById(id);
     }
 
     /**
@@ -132,7 +128,7 @@ public class RoleService {
     @Transactional(readOnly = true)
     public SysRoleEntity requireRole(Long id) {
         return MybatisTenantHelpers.requireEntity(sysRoleMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+            new LambdaQueryWrapper<SysRoleEntity>()
                 .eq(SysRoleEntity::getId, id)
                 .last("limit 1")), "角色不存在");
     }

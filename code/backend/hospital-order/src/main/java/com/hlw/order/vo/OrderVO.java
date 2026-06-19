@@ -8,10 +8,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class OrderVO {
-    /** 表格主键。 */
-    private String key;
-    /** 订单编号。 */
+public class OrderVO {    /** 订单编号。 */
     private Long id;
     /** 订单号。 */
     private String orderNo;

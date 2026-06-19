@@ -21,7 +21,7 @@ public class PostConverter {
      */
     public PostResp toPostVO(SysPostEntity entity) {
         PostResp vo = new PostResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setPostName(entity.getPostName());
         vo.setPostCode(entity.getPostCode());
         vo.setOrderNum(DefaultValueUtils.defaultIfNull(entity.getOrderNum(), 0));

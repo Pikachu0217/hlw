@@ -8,10 +8,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DeptResp {
-    /** 表格主键。 */
-    private String key;
-    /** 主键编号。 */
+public class DeptResp {    /** 主键编号。 */
     private Long id;
     /** 父部门编号。 */
     private Long parentId;

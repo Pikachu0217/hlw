@@ -35,7 +35,7 @@ function DoctorPage() {
     const nextStatus = doctor.consultStatus === 'OFFLINE' ? 'ONLINE' : 'OFFLINE';
     setSubmitting(true);
     try {
-      await updateDoctorStatus(doctor.key, nextStatus);
+      await updateDoctorStatus(doctor.id, nextStatus);
       message.success('医生状态已更新');
       refreshDoctors();
     } catch {
@@ -48,7 +48,7 @@ function DoctorPage() {
   const handleOpenSchedule = (doctor: DoctorRecord) => {
     setSelectedDoctor(doctor);
     scheduleForm.setFieldsValue({
-      doctorId: Number(doctor.key),
+      doctorId: Number(doctor.id),
       slot: doctor.schedule || '2026-06-13 上午',
       scheduleDate: '2026-06-13',
       timeSlot: '上午',

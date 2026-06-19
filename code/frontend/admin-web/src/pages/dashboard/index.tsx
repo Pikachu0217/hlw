@@ -6,7 +6,7 @@ import { MetricCard } from '@/components/MetricCard';
 import PageHero from '@/components/PageHero';
 
 interface DashboardTask {
-  key: string;
+  id: string;
   module: string;
   owner: string;
   status: string;
@@ -47,9 +47,9 @@ function DashboardPage() {
           ['待支付订单', String(pendingOrderCount), '按订单支付状态实时统计'],
         ]);
         setTaskData([
-          { key: 'appointment', module: '预约管理', owner: '门诊运营组', status: `${appointments.length} 单待跟进` },
-          { key: 'consult', module: '咨询单', owner: '客服组', status: `${waitingConsultCount} 单待处理` },
-          { key: 'order', module: '订单中心', owner: '财务组', status: `${pendingOrderCount} 单待支付` },
+          { id: 'appointment', module: '预约管理', owner: '门诊运营组', status: `${appointments.length} 单待跟进` },
+          { id: 'consult', module: '咨询单', owner: '客服组', status: `${waitingConsultCount} 单待处理` },
+          { id: 'order', module: '订单中心', owner: '财务组', status: `${pendingOrderCount} 单待支付` },
         ]);
         setNotices([
           `预约接口返回 ${appointments.length} 条记录`,
@@ -79,7 +79,7 @@ function DashboardPage() {
         ))}
       </Row>
       <Card className="console-card" bordered={false}>
-        <Table<DashboardTask> rowKey="key" columns={taskColumns} dataSource={taskData} loading={loading} pagination={false} />
+        <Table<DashboardTask> rowKey="id" columns={taskColumns} dataSource={taskData} loading={loading} pagination={false} />
       </Card>
       <Card className="console-card" bordered={false}>
         <List

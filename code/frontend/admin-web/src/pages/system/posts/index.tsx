@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface PostRecord {
-  key: string;
+  id: number;
   postName: string;
   postCode: string;
   orderNum?: number;
@@ -39,7 +39,7 @@ function PostsPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updatePost(editingRecord.key, values);
+        await updatePost(editingRecord.id, values);
         message.success('岗位更新成功');
       } else {
         await createPost(values);
@@ -65,7 +65,7 @@ function PostsPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deletePost(record.key);
+          await deletePost(record.id);
           message.success('岗位删除成功');
           refresh();
         } catch {

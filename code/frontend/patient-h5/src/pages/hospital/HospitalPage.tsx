@@ -34,7 +34,7 @@ export function HospitalPage() {
       <List>
         {hospitals.map((hospital) => (
           <List.Item
-            key={hospital.key}
+            key={hospital.id}
             description={
               <Space>
                 <Tag color="primary">{hospital.status === "0" ? "可选租户" : "暂停服务"}</Tag>

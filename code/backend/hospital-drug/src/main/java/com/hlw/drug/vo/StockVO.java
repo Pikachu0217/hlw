@@ -8,10 +8,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class StockVO {
-    /** 表格主键。 */
-    private String key;
-    /** 库存编号。 */
+public class StockVO {    /** 库存编号。 */
     private Long id;
     /** 药品名称。 */
     private String drugName;

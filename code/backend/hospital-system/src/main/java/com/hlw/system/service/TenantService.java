@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateTenantReq;
 import com.hlw.system.domain.req.UpdateTenantReq;
@@ -56,7 +55,7 @@ public class TenantService {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以查询租户列表");
         log.info("查询租户列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        LambdaQueryWrapper<SysTenantEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysTenantEntity::getDeleted);
+        LambdaQueryWrapper<SysTenantEntity> wrapper = new LambdaQueryWrapper<SysTenantEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysTenantEntity::getCompanyName, query.getKeyword())
                 .or()
@@ -81,7 +80,7 @@ public class TenantService {
     @Transactional(readOnly = true)
     public List<TenantOptionResp> listTenantOptions() {
         log.info("查询登录前租户选项");
-        return sysTenantMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysTenantEntity::getDeleted)
+        return sysTenantMapper.selectList(new LambdaQueryWrapper<SysTenantEntity>()
                 .eq(SysTenantEntity::getStatus, "0")
                 .orderByAsc(SysTenantEntity::getId))
             .stream()
@@ -102,7 +101,6 @@ public class TenantService {
         SysTenantEntity entity = new SysTenantEntity();
         entity.setTenantId(nextTenantId());
         fillTenant(entity, request);
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysTenantMapper.insert(entity);
@@ -161,10 +159,8 @@ public class TenantService {
     public void deleteTenant(Long id) {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以删除租户");
         log.info("删除租户，id={}", id);
-        SysTenantEntity entity = requireTenant(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysTenantMapper.updateById(entity);
+        requireTenant(id);
+        sysTenantMapper.deleteById(id);
     }
 
     /**
@@ -175,7 +171,7 @@ public class TenantService {
      */
     private TenantOptionResp toTenantOption(SysTenantEntity entity) {
         TenantOptionResp resp = new TenantOptionResp();
-        resp.setKey(String.valueOf(entity.getId()));
+        resp.setId(entity.getId());
         resp.setTenantId(entity.getTenantId());
         resp.setCompanyName(entity.getCompanyName());
         resp.setStatus(entity.getStatus());
@@ -236,7 +232,7 @@ public class TenantService {
         if (packageIds.isEmpty()) {
             return Map.of();
         }
-        return sysTenantPackageMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysTenantPackageEntity::getDeleted)
+        return sysTenantPackageMapper.selectList(new LambdaQueryWrapper<SysTenantPackageEntity>()
                 .in(SysTenantPackageEntity::getId, packageIds)).stream()
             .collect(Collectors.toMap(SysTenantPackageEntity::getId, item -> item, (left, right) -> left));
     }
@@ -262,7 +258,7 @@ public class TenantService {
      */
     private SysTenantEntity requireTenant(Long id) {
         return MybatisTenantHelpers.requireEntity(sysTenantMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysTenantEntity::getDeleted)
+            new LambdaQueryWrapper<SysTenantEntity>()
                 .eq(SysTenantEntity::getId, id)
                 .last("limit 1")), "租户不存在");
     }

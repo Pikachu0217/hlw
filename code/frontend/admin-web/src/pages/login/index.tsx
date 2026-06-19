@@ -91,7 +91,7 @@ function LoginPage() {
         <Form<LoginFormValues>
           form={form}
           layout="vertical"
-          initialValues={{ username: '', password: '', remember: true }}
+          initialValues={{ tenantId: 0, username: '', password: '', remember: true }}
           onFinish={handleFinish}
         >
           <Form.Item

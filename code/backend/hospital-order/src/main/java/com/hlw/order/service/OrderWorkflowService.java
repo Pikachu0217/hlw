@@ -90,7 +90,6 @@ public class OrderWorkflowService {
         entity.setPayStatus(STATUS_PENDING_PAY);
         entity.setStatus(STATUS_PENDING_PAY);
         entity.setCreatedAt(createdAt);
-        entity.setDeleted(0);
         ordOrderMapper.insert(entity);
         entity.setOrderNo(resolveOrderNo(entity.getId()));
         ordOrderMapper.updateById(entity);
@@ -132,7 +131,7 @@ public class OrderWorkflowService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<OrdOrderEntity> activeOrderWrapper() {
-        return new LambdaQueryWrapper<OrdOrderEntity>().eq(OrdOrderEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<OrdOrderEntity>();
     }
 
     /**
@@ -155,7 +154,6 @@ public class OrderWorkflowService {
      */
     private OrdOrderEntity requireActiveOrder(Long id) {
         OrdOrderEntity entity = ordOrderMapper.selectOne(new LambdaQueryWrapper<OrdOrderEntity>()
-            .eq(OrdOrderEntity::getDeleted, 0)
             .eq(OrdOrderEntity::getId, id)
             .last("limit 1"));
         if (entity == null) {
@@ -172,7 +170,6 @@ public class OrderWorkflowService {
      */
     private OrderVO toOrderVO(OrdOrderEntity entity) {
         OrderVO vo = new OrderVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setOrderNo(defaultIfBlank(entity.getOrderNo(), resolveOrderNo(entity.getId())));
         vo.setBusinessType(defaultIfBlank(entity.getBusinessType(), businessTypeName(entity.getBizType())));

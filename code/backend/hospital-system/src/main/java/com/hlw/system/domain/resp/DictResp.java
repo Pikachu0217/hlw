@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DictResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 字典名称。 */
     private String dictName;
     /** 字典类型。 */

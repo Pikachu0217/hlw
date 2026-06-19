@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class TenantResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 租户编号。 */
     private String tenantId;
     /** 联系人。 */

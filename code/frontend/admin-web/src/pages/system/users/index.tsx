@@ -1,12 +1,12 @@
 import { Button, Form, Input, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { createUser, deleteUser, fetchSystemDeptOptions, fetchUsers, updateUser } from '@/api/modules';
+import { bindUserRoles, createUser, deleteUser, fetchRoles, fetchSystemDeptOptions, fetchUserRoles, fetchUsers, updateUser } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface UserRecord {
-  key: string;
+  id: number;
   userId: string;
   userName: string;
   nickName?: string;
@@ -25,10 +25,16 @@ export interface UserRecord {
 function UsersPage() {
   const { records, loading, refresh } = useModuleRecords(fetchUsers, '用户');
   const { records: deptOptions } = useModuleRecords(fetchSystemDeptOptions, '系统部门');
+  const { records: roleOptions } = useModuleRecords(fetchRoles, '角色');
+  const { records: userRoleRecords, refresh: refreshUserRoles } = useModuleRecords(fetchUserRoles, '用户角色绑定');
   const [form] = Form.useForm();
+  const [roleForm] = Form.useForm<{ roleIds: number[] }>();
   const [open, setOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [roleSubmitting, setRoleSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<UserRecord | null>(null);
+  const [bindingRecord, setBindingRecord] = useState<UserRecord | null>(null);
 
   const handleOpenCreate = () => {
     setEditingRecord(null);
@@ -57,7 +63,7 @@ function UsersPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateUser(editingRecord.key, values);
+        await updateUser(editingRecord.id, values);
         message.success('用户更新成功');
       } else {
         await createUser(values);
@@ -83,7 +89,7 @@ function UsersPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteUser(record.key);
+          await deleteUser(record.id);
           message.success('用户删除成功');
           refresh();
         } catch {
@@ -91,6 +97,36 @@ function UsersPage() {
         }
       },
     });
+  };
+
+  const handleOpenBindRole = (record: UserRecord) => {
+    const roleIds = userRoleRecords
+      .filter((relation) => relation.userId === record.userId)
+      .map((relation) => relation.roleId);
+    setBindingRecord(record);
+    roleForm.setFieldsValue({ roleIds });
+    setRoleOpen(true);
+  };
+
+  const handleBindRole = async () => {
+    const values = await roleForm.validateFields();
+    if (!bindingRecord) {
+      return;
+    }
+    setRoleSubmitting(true);
+    try {
+      await bindUserRoles(bindingRecord.userId, values.roleIds ?? []);
+      message.success('用户角色绑定成功');
+      setRoleOpen(false);
+      setBindingRecord(null);
+      roleForm.resetFields();
+      refreshUserRoles();
+      refresh();
+    } catch {
+      message.warning('用户角色绑定失败，请检查接口或稍后重试');
+    } finally {
+      setRoleSubmitting(false);
+    }
   };
 
   const columns = useMemo<ColumnsType<UserRecord>>(
@@ -115,6 +151,9 @@ function UsersPage() {
             <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
               编辑
             </Button>
+            <Button type="link" size="small" onClick={() => handleOpenBindRole(record)}>
+              绑定角色
+            </Button>
             <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
               删除
             </Button>
@@ -122,7 +161,7 @@ function UsersPage() {
         ),
       },
     ],
-    [],
+    [userRoleRecords],
   );
 
   return (
@@ -196,6 +235,27 @@ function UsersPage() {
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <Input.TextArea rows={3} placeholder="请输入备注" />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        title={bindingRecord ? `绑定角色：${bindingRecord.userName}` : '绑定角色'}
+        open={roleOpen}
+        confirmLoading={roleSubmitting}
+        onOk={handleBindRole}
+        onCancel={() => setRoleOpen(false)}
+        destroyOnClose
+      >
+        <Form form={roleForm} layout="vertical" className="module-form">
+          <Form.Item name="roleIds" label="角色">
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="请选择角色"
+              options={roleOptions.map((role) => ({ label: role.roleName, value: role.id }))}
+            />
           </Form.Item>
         </Form>
       </Modal>

@@ -101,7 +101,6 @@ public class PrescriptionWorkflowService {
         entity.setDrugCount(drugCount);
         entity.setIssuedAt(issuedAt);
         entity.setStatus(STATUS_DRAFT);
-        entity.setDeleted(0);
         prePrescriptionMapper.insert(entity);
         entity.setPrescriptionNo(resolvePrescriptionNo(entity.getId()));
         prePrescriptionMapper.updateById(entity);
@@ -222,7 +221,6 @@ public class PrescriptionWorkflowService {
         item.setFrequency("每日一次");
         item.setQuantity(BigDecimal.ONE);
         item.setUsageNote("饭后服用");
-        item.setDeleted(0);
         prePrescriptionItemMapper.insert(item);
     }
 
@@ -232,7 +230,7 @@ public class PrescriptionWorkflowService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<PrePrescriptionEntity> activePrescriptionWrapper() {
-        return new LambdaQueryWrapper<PrePrescriptionEntity>().eq(PrePrescriptionEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<PrePrescriptionEntity>();
     }
 
     /**
@@ -255,7 +253,6 @@ public class PrescriptionWorkflowService {
      */
     private PrePrescriptionEntity requireActivePrescription(Long id) {
         PrePrescriptionEntity entity = prePrescriptionMapper.selectOne(new LambdaQueryWrapper<PrePrescriptionEntity>()
-            .eq(PrePrescriptionEntity::getDeleted, 0)
             .eq(PrePrescriptionEntity::getId, id)
             .last("limit 1"));
         if (entity == null) {
@@ -272,7 +269,6 @@ public class PrescriptionWorkflowService {
      */
     private PrescriptionVO toPrescriptionVO(PrePrescriptionEntity entity) {
         PrescriptionVO vo = new PrescriptionVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setPrescriptionNo(defaultIfBlank(entity.getPrescriptionNo(), resolvePrescriptionNo(entity.getId())));
         vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));

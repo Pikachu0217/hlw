@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateDictReq;
 import com.hlw.system.domain.resp.DictResp;
@@ -49,7 +48,7 @@ public class DictService {
     public PageResult<DictResp> listDicts(PageQuery query) {
         log.info("查询字典数据列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        LambdaQueryWrapper<SysDictDataEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysDictDataEntity::getDeleted);
+        LambdaQueryWrapper<SysDictDataEntity> wrapper = new LambdaQueryWrapper<SysDictDataEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysDictDataEntity::getDictType, query.getKeyword())
                 .or()
@@ -80,7 +79,6 @@ public class DictService {
         entity.setDictValue(request.getDictValue());
         entity.setDictSort(DefaultValueUtils.defaultIfNull(request.getDictSort(), 0));
         entity.setRemark(request.getRemark());
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysDictDataMapper.insert(entity);
@@ -131,10 +129,8 @@ public class DictService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteDict(Long id) {
         log.info("删除字典数据，id={}", id);
-        SysDictDataEntity entity = requireDictData(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysDictDataMapper.updateById(entity);
+        requireDictData(id);
+        sysDictDataMapper.deleteById(id);
     }
 
     /**
@@ -157,7 +153,6 @@ public class DictService {
         entity.setDictType(request.getDictType());
         entity.setDictName(DefaultValueUtils.defaultIfBlank(request.getDictName(), request.getDictType()));
         entity.setRemark(request.getRemark());
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysDictTypeMapper.insert(entity);
@@ -171,7 +166,7 @@ public class DictService {
      * @return 字典类型实体
      */
     private SysDictTypeEntity findDictType(String dictType) {
-        return sysDictTypeMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysDictTypeEntity::getDeleted)
+        return sysDictTypeMapper.selectOne(new LambdaQueryWrapper<SysDictTypeEntity>()
             .eq(SysDictTypeEntity::getDictType, dictType)
             .last("limit 1"));
     }
@@ -186,7 +181,7 @@ public class DictService {
         if (dictTypes.isEmpty()) {
             return Map.of();
         }
-        return sysDictTypeMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysDictTypeEntity::getDeleted)
+        return sysDictTypeMapper.selectList(new LambdaQueryWrapper<SysDictTypeEntity>()
                 .in(SysDictTypeEntity::getDictType, dictTypes)).stream()
             .collect(Collectors.toMap(SysDictTypeEntity::getDictType, item -> item, (left, right) -> left));
     }
@@ -199,7 +194,7 @@ public class DictService {
      */
     private SysDictDataEntity requireDictData(Long id) {
         return MybatisTenantHelpers.requireEntity(sysDictDataMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysDictDataEntity::getDeleted)
+            new LambdaQueryWrapper<SysDictDataEntity>()
                 .eq(SysDictDataEntity::getId, id)
                 .last("limit 1")), "字典数据不存在");
     }

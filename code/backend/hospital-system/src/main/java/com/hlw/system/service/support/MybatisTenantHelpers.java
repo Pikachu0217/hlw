@@ -1,9 +1,6 @@
 package com.hlw.system.service.support;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
-import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.security.TokenPrincipal;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
@@ -23,17 +20,6 @@ public final class MybatisTenantHelpers {
      */
     public static IgnoreStrategy ignoreTenantLine() {
         return IgnoreStrategy.builder().tenantLine(true).build();
-    }
-
-    /**
-     * 构造未删除数据查询条件，统一替代各实体专属的 active 包装方法。
-     *
-     * @param deletedGetter 实体删除标记字段引用
-     * @param <T> 实体类型
-     * @return 查询条件
-     */
-    public static <T> LambdaQueryWrapper<T> notDeletedWrapper(SFunction<T, ?> deletedGetter) {
-        return new LambdaQueryWrapper<T>().eq(deletedGetter, DeletedStatusEnum.NOT_DELETED.getType());
     }
 
     /**

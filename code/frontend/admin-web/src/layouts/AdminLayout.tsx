@@ -1,5 +1,6 @@
 import {
   BellOutlined,
+  DownOutlined,
   LogoutOutlined,
   UserOutlined,
 } from '@ant-design/icons';
@@ -78,6 +79,7 @@ function AdminLayout() {
   const navigationState = getNavigationState(location.pathname);
   const breadcrumbItems = buildBreadcrumbItems(location.pathname);
   const menuItems = buildMenuItems();
+  const accountInitial = displayName.trim().slice(0, 1).toUpperCase() || 'H';
 
   function handleMenuClick({ key }: { key: string }): void {
     const path = findPathByKey(key);
@@ -147,18 +149,24 @@ function AdminLayout() {
               </div>
             </div>
           </Space>
-          <Space size="middle">
+          <Space size="middle" className="header-actions">
             <Badge dot>
-              <Button shape="circle" icon={<BellOutlined />} />
+              <Button className="header-notice" shape="circle" icon={<BellOutlined />} />
             </Badge>
             <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }} trigger={['click']}>
-              <Space className="header-user">
-                <Avatar className="theme-avatar">{displayName.slice(0, 1)}</Avatar>
-                <div>
-                  <Typography.Text strong>{displayName}</Typography.Text>
-                  <div className="header-label">{roleName}</div>
+              <button className="header-user" type="button">
+                <span className="header-user__avatar-wrap">
+                  <Avatar className="theme-avatar">{accountInitial}</Avatar>
+                  <span className="header-user__status" />
+                </span>
+                <div className="header-user__meta">
+                  <Typography.Text className="header-user__name" strong>
+                    {displayName}
+                  </Typography.Text>
+                  <span className="header-user__role">{roleName}</span>
                 </div>
-              </Space>
+                <DownOutlined className="header-user__arrow" />
+              </button>
             </Dropdown>
           </Space>
         </Header>

@@ -1,6 +1,7 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("sys_tenant")
-public class SysTenantEntity extends SystemBaseEntity {
+public class SysTenantEntity extends BaseEntity {
     /** 联系人。 */
     private String contactUserName;
     /** 联系电话。 */

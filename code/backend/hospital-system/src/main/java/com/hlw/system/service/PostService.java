@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreatePostReq;
 import com.hlw.system.domain.resp.PostResp;
@@ -43,7 +42,7 @@ public class PostService {
     public PageResult<PostResp> listPosts(PageQuery query) {
         log.info("查询岗位列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        LambdaQueryWrapper<SysPostEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysPostEntity::getDeleted);
+        LambdaQueryWrapper<SysPostEntity> wrapper = new LambdaQueryWrapper<SysPostEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysPostEntity::getPostName, query.getKeyword())
                 .or()
@@ -66,7 +65,6 @@ public class PostService {
         log.info("创建岗位，postCode={}，postName={}", request.getPostCode(), request.getPostName());
         SysPostEntity entity = new SysPostEntity();
         fillPost(entity, request);
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysPostMapper.insert(entity);
@@ -110,10 +108,8 @@ public class PostService {
     @Transactional(rollbackFor = Exception.class)
     public void deletePost(Long id) {
         log.info("删除岗位，id={}", id);
-        SysPostEntity entity = requirePost(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysPostMapper.updateById(entity);
+        requirePost(id);
+        sysPostMapper.deleteById(id);
     }
 
     /**
@@ -125,7 +121,7 @@ public class PostService {
     @Transactional(readOnly = true)
     public SysPostEntity requirePost(Long id) {
         return MybatisTenantHelpers.requireEntity(sysPostMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysPostEntity::getDeleted)
+            new LambdaQueryWrapper<SysPostEntity>()
                 .eq(SysPostEntity::getId, id)
                 .last("limit 1")), "岗位不存在");
     }

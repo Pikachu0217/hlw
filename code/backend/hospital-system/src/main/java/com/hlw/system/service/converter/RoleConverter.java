@@ -25,7 +25,7 @@ public class RoleConverter {
      */
     public RoleResp toRoleVO(SysRoleEntity entity, Integer memberCount) {
         RoleResp vo = new RoleResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setRoleName(entity.getRoleName());
         vo.setRoleCode(entity.getRoleCode());
         vo.setOrderNum(entity.getOrderNum());

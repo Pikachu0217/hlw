@@ -75,7 +75,7 @@ public class OperatorLogService {
      */
     private OperatorLogResp toResp(SysOperatorLogEntity entity) {
         OperatorLogResp resp = new OperatorLogResp();
-        resp.setKey(String.valueOf(entity.getId()));
+        resp.setId(entity.getId());
         resp.setTenantId(entity.getTenantId());
         resp.setTitle(entity.getTitle());
         resp.setBusinessType(entity.getBusinessType());

@@ -21,7 +21,7 @@ public class MenuConverter {
      */
     public MenuResp toMenuVO(SysMenuEntity entity) {
         MenuResp vo = new MenuResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setParentId(String.valueOf(DefaultValueUtils.defaultIfNull(entity.getParentId(), 0L)));
         vo.setMenuName(entity.getMenuName());
         vo.setMenuType(entity.getMenuType());

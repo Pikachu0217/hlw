@@ -8,10 +8,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class AppointmentVO {
-    /** 表格主键。 */
-    private String key;
-    /** 预约编号。 */
+public class AppointmentVO {    /** 预约编号。 */
     private Long id;
     /** 预约单号。 */
     private String appointmentNo;

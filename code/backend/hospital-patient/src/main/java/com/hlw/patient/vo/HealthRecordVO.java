@@ -8,10 +8,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class HealthRecordVO {
-    /** 表格主键。 */
-    private String key;
-    /** 档案编号。 */
+public class HealthRecordVO {    /** 档案编号。 */
     private Long id;
     /** 患者编号。 */
     private Long patientId;

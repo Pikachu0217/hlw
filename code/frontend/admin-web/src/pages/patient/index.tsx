@@ -13,7 +13,6 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface PatientRecord {
-  key: string;
   id: number;
   userId?: number;
   patientName: string;
@@ -32,7 +31,6 @@ export interface PatientRecord {
 }
 
 export interface HealthRecord {
-  key: string;
   id: number;
   patientId: number;
   title: string;
@@ -253,7 +251,7 @@ function PatientPage() {
             <Tag color="cyan">当前 {healthRecords.length} 条</Tag>
           </div>
           <Table<HealthRecord>
-            rowKey="key"
+            rowKey="id"
             loading={detailLoading}
             dataSource={healthRecords}
             pagination={false}

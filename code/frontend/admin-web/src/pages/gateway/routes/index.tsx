@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface GatewayRouteRecord {
-  key: string;
+  id: number;
   routeCode: string;
   uri: string;
   pathPredicate: string;
@@ -39,7 +39,7 @@ function GatewayRoutesPage() {
 
   const handleOpenDetail = async (record: GatewayRouteRecord) => {
     try {
-      const detail = await fetchGatewayRouteDetail(record.key);
+      const detail = await fetchGatewayRouteDetail(record.id);
       setDetailRecord(detail);
       setDetailOpen(true);
     } catch {
@@ -52,7 +52,7 @@ function GatewayRoutesPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateGatewayRoute(editingRecord.key, values);
+        await updateGatewayRoute(editingRecord.id, values);
         message.success('网关路由更新成功');
       } else {
         await createGatewayRoute(values);
@@ -78,7 +78,7 @@ function GatewayRoutesPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteGatewayRoute(record.key);
+          await deleteGatewayRoute(record.id);
           message.success('网关路由删除成功');
           refresh();
         } catch {

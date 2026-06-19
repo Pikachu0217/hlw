@@ -1,8 +1,7 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,12 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_user_post")
-public class SysUserPostEntity {
-    /** 主键编号。 */
-    @TableId(type = IdType.AUTO)
-    private Long id;
-    /** 租户编号。 */
-    private String tenantId;
+public class SysUserPostEntity extends BaseEntity {
     /** 用户编号。 */
     private String userId;
     /** 岗位编号。 */

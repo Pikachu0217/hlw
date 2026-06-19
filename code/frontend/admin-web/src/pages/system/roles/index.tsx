@@ -1,12 +1,12 @@
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { createRole, deleteRole, fetchRoles, updateRole } from '@/api/modules';
+import { bindRoleMenus, createRole, deleteRole, fetchMenus, fetchRoleMenus, fetchRoles, updateRole } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface RoleRecord {
-  key: string;
+  id: number;
   roleName: string;
   roleCode: string;
   orderNum?: number;
@@ -27,10 +27,16 @@ const dataScopeMap: Record<number, string> = {
 
 function RolesPage() {
   const { records, loading, refresh } = useModuleRecords(fetchRoles, '角色');
+  const { records: menuOptions } = useModuleRecords(fetchMenus, '菜单');
+  const { records: roleMenuRecords, refresh: refreshRoleMenus } = useModuleRecords(fetchRoleMenus, '角色菜单绑定');
   const [form] = Form.useForm();
+  const [menuForm] = Form.useForm<{ menuIds: number[] }>();
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [menuSubmitting, setMenuSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RoleRecord | null>(null);
+  const [bindingRecord, setBindingRecord] = useState<RoleRecord | null>(null);
   const memberCount = records.reduce((sum, record) => sum + (record.memberCount ?? 0), 0);
 
   const handleOpenCreate = () => {
@@ -51,7 +57,7 @@ function RolesPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateRole(editingRecord.key, values);
+        await updateRole(editingRecord.id, values);
         message.success('角色更新成功');
       } else {
         await createRole(values);
@@ -77,7 +83,7 @@ function RolesPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteRole(record.key);
+          await deleteRole(record.id);
           message.success('角色删除成功');
           refresh();
         } catch {
@@ -85,6 +91,36 @@ function RolesPage() {
         }
       },
     });
+  };
+
+  const handleOpenBindMenu = (record: RoleRecord) => {
+    const menuIds = roleMenuRecords
+      .filter((relation) => relation.roleId === record.id)
+      .map((relation) => relation.menuId);
+    setBindingRecord(record);
+    menuForm.setFieldsValue({ menuIds });
+    setMenuOpen(true);
+  };
+
+  const handleBindMenu = async () => {
+    const values = await menuForm.validateFields();
+    if (!bindingRecord) {
+      return;
+    }
+    setMenuSubmitting(true);
+    try {
+      await bindRoleMenus(bindingRecord.id, values.menuIds ?? []);
+      message.success('角色菜单绑定成功');
+      setMenuOpen(false);
+      setBindingRecord(null);
+      menuForm.resetFields();
+      refreshRoleMenus();
+      refresh();
+    } catch {
+      message.warning('角色菜单绑定失败，请检查接口或稍后重试');
+    } finally {
+      setMenuSubmitting(false);
+    }
   };
 
   const columns = useMemo<ColumnsType<RoleRecord>>(
@@ -108,6 +144,9 @@ function RolesPage() {
             <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
               编辑
             </Button>
+            <Button type="link" size="small" onClick={() => handleOpenBindMenu(record)}>
+              绑定菜单
+            </Button>
             <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
               删除
             </Button>
@@ -115,7 +154,7 @@ function RolesPage() {
         ),
       },
     ],
-    [],
+    [roleMenuRecords],
   );
 
   return (
@@ -176,6 +215,30 @@ function RolesPage() {
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <Input.TextArea rows={3} placeholder="请输入备注" />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        title={bindingRecord ? `绑定菜单：${bindingRecord.roleName}` : '绑定菜单'}
+        open={menuOpen}
+        confirmLoading={menuSubmitting}
+        onOk={handleBindMenu}
+        onCancel={() => setMenuOpen(false)}
+        destroyOnClose
+      >
+        <Form form={menuForm} layout="vertical" className="module-form">
+          <Form.Item name="menuIds" label="菜单">
+            <Select
+              mode="multiple"
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="请选择菜单"
+              options={menuOptions.map((menu) => ({
+                label: menu.perms ? `${menu.menuName}（${menu.perms}）` : menu.menuName,
+                value: menu.id,
+              }))}
+            />
           </Form.Item>
         </Form>
       </Modal>

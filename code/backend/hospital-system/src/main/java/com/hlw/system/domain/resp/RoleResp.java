@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RoleResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 角色名称。 */
     private String roleName;
     /** 角色编码。 */

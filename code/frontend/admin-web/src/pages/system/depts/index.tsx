@@ -31,7 +31,7 @@ function SystemDeptsPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateSystemDept(editingRecord.key, values);
+        await updateSystemDept(editingRecord.id, values);
         message.success('部门更新成功');
       } else {
         await createSystemDept(values);
@@ -57,7 +57,7 @@ function SystemDeptsPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteSystemDept(record.key);
+          await deleteSystemDept(record.id);
           message.success('部门删除成功');
           refresh();
         } catch {

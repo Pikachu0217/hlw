@@ -26,7 +26,7 @@ public class TenantConverter {
      */
     public TenantResp toTenantVO(SysTenantEntity entity, SysTenantPackageEntity packageEntity) {
         TenantResp vo = new TenantResp();
-        vo.setKey(String.valueOf(entity.getId()));
+        vo.setId(entity.getId());
         vo.setTenantId(entity.getTenantId());
         vo.setContactUserName(entity.getContactUserName());
         vo.setContactPhone(entity.getContactPhone());

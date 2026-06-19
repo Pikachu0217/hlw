@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateConfigReq;
 import com.hlw.system.domain.req.UpdateConfigReq;
@@ -44,7 +43,7 @@ public class ConfigService {
     public PageResult<ConfigResp> listConfigs(PageQuery query) {
         log.info("查询参数配置列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        LambdaQueryWrapper<SysConfigEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysConfigEntity::getDeleted);
+        LambdaQueryWrapper<SysConfigEntity> wrapper = new LambdaQueryWrapper<SysConfigEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysConfigEntity::getConfigName, query.getKeyword())
                 .or()
@@ -70,7 +69,6 @@ public class ConfigService {
         entity.setConfigKey(request.getConfigKey());
         entity.setConfigValue(request.getConfigValue());
         entity.setRemark(request.getRemark());
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysConfigMapper.insert(entity);
@@ -115,10 +113,8 @@ public class ConfigService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteConfig(Long id) {
         log.info("删除参数配置，id={}", id);
-        SysConfigEntity entity = requireConfig(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysConfigMapper.updateById(entity);
+        requireConfig(id);
+        sysConfigMapper.deleteById(id);
     }
 
     /**
@@ -129,7 +125,7 @@ public class ConfigService {
      */
     private SysConfigEntity requireConfig(Long id) {
         return MybatisTenantHelpers.requireEntity(sysConfigMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysConfigEntity::getDeleted)
+            new LambdaQueryWrapper<SysConfigEntity>()
                 .eq(SysConfigEntity::getId, id)
                 .last("limit 1")), "参数配置不存在");
     }

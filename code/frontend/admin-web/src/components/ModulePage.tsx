@@ -10,7 +10,7 @@ interface MetricCardItem {
   hint: string;
 }
 
-interface ModulePageProps<T extends { key: string }> {
+interface ModulePageProps<T extends { id: string | number }> {
   eyebrow: string;
   title: string;
   description: string;
@@ -25,7 +25,7 @@ interface ModulePageProps<T extends { key: string }> {
   onCreate?: () => void;
 }
 
-function ModulePage<T extends { key: string }>({
+function ModulePage<T extends { id: string | number }>({
   eyebrow,
   title,
   description,
@@ -85,7 +85,7 @@ function ModulePage<T extends { key: string }>({
             <Tag color="blue">当前 {filteredData.length} 条</Tag>
           </Space>
         </div>
-        <Table<T> rowKey="key" columns={columns} dataSource={filteredData} loading={loading} pagination={false} />
+        <Table<T> rowKey="id" columns={columns} dataSource={filteredData} loading={loading} pagination={false} />
       </Card>
     </div>
   );

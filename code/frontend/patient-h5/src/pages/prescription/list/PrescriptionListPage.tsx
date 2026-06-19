@@ -33,7 +33,7 @@ export function PrescriptionListPage() {
       {loading ? <SpinLoading /> : null}
       <List>
         {prescriptions.map((prescription) => (
-          <List.Item key={prescription.key} extra={<Tag color={prescription.status.includes("待") ? "warning" : "success"}>{prescription.status}</Tag>}>
+          <List.Item key={prescription.id} extra={<Tag color={prescription.status.includes("待") ? "warning" : "success"}>{prescription.status}</Tag>}>
             {prescription.prescriptionNo} {prescription.doctorName}
           </List.Item>
         ))}

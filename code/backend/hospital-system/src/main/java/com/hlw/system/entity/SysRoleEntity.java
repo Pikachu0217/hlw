@@ -1,6 +1,7 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_role")
-public class SysRoleEntity extends SystemBaseEntity {
+public class SysRoleEntity extends BaseEntity {
     /** 角色名称。 */
     private String roleName;
     /** 角色编码。 */

@@ -123,7 +123,6 @@ public class PatientTenantContextService {
         log.info("创建患者档案，patientName={}，phone={}", request.getPatientName(), request.getPhone());
         PatPatientEntity entity = new PatPatientEntity();
         entity.setUserId(defaultLong(request.getUserId(), 0L));
-        entity.setDeleted(0);
         applyPatientProfile(entity, request);
         patPatientMapper.insert(entity);
         return toPatientProfileVO(entity);
@@ -185,7 +184,6 @@ public class PatientTenantContextService {
         entity.setHistory(defaultIfBlank(request.getHistory(), ""));
         entity.setDiagnosis(defaultIfBlank(request.getDiagnosis(), ""));
         entity.setRemark(defaultIfBlank(request.getRemark(), ""));
-        entity.setDeleted(0);
         patHealthRecordMapper.insert(entity);
         return toHealthRecordVO(entity);
     }
@@ -234,7 +232,7 @@ public class PatientTenantContextService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<PatPatientEntity> activePatientWrapper() {
-        return new LambdaQueryWrapper<PatPatientEntity>().eq(PatPatientEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<PatPatientEntity>();
     }
 
     /**
@@ -243,7 +241,7 @@ public class PatientTenantContextService {
      * @return 查询条件
      */
     private LambdaQueryWrapper<PatHealthRecordEntity> activeHealthRecordWrapper() {
-        return new LambdaQueryWrapper<PatHealthRecordEntity>().eq(PatHealthRecordEntity::getDeleted, 0);
+        return new LambdaQueryWrapper<PatHealthRecordEntity>();
     }
 
     /**
@@ -292,7 +290,6 @@ public class PatientTenantContextService {
      */
     private PatPatientEntity requireActivePatient(Long id) {
         return requireEntity(patPatientMapper.selectOne(new LambdaQueryWrapper<PatPatientEntity>()
-            .eq(PatPatientEntity::getDeleted, 0)
             .eq(PatPatientEntity::getId, id)
             .last("limit 1")), "患者档案不存在");
     }
@@ -317,7 +314,6 @@ public class PatientTenantContextService {
      */
     private PatientProfileVO toPatientProfileVO(PatPatientEntity entity, Integer healthRecordCount, PatHealthRecordEntity latestRecord) {
         PatientProfileVO vo = new PatientProfileVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setUserId(entity.getUserId());
         vo.setPatientName(resolvePatientName(entity));
@@ -344,7 +340,6 @@ public class PatientTenantContextService {
      */
     private HealthRecordVO toHealthRecordVO(PatHealthRecordEntity entity) {
         HealthRecordVO vo = new HealthRecordVO();
-        vo.setKey(String.valueOf(entity.getId()));
         vo.setId(entity.getId());
         vo.setPatientId(entity.getPatientId());
         vo.setTitle(defaultIfBlank(entity.getTitle(), ""));
@@ -365,7 +360,6 @@ public class PatientTenantContextService {
      */
     private int countHealthRecords(Long patientId) {
         return Math.toIntExact(patHealthRecordMapper.selectCount(new LambdaQueryWrapper<PatHealthRecordEntity>()
-            .eq(PatHealthRecordEntity::getDeleted, 0)
             .eq(PatHealthRecordEntity::getPatientId, patientId)));
     }
 
@@ -377,7 +371,6 @@ public class PatientTenantContextService {
      */
     private PatHealthRecordEntity resolveLatestRecord(Long patientId) {
         return patHealthRecordMapper.selectOne(new LambdaQueryWrapper<PatHealthRecordEntity>()
-            .eq(PatHealthRecordEntity::getDeleted, 0)
             .eq(PatHealthRecordEntity::getPatientId, patientId)
             .orderByDesc(PatHealthRecordEntity::getId)
             .last("limit 1"));

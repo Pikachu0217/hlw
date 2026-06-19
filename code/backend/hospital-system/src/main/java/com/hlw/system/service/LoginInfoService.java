@@ -1,18 +1,23 @@
 package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
+import com.hlw.common.core.domain.system.req.InternalLoginInfoReq;
 import com.hlw.system.domain.resp.LoginInfoResp;
 import com.hlw.system.entity.SysLoginInfoEntity;
 import com.hlw.system.mapper.SysLoginInfoMapper;
+import com.hlw.system.service.support.MybatisTenantHelpers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -27,6 +32,34 @@ public class LoginInfoService {
 
     /** 登录日志数据访问组件。 */
     private final SysLoginInfoMapper sysLoginInfoMapper;
+
+    /**
+     * 记录登录日志。
+     *
+     * @param request 登录日志写入请求
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordLoginInfo(InternalLoginInfoReq request) {
+        if (request == null) {
+            log.warn("记录登录日志失败，请求对象为空");
+            return;
+        }
+        log.info("记录登录日志，tenantId={}，userName={}，status={}",
+            request.getTenantId(), request.getUserName(), request.getStatus());
+        SysLoginInfoEntity entity = new SysLoginInfoEntity();
+        entity.setTenantId(request.getTenantId() == null ? "-1" : String.valueOf(request.getTenantId()));
+        entity.setUserName(defaultIfBlank(request.getUserName()));
+        entity.setClientKey(defaultIfBlank(request.getClientKey()));
+        entity.setDeviceType(defaultIfBlank(request.getDeviceType()));
+        entity.setIpaddr(defaultIfBlank(request.getIpaddr()));
+        entity.setLoginLocation(defaultIfBlank(request.getLoginLocation()));
+        entity.setBrowser(defaultIfBlank(request.getBrowser()));
+        entity.setOs(defaultIfBlank(request.getOs()));
+        entity.setStatus(request.getStatus() == null ? 1 : request.getStatus());
+        entity.setMsg(defaultIfBlank(request.getMsg()));
+        entity.setLoginTime(LocalDateTime.now());
+        InterceptorIgnoreHelper.execute(MybatisTenantHelpers.ignoreTenantLine(), () -> sysLoginInfoMapper.insert(entity));
+    }
 
     /**
      * 分页查询登录日志。
@@ -56,7 +89,7 @@ public class LoginInfoService {
      */
     private LoginInfoResp toResp(SysLoginInfoEntity entity) {
         LoginInfoResp resp = new LoginInfoResp();
-        resp.setKey(String.valueOf(entity.getId()));
+        resp.setId(entity.getId());
         resp.setTenantId(entity.getTenantId());
         resp.setUserName(entity.getUserName());
         resp.setClientKey(entity.getClientKey());
@@ -69,5 +102,15 @@ public class LoginInfoService {
         resp.setMsg(entity.getMsg());
         resp.setLoginTime(entity.getLoginTime() == null ? "" : entity.getLoginTime().format(DATE_TIME_FORMATTER));
         return resp;
+    }
+
+    /**
+     * 默认化空字符串。
+     *
+     * @param value 原始字符串
+     * @return 非空字符串
+     */
+    private String defaultIfBlank(String value) {
+        return StringUtils.hasText(value) ? value : "";
     }
 }

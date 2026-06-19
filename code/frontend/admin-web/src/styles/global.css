@@ -100,12 +100,102 @@ body {
   margin-bottom: 6px;
 }
 
+.header-actions {
+  flex-shrink: 0;
+}
+
+.header-notice {
+  color: #12324b;
+  border-color: rgba(17, 38, 58, 0.1);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 10px 24px rgba(17, 54, 86, 0.08);
+}
+
 .header-user {
-  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 204px;
+  max-width: 270px;
+  height: 54px;
+  padding: 7px 10px 7px 8px;
+  border: 1px solid rgba(15, 143, 168, 0.2);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 14px 30px rgba(17, 54, 86, 0.08);
+  appearance: none;
+  color: #113856;
+  font: inherit;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(236, 248, 251, 0.88)),
+    rgba(255, 255, 255, 0.9);
+  box-shadow: 0 14px 30px rgba(17, 54, 86, 0.1);
   cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.header-user:hover,
+.header-user:focus-visible {
+  border-color: rgba(15, 143, 168, 0.44);
+  box-shadow: 0 18px 34px rgba(17, 54, 86, 0.14);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.header-user__avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.header-user__status {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #f7fbfd;
+  border-radius: 50%;
+  background: #16b987;
+}
+
+.header-user__meta {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.header-user__name {
+  max-width: 150px;
+  color: #12324b !important;
+  line-height: 1.1;
+}
+
+.header-user__role {
+  max-width: 150px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #0d6378;
+  background: rgba(15, 143, 168, 0.11);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.header-user__name,
+.header-user__role {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-user__arrow {
+  flex-shrink: 0;
+  color: #6a8496;
+  font-size: 11px;
 }
 
 .admin-content {
@@ -499,6 +589,16 @@ body {
     gap: 12px;
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .header-user {
+    min-width: 0;
+    max-width: calc(100vw - 88px);
   }
 
   .admin-content {

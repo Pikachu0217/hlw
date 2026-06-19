@@ -25,12 +25,12 @@ public class BaseEntity {
     private LocalDateTime createTime;
     /** 更新时间。 */
     private LocalDateTime updateTime;
-    /** 创建人编号。 */
-    private Long createBy;
-    /** 更新人编号。 */
-    private Long updateBy;
+    /** 创建者用户ID。 */
+    private String createBy;
+    /** 更新者用户ID。 */
+    private String updateBy;
     /** 租户编号。 */
-    private Long tenantId;
+    private String tenantId;
     /** 逻辑删除标识。 */
     @TableLogic
     private Integer deleted;

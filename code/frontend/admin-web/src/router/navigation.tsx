@@ -11,7 +11,6 @@ import {
   ShopOutlined,
   SolutionOutlined,
   TeamOutlined,
-  UserAddOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons';
 import { matchPath } from 'react-router-dom';
@@ -44,12 +43,6 @@ export const navigationTree: NavigationItem[] = [
       { key: 'system-notice', label: '通知公告', path: '/system/notice' },
       { key: 'system-logs', label: '系统日志', path: '/system/logs' },
     ],
-  },
-  {
-    key: 'auth',
-    label: '认证中心',
-    icon: <UserAddOutlined />,
-    children: [{ key: 'auth-login-record', label: '登录记录', path: '/auth/login-record' }],
   },
   {
     key: 'gateway',

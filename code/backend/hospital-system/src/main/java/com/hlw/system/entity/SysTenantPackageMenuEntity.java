@@ -1,8 +1,7 @@
 package com.hlw.system.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,10 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_tenant_package_menu")
-public class SysTenantPackageMenuEntity {
-    /** 主键编号。 */
-    @TableId(type = IdType.AUTO)
-    private Long id;
+public class SysTenantPackageMenuEntity extends BaseEntity {
     /** 租户套餐编号。 */
     private Long packageId;
     /** 菜单编号。 */

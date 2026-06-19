@@ -89,7 +89,7 @@ public class SystemProfileService {
      */
     private SysUserEntity requireLoginUser(Long loginUserId) {
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+            new LambdaQueryWrapper<SysUserEntity>()
                 .eq(SysUserEntity::getId, loginUserId)
                 .last("limit 1")), "登录用户不存在");
     }
@@ -109,7 +109,7 @@ public class SystemProfileService {
         if (roleIds.isEmpty()) {
             return List.of();
         }
-        return sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+        return sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
             .eq(SysRoleEntity::getStatus, 0)
             .in(SysRoleEntity::getId, roleIds));
     }
@@ -133,7 +133,7 @@ public class SystemProfileService {
         if (menuIds.isEmpty()) {
             return List.of();
         }
-        return sysMenuMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted)
+        return sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
             .eq(SysMenuEntity::getStatus, "0")
             .in(SysMenuEntity::getId, menuIds));
     }

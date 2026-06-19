@@ -5,7 +5,3 @@ hlw:
     group: DEFAULT_GROUP
     username: nacos
     password: nacos
-  datasource:
-    url: jdbc:mysql://127.0.0.1:23308/hospital_auth?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
-    username: root
-    password: root

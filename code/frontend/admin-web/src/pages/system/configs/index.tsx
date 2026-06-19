@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface ConfigRecord {
-  key: string;
+  id: number;
   configName: string;
   configKey: string;
   configValue: string;
@@ -37,7 +37,7 @@ function ConfigsPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateConfig(editingRecord.key, values);
+        await updateConfig(editingRecord.id, values);
         message.success('参数配置更新成功');
       } else {
         await createConfig(values);
@@ -63,7 +63,7 @@ function ConfigsPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteConfig(record.key);
+          await deleteConfig(record.id);
           message.success('参数配置删除成功');
           refresh();
         } catch {

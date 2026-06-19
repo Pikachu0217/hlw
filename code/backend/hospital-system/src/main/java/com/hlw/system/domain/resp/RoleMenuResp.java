@@ -9,10 +9,14 @@ import lombok.Setter;
 @Getter
 @Setter
 public class RoleMenuResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
+    /** 角色编号。 */
+    private Long roleId;
     /** 角色名称。 */
     private String roleName;
+    /** 菜单编号。 */
+    private Long menuId;
     /** 菜单名称。 */
     private String menuName;
     /** 权限标识。 */

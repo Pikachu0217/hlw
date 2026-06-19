@@ -1,6 +1,7 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_tenant_package")
-public class SysTenantPackageEntity extends SystemAuditEntity {
+public class SysTenantPackageEntity extends BaseEntity {
     /** 套餐名称。 */
     private String packageName;
     /** 备注。 */

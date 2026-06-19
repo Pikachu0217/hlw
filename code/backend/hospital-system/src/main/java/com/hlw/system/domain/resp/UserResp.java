@@ -9,8 +9,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UserResp {
-    /** 表格主键。 */
-    private String key;
+    /** 主键编号。 */
+    private Long id;
     /** 用户业务编号。 */
     private String userId;
     /** 登录账号。 */

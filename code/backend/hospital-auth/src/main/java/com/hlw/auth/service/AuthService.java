@@ -35,7 +35,7 @@ public class AuthService {
     private final String jwtSecret;
     private final AuthTokenProperties authTokenProperties;
     private final RedisService redisService;
-    private final LoginRecordService loginRecordService;
+    private final LoginAuditService loginAuditService;
 
     /**
      * 构造认证服务。
@@ -45,19 +45,19 @@ public class AuthService {
      * @param jwtSecret JWT 签名密钥
      * @param authTokenProperties 公共认证令牌配置属性
      * @param redisService Redis 操作服务，用于维护退出登录令牌黑名单
-     * @param loginRecordService 登录记录服务
+     * @param loginAuditService 登录审计服务
      */
     public AuthService(UserRepository userRepository, TokenIssuer tokenIssuer,
                        @Value("${hlw.jwt.secret}") String jwtSecret,
                        AuthTokenProperties authTokenProperties,
                        RedisService redisService,
-                       LoginRecordService loginRecordService) {
+                       LoginAuditService loginAuditService) {
         this.userRepository = userRepository;
         this.tokenIssuer = tokenIssuer;
         this.jwtSecret = jwtSecret;
         this.authTokenProperties = authTokenProperties;
         this.redisService = redisService;
-        this.loginRecordService = loginRecordService;
+        this.loginAuditService = loginAuditService;
     }
 
     /**
@@ -88,11 +88,11 @@ public class AuthService {
         LoginUserResp user = userRepository.findByTenantIdAndUsername(tenantId, loginReq.username());
         if (user == null || !matches(loginReq.password(), user.password())) {
             log.warn("用户登录认证失败，tenantId={}，username={}", tenantId, loginReq.username());
-            loginRecordService.recordLoginFailure(tenantId, loginReq.username(), "用户名或密码错误", clientIp, userAgent);
+            loginAuditService.recordLoginFailure(tenantId, loginReq.username(), "用户名或密码错误", clientIp, userAgent);
             throw new BizException(HttpStatusEnum.USERNAME_OR_PASSWORD_ERROR);
         }
         String token = tokenIssuer.issue(user);
-        loginRecordService.recordLoginSuccess(user, token, clientIp, userAgent);
+        loginAuditService.recordLoginSuccess(user, token, clientIp, userAgent);
         log.info("用户登录认证成功，userId={}，tenantId={}", user.id(), user.tenantId());
         return new LoginResultResp(token, user.tenantId(), user.userType());
     }
@@ -136,7 +136,7 @@ public class AuthService {
         } else {
             log.info("退出登录写入黑名单成功，ttlSeconds={}", remaining.toSeconds());
         }
-        loginRecordService.recordLogout(rawToken);
+        loginAuditService.recordLogout(rawToken);
     }
 
     /**

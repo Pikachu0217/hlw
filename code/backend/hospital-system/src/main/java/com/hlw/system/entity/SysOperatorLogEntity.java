@@ -1,8 +1,7 @@
 package com.hlw.system.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,12 +13,7 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @TableName("sys_operator_log")
-public class SysOperatorLogEntity {
-    /** 日志主键。 */
-    @TableId(type = IdType.AUTO)
-    private Long id;
-    /** 租户编号。 */
-    private String tenantId;
+public class SysOperatorLogEntity extends BaseEntity {
     /** 模块标题。 */
     private String title;
     /** 业务类型。 */

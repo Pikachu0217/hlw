@@ -2,9 +2,9 @@ package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateMenuReq;
 import com.hlw.system.domain.resp.MenuResp;
@@ -62,7 +62,7 @@ public class MenuService {
     @Transactional(readOnly = true)
     public List<SysMenuEntity> listEnabledMenus() {
         log.info("查询可用菜单列表");
-        return sysMenuMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted)
+        return sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
             .eq(SysMenuEntity::getStatus, "0")
             .orderByAsc(SysMenuEntity::getParentId)
             .orderByAsc(SysMenuEntity::getOrderNum)
@@ -96,8 +96,8 @@ public class MenuService {
     public MenuResp createMenu(CreateMenuReq request) {
         log.info("创建菜单，menuName={}，perms={}", request.getMenuName(), request.getPerms());
         SysMenuEntity entity = new SysMenuEntity();
+        entity.setTenantId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID));
         fillMenu(entity, request);
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysMenuMapper.insert(entity);
@@ -141,10 +141,8 @@ public class MenuService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteMenu(Long id) {
         log.info("删除菜单，id={}", id);
-        SysMenuEntity entity = requireMenu(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysMenuMapper.updateById(entity);
+        requireMenu(id);
+        sysMenuMapper.deleteById(id);
     }
 
     /**
@@ -156,7 +154,7 @@ public class MenuService {
     @Transactional(readOnly = true)
     public SysMenuEntity requireMenu(Long id) {
         return MybatisTenantHelpers.requireEntity(sysMenuMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted)
+            new LambdaQueryWrapper<SysMenuEntity>()
                 .eq(SysMenuEntity::getId, id)
                 .last("limit 1")), "菜单不存在");
     }
@@ -168,7 +166,7 @@ public class MenuService {
      * @return 查询包装器
      */
     private LambdaQueryWrapper<SysMenuEntity> buildListWrapper(PageQuery query) {
-        LambdaQueryWrapper<SysMenuEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted);
+        LambdaQueryWrapper<SysMenuEntity> wrapper = new LambdaQueryWrapper<SysMenuEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysMenuEntity::getMenuName, query.getKeyword())
                 .or()

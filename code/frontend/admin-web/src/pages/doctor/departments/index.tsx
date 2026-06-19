@@ -6,7 +6,6 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface DepartmentRecord {
-  key: string;
   id: number;
   name: string;
   doctorCount: number;

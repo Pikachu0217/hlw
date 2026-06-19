@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.security.PasswordEncoder;
 import com.hlw.system.domain.req.CreateUserReq;
@@ -69,7 +68,7 @@ public class UserService {
     public PageResult<UserResp> listUsers(PageQuery query) {
         log.info("查询系统用户列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        LambdaQueryWrapper<SysUserEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted);
+        LambdaQueryWrapper<SysUserEntity> wrapper = new LambdaQueryWrapper<SysUserEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysUserEntity::getUserName, query.getKeyword())
                 .or()
@@ -102,7 +101,6 @@ public class UserService {
         SysUserEntity entity = new SysUserEntity();
         entity.setUserId(UserIdGenerator.nextUserId());
         fillUser(entity, request, true);
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysUserMapper.insert(entity);
@@ -150,10 +148,8 @@ public class UserService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(Long id) {
         log.info("删除系统用户，id={}", id);
-        SysUserEntity entity = requireUser(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysUserMapper.updateById(entity);
+        requireUser(id);
+        sysUserMapper.deleteById(id);
     }
 
     /**
@@ -165,7 +161,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public SysUserEntity requireUser(Long id) {
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+            new LambdaQueryWrapper<SysUserEntity>()
                 .eq(SysUserEntity::getId, id)
                 .last("limit 1")), "用户不存在");
     }
@@ -179,7 +175,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public SysUserEntity requireUserByUserId(String userId) {
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+            new LambdaQueryWrapper<SysUserEntity>()
                 .eq(SysUserEntity::getUserId, userId)
                 .last("limit 1")), "用户不存在");
     }
@@ -231,7 +227,7 @@ public class UserService {
         if (deptIds.isEmpty()) {
             return Map.of();
         }
-        return sysDeptMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysDeptEntity::getDeleted)
+        return sysDeptMapper.selectList(new LambdaQueryWrapper<SysDeptEntity>()
                 .in(SysDeptEntity::getId, deptIds)).stream()
             .collect(Collectors.toMap(SysDeptEntity::getId, SysDeptEntity::getDeptName, (left, right) -> left));
     }
@@ -266,7 +262,7 @@ public class UserService {
             return Map.of();
         }
         Set<Long> postIds = relations.stream().map(SysUserPostEntity::getPostId).collect(Collectors.toSet());
-        Map<Long, String> postMap = sysPostMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysPostEntity::getDeleted)
+        Map<Long, String> postMap = sysPostMapper.selectList(new LambdaQueryWrapper<SysPostEntity>()
                 .in(SysPostEntity::getId, postIds)).stream()
             .collect(Collectors.toMap(SysPostEntity::getId, SysPostEntity::getPostName, (left, right) -> left));
         return relations.stream().collect(Collectors.groupingBy(SysUserPostEntity::getUserId,
@@ -299,7 +295,7 @@ public class UserService {
             return Map.of();
         }
         Set<Long> roleIds = relations.stream().map(SysUserRoleEntity::getRoleId).collect(Collectors.toSet());
-        Map<Long, String> roleMap = sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+        Map<Long, String> roleMap = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
                 .in(SysRoleEntity::getId, roleIds)).stream()
             .collect(Collectors.toMap(SysRoleEntity::getId, SysRoleEntity::getRoleName, (left, right) -> left));
         return relations.stream().collect(Collectors.groupingBy(SysUserRoleEntity::getUserId,

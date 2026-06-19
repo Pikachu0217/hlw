@@ -31,7 +31,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface AppointmentRecord {
-  key: string;
+  id: number;
   appointmentNo: string;
   patientName: string;
   doctorName: string;
@@ -138,7 +138,7 @@ function AppointmentPage() {
 
   async function handlePay(record: AppointmentRecord) {
     try {
-      await checkAction(() => payAppointment(record.key), '预约支付成功');
+      await checkAction(() => payAppointment(record.id), '预约支付成功');
     } catch {
       return;
     }
@@ -147,7 +147,7 @@ function AppointmentPage() {
 
   async function handleCheckIn(record: AppointmentRecord) {
     try {
-      await checkAction(() => checkInAppointment(record.key), '预约签到成功');
+      await checkAction(() => checkInAppointment(record.id), '预约签到成功');
     } catch {
       return;
     }
@@ -167,7 +167,7 @@ function AppointmentPage() {
     const values = await grabForm.validateFields();
     setSubmitting(true);
     try {
-      await grabAppointment(currentAppointment.key, values);
+      await grabAppointment(currentAppointment.id, values);
       message.success('预约抢单成功');
       setGrabOpen(false);
       setCurrentAppointment(null);

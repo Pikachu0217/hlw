@@ -44,7 +44,6 @@ public class MybatisConsultMessageRepository implements ConsultMessageRepository
         entity.setReadFlag(message.read());
         entity.setIsRead(message.read() ? 1 : 0);
         entity.setCreateTime(message.createTime());
-        entity.setDeleted(0);
         conMessageMapper.insert(entity);
     }
 
@@ -58,7 +57,6 @@ public class MybatisConsultMessageRepository implements ConsultMessageRepository
     public List<ConsultMessage> findByConsultId(Long consultId) {
         log.info("读取问诊消息，consultId={}", consultId);
         return conMessageMapper.selectList(new LambdaQueryWrapper<ConMessageEntity>()
-                .eq(ConMessageEntity::getDeleted, 0)
                 .eq(ConMessageEntity::getConsultId, consultId)
                 .orderByAsc(ConMessageEntity::getId))
             .stream()

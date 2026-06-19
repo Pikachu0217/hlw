@@ -6,7 +6,7 @@ import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface NoticeRecord {
-  key: string;
+  id: number;
   noticeTitle: string;
   noticeType: string;
   noticeContent?: string;
@@ -44,7 +44,7 @@ function NoticesPage() {
     setSubmitting(true);
     try {
       if (editingRecord) {
-        await updateNotice(editingRecord.key, values);
+        await updateNotice(editingRecord.id, values);
         message.success('通知公告更新成功');
       } else {
         await createNotice(values);
@@ -70,7 +70,7 @@ function NoticesPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteNotice(record.key);
+          await deleteNotice(record.id);
           message.success('通知公告删除成功');
           refresh();
         } catch {

@@ -34,7 +34,7 @@ export function OrderListPage() {
       <List>
         {orders.map((order) => (
           <List.Item
-            key={order.key}
+            key={order.id}
             description={
               <Space>
                 <Tag color={order.payStatus.includes("已") ? "success" : "warning"}>{order.payStatus}</Tag>

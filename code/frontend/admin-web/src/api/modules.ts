@@ -10,7 +10,6 @@ import type { PrescriptionRecord } from '@/pages/prescription';
 import type { ConfigRecord } from '@/pages/system/configs';
 import type { DictRecord } from '@/pages/system/dicts';
 import type { GatewayRouteRecord } from '@/pages/gateway/routes';
-import type { LoginRecord } from '@/pages/auth/login-record';
 import type { SystemLogRecord } from '@/pages/system/logs';
 import type { MenuRecord } from '@/pages/system/menus';
 import type { NoticeRecord } from '@/pages/system/notices';
@@ -50,7 +49,7 @@ export interface CreateTenantPayload {
 }
 
 export interface TenantOptionRecord {
-  key: string;
+  id: number;
   tenantId: string;
   companyName: string;
   status: string;
@@ -70,7 +69,6 @@ export interface CreateUserPayload {
 }
 
 export interface SystemDeptRecord {
-  key: string;
   id: number;
   parentId: number;
   deptName: string;
@@ -116,6 +114,23 @@ export interface CreateMenuPayload {
   remark?: string;
 }
 
+export interface UserRoleBindingRecord {
+  id: number;
+  userId: string;
+  userName: string;
+  roleId: number;
+  roleName: string;
+}
+
+export interface RoleMenuBindingRecord {
+  id: number;
+  roleId: number;
+  roleName: string;
+  menuId: number;
+  menuName: string;
+  perms?: string;
+}
+
 export interface CreateDictPayload {
   dictName?: string;
   dictType: string;
@@ -155,26 +170,6 @@ export interface CreateNoticePayload {
   noticeContent?: string;
   status?: string;
   remark?: string;
-}
-
-export interface CreateLoginRecordPayload {
-  tenantId: number;
-  userId?: number;
-  username: string;
-  userType?: string;
-  loginStatus: string;
-  failureReason?: string;
-  tokenDigest?: string;
-  clientIp?: string;
-  userAgent?: string;
-}
-
-export interface UpdateLoginRecordPayload {
-  loginStatus: string;
-  failureReason?: string;
-  logoutTime?: string;
-  clientIp?: string;
-  userAgent?: string;
 }
 
 export interface CreateGatewayRoutePayload {
@@ -316,20 +311,6 @@ export interface CreateHealthRecordPayload {
   remark?: string;
 }
 
-interface BackendDoctor {
-  id: number;
-  key?: string;
-  name: string;
-  title: string;
-  department: string;
-  specialty: string;
-  status: string;
-  consultStatus: string;
-  schedule: string;
-  patientCount: number;
-  consultFee: string;
-}
-
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
 async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
   console.info(`[admin-module] 查询${moduleName}列表`, url);
@@ -376,14 +357,14 @@ export async function createTenant(payload: CreateTenantPayload): Promise<Tenant
 }
 
 // 更新租户信息。
-export async function updateTenant(id: string, payload: CreateTenantPayload): Promise<TenantRecord> {
+export async function updateTenant(id: string | number, payload: CreateTenantPayload): Promise<TenantRecord> {
   console.info('[admin-module] 更新租户', id, payload);
   const response = await apiClient.put<ApiResult<TenantRecord>>(`/system/tenant/${id}`, payload);
   return response.data.data;
 }
 
 // 删除租户。
-export async function deleteTenant(id: string): Promise<void> {
+export async function deleteTenant(id: string | number): Promise<void> {
   console.info('[admin-module] 删除租户', id);
   await apiClient.delete(`/system/tenant/${id}`);
 }
@@ -401,23 +382,35 @@ export async function createUser(payload: CreateUserPayload): Promise<UserRecord
 }
 
 // 查询后台用户详情。
-export async function fetchUserDetail(id: string): Promise<UserRecord> {
+export async function fetchUserDetail(id: string | number): Promise<UserRecord> {
   console.info('[admin-module] 查询用户详情', id);
   const response = await apiClient.get<ApiResult<UserRecord>>(`/system/user/${id}`);
   return response.data.data;
 }
 
 // 更新后台用户。
-export async function updateUser(id: string, payload: CreateUserPayload): Promise<UserRecord> {
+export async function updateUser(id: string | number, payload: CreateUserPayload): Promise<UserRecord> {
   console.info('[admin-module] 更新用户', id, payload);
   const response = await apiClient.put<ApiResult<UserRecord>>(`/system/user/${id}`, payload);
   return response.data.data;
 }
 
 // 删除后台用户。
-export async function deleteUser(id: string): Promise<void> {
+export async function deleteUser(id: string | number): Promise<void> {
   console.info('[admin-module] 删除用户', id);
   await apiClient.delete(`/system/user/${id}`);
+}
+
+// 查询用户角色绑定列表。
+export function fetchUserRoles(): Promise<UserRoleBindingRecord[]> {
+  return fetchModuleRecords<UserRoleBindingRecord>('/system/user-role', '用户角色绑定');
+}
+
+// 保存用户角色绑定，后端会先删除旧绑定再新增新绑定。
+export async function bindUserRoles(userId: string, roleIds: number[]): Promise<UserRoleBindingRecord[]> {
+  console.info('[admin-module] 保存用户角色绑定', userId, roleIds);
+  const response = await apiClient.post<ApiResult<UserRoleBindingRecord[]>>('/system/user-role', { userId, roleIds });
+  return response.data.data;
 }
 
 // 查询系统部门选项。
@@ -438,21 +431,21 @@ export async function createSystemDept(payload: CreateSystemDeptPayload): Promis
 }
 
 // 查询系统部门详情。
-export async function fetchSystemDeptDetail(id: string): Promise<SystemDeptRecord> {
+export async function fetchSystemDeptDetail(id: string | number): Promise<SystemDeptRecord> {
   console.info('[admin-module] 查询系统部门详情', id);
   const response = await apiClient.get<ApiResult<SystemDeptRecord>>(`/system/dept/${id}`);
   return response.data.data;
 }
 
 // 更新系统部门。
-export async function updateSystemDept(id: string, payload: CreateSystemDeptPayload): Promise<SystemDeptRecord> {
+export async function updateSystemDept(id: string | number, payload: CreateSystemDeptPayload): Promise<SystemDeptRecord> {
   console.info('[admin-module] 更新系统部门', id, payload);
   const response = await apiClient.put<ApiResult<SystemDeptRecord>>(`/system/dept/${id}`, payload);
   return response.data.data;
 }
 
 // 删除系统部门。
-export async function deleteSystemDept(id: string): Promise<void> {
+export async function deleteSystemDept(id: string | number): Promise<void> {
   console.info('[admin-module] 删除系统部门', id);
   await apiClient.delete(`/system/dept/${id}`);
 }
@@ -470,23 +463,35 @@ export async function createRole(payload: CreateRolePayload): Promise<RoleRecord
 }
 
 // 查询角色详情。
-export async function fetchRoleDetail(id: string): Promise<RoleRecord> {
+export async function fetchRoleDetail(id: string | number): Promise<RoleRecord> {
   console.info('[admin-module] 查询角色详情', id);
   const response = await apiClient.get<ApiResult<RoleRecord>>(`/system/role/${id}`);
   return response.data.data;
 }
 
 // 更新角色。
-export async function updateRole(id: string, payload: CreateRolePayload): Promise<RoleRecord> {
+export async function updateRole(id: string | number, payload: CreateRolePayload): Promise<RoleRecord> {
   console.info('[admin-module] 更新角色', id, payload);
   const response = await apiClient.put<ApiResult<RoleRecord>>(`/system/role/${id}`, payload);
   return response.data.data;
 }
 
 // 删除角色。
-export async function deleteRole(id: string): Promise<void> {
+export async function deleteRole(id: string | number): Promise<void> {
   console.info('[admin-module] 删除角色', id);
   await apiClient.delete(`/system/role/${id}`);
+}
+
+// 查询角色菜单绑定列表。
+export function fetchRoleMenus(): Promise<RoleMenuBindingRecord[]> {
+  return fetchModuleRecords<RoleMenuBindingRecord>('/system/role-menu', '角色菜单绑定');
+}
+
+// 保存角色菜单绑定，后端会先删除旧绑定再新增新绑定。
+export async function bindRoleMenus(roleId: number, menuIds: number[]): Promise<RoleMenuBindingRecord[]> {
+  console.info('[admin-module] 保存角色菜单绑定', roleId, menuIds);
+  const response = await apiClient.post<ApiResult<RoleMenuBindingRecord[]>>('/system/role-menu', { roleId, menuIds });
+  return response.data.data;
 }
 
 // 查询菜单列表。
@@ -502,21 +507,21 @@ export async function createMenu(payload: CreateMenuPayload): Promise<MenuRecord
 }
 
 // 查询菜单详情。
-export async function fetchMenuDetail(id: string): Promise<MenuRecord> {
+export async function fetchMenuDetail(id: string | number): Promise<MenuRecord> {
   console.info('[admin-module] 查询菜单详情', id);
   const response = await apiClient.get<ApiResult<MenuRecord>>(`/system/menu/${id}`);
   return response.data.data;
 }
 
 // 更新菜单。
-export async function updateMenu(id: string, payload: CreateMenuPayload): Promise<MenuRecord> {
+export async function updateMenu(id: string | number, payload: CreateMenuPayload): Promise<MenuRecord> {
   console.info('[admin-module] 更新菜单', id, payload);
   const response = await apiClient.put<ApiResult<MenuRecord>>(`/system/menu/${id}`, payload);
   return response.data.data;
 }
 
 // 删除菜单。
-export async function deleteMenu(id: string): Promise<void> {
+export async function deleteMenu(id: string | number): Promise<void> {
   console.info('[admin-module] 删除菜单', id);
   await apiClient.delete(`/system/menu/${id}`);
 }
@@ -534,21 +539,21 @@ export async function createDict(payload: CreateDictPayload): Promise<DictRecord
 }
 
 // 查询字典详情。
-export async function fetchDictDetail(id: string): Promise<DictRecord> {
+export async function fetchDictDetail(id: string | number): Promise<DictRecord> {
   console.info('[admin-module] 查询字典详情', id);
   const response = await apiClient.get<ApiResult<DictRecord>>(`/system/dict/${id}`);
   return response.data.data;
 }
 
 // 更新字典项。
-export async function updateDict(id: string, payload: CreateDictPayload): Promise<DictRecord> {
+export async function updateDict(id: string | number, payload: CreateDictPayload): Promise<DictRecord> {
   console.info('[admin-module] 更新字典项', id, payload);
   const response = await apiClient.put<ApiResult<DictRecord>>(`/system/dict/${id}`, payload);
   return response.data.data;
 }
 
 // 删除字典项。
-export async function deleteDict(id: string): Promise<void> {
+export async function deleteDict(id: string | number): Promise<void> {
   console.info('[admin-module] 删除字典项', id);
   await apiClient.delete(`/system/dict/${id}`);
 }
@@ -566,21 +571,21 @@ export async function createConfig(payload: CreateConfigPayload): Promise<Config
 }
 
 // 查询系统参数配置详情。
-export async function fetchConfigDetail(id: string): Promise<ConfigRecord> {
+export async function fetchConfigDetail(id: string | number): Promise<ConfigRecord> {
   console.info('[admin-module] 查询参数配置详情', id);
   const response = await apiClient.get<ApiResult<ConfigRecord>>(`/system/config/${id}`);
   return response.data.data;
 }
 
 // 更新系统参数配置。
-export async function updateConfig(id: string, payload: UpdateConfigPayload): Promise<ConfigRecord> {
+export async function updateConfig(id: string | number, payload: UpdateConfigPayload): Promise<ConfigRecord> {
   console.info('[admin-module] 更新参数配置', id, payload);
   const response = await apiClient.put<ApiResult<ConfigRecord>>(`/system/config/${id}`, payload);
   return response.data.data;
 }
 
 // 删除系统参数配置。
-export async function deleteConfig(id: string): Promise<void> {
+export async function deleteConfig(id: string | number): Promise<void> {
   console.info('[admin-module] 删除参数配置', id);
   await apiClient.delete(`/system/config/${id}`);
 }
@@ -598,21 +603,21 @@ export async function createPost(payload: CreatePostPayload): Promise<PostRecord
 }
 
 // 查询岗位详情。
-export async function fetchPostDetail(id: string): Promise<PostRecord> {
+export async function fetchPostDetail(id: string | number): Promise<PostRecord> {
   console.info('[admin-module] 查询岗位详情', id);
   const response = await apiClient.get<ApiResult<PostRecord>>(`/system/post/${id}`);
   return response.data.data;
 }
 
 // 更新岗位。
-export async function updatePost(id: string, payload: CreatePostPayload): Promise<PostRecord> {
+export async function updatePost(id: string | number, payload: CreatePostPayload): Promise<PostRecord> {
   console.info('[admin-module] 更新岗位', id, payload);
   const response = await apiClient.put<ApiResult<PostRecord>>(`/system/post/${id}`, payload);
   return response.data.data;
 }
 
 // 删除岗位。
-export async function deletePost(id: string): Promise<void> {
+export async function deletePost(id: string | number): Promise<void> {
   console.info('[admin-module] 删除岗位', id);
   await apiClient.delete(`/system/post/${id}`);
 }
@@ -630,21 +635,21 @@ export async function createTenantPackage(payload: CreateTenantPackagePayload): 
 }
 
 // 查询租户套餐详情。
-export async function fetchTenantPackageDetail(id: string): Promise<TenantPackageRecord> {
+export async function fetchTenantPackageDetail(id: string | number): Promise<TenantPackageRecord> {
   console.info('[admin-module] 查询租户套餐详情', id);
   const response = await apiClient.get<ApiResult<TenantPackageRecord>>(`/system/tenant-package/${id}`);
   return response.data.data;
 }
 
 // 更新租户套餐。
-export async function updateTenantPackage(id: string, payload: CreateTenantPackagePayload): Promise<TenantPackageRecord> {
+export async function updateTenantPackage(id: string | number, payload: CreateTenantPackagePayload): Promise<TenantPackageRecord> {
   console.info('[admin-module] 更新租户套餐', id, payload);
   const response = await apiClient.put<ApiResult<TenantPackageRecord>>(`/system/tenant-package/${id}`, payload);
   return response.data.data;
 }
 
 // 删除租户套餐。
-export async function deleteTenantPackage(id: string): Promise<void> {
+export async function deleteTenantPackage(id: string | number): Promise<void> {
   console.info('[admin-module] 删除租户套餐', id);
   await apiClient.delete(`/system/tenant-package/${id}`);
 }
@@ -662,21 +667,21 @@ export async function createNotice(payload: CreateNoticePayload): Promise<Notice
 }
 
 // 查询通知公告详情。
-export async function fetchNoticeDetail(id: string): Promise<NoticeRecord> {
+export async function fetchNoticeDetail(id: string | number): Promise<NoticeRecord> {
   console.info('[admin-module] 查询通知公告详情', id);
   const response = await apiClient.get<ApiResult<NoticeRecord>>(`/system/notice/${id}`);
   return response.data.data;
 }
 
 // 更新通知公告。
-export async function updateNotice(id: string, payload: CreateNoticePayload): Promise<NoticeRecord> {
+export async function updateNotice(id: string | number, payload: CreateNoticePayload): Promise<NoticeRecord> {
   console.info('[admin-module] 更新通知公告', id, payload);
   const response = await apiClient.put<ApiResult<NoticeRecord>>(`/system/notice/${id}`, payload);
   return response.data.data;
 }
 
 // 删除通知公告。
-export async function deleteNotice(id: string): Promise<void> {
+export async function deleteNotice(id: string | number): Promise<void> {
   console.info('[admin-module] 删除通知公告', id);
   await apiClient.delete(`/system/notice/${id}`);
 }
@@ -691,45 +696,13 @@ export function fetchSystemOperatorLogs(): Promise<SystemLogRecord[]> {
   return fetchModulePage<SystemLogRecord>('/system/log/operator', '系统操作日志');
 }
 
-// 查询登录记录列表。
-export function fetchLoginRecords(): Promise<LoginRecord[]> {
-  return fetchModulePage<LoginRecord>('/auth/login-record', '登录记录');
-}
-
-// 查询登录记录详情。
-export async function fetchLoginRecordDetail(id: string): Promise<LoginRecord> {
-  console.info('[admin-module] 查询登录记录详情', id);
-  const response = await apiClient.get<ApiResult<LoginRecord>>(`/auth/login-record/${id}`);
-  return response.data.data;
-}
-
-// 创建登录记录。
-export async function createLoginRecord(payload: CreateLoginRecordPayload): Promise<LoginRecord> {
-  console.info('[admin-module] 创建登录记录', payload);
-  const response = await apiClient.post<ApiResult<LoginRecord>>('/auth/login-record', payload);
-  return response.data.data;
-}
-
-// 更新登录记录。
-export async function updateLoginRecord(id: string, payload: UpdateLoginRecordPayload): Promise<LoginRecord> {
-  console.info('[admin-module] 更新登录记录', id, payload);
-  const response = await apiClient.put<ApiResult<LoginRecord>>(`/auth/login-record/${id}`, payload);
-  return response.data.data;
-}
-
-// 删除登录记录。
-export async function deleteLoginRecord(id: string): Promise<void> {
-  console.info('[admin-module] 删除登录记录', id);
-  await apiClient.delete(`/auth/login-record/${id}`);
-}
-
 // 查询网关路由配置列表。
 export function fetchGatewayRoutes(): Promise<GatewayRouteRecord[]> {
   return fetchModulePage<GatewayRouteRecord>('/gateway/route', '网关路由');
 }
 
 // 查询网关路由配置详情。
-export async function fetchGatewayRouteDetail(id: string): Promise<GatewayRouteRecord> {
+export async function fetchGatewayRouteDetail(id: string | number): Promise<GatewayRouteRecord> {
   console.info('[admin-module] 查询网关路由详情', id);
   const response = await apiClient.get<ApiResult<GatewayRouteRecord>>(`/gateway/route/${id}`);
   return response.data.data;
@@ -743,14 +716,14 @@ export async function createGatewayRoute(payload: CreateGatewayRoutePayload): Pr
 }
 
 // 更新网关路由配置。
-export async function updateGatewayRoute(id: string, payload: CreateGatewayRoutePayload): Promise<GatewayRouteRecord> {
+export async function updateGatewayRoute(id: string | number, payload: CreateGatewayRoutePayload): Promise<GatewayRouteRecord> {
   console.info('[admin-module] 更新网关路由', id, payload);
   const response = await apiClient.put<ApiResult<GatewayRouteRecord>>(`/gateway/route/${id}`, payload);
   return response.data.data;
 }
 
 // 删除网关路由配置。
-export async function deleteGatewayRoute(id: string): Promise<void> {
+export async function deleteGatewayRoute(id: string | number): Promise<void> {
   console.info('[admin-module] 删除网关路由', id);
   await apiClient.delete(`/gateway/route/${id}`);
 }
@@ -775,7 +748,7 @@ export async function createDoctor(payload: CreateDoctorPayload): Promise<unknow
 }
 
 // 更新医生状态。
-export async function updateDoctorStatus(id: string, status: string): Promise<unknown> {
+export async function updateDoctorStatus(id: string | number, status: string): Promise<unknown> {
   console.info('[admin-module] 更新医生状态', id, status);
   const response = await apiClient.put<ApiResult<unknown>>(`/doctor/doctors/${id}/status`, { status });
   return response.data.data;
@@ -801,21 +774,21 @@ export async function createConsult(payload: CreateConsultPayload): Promise<Cons
 }
 
 // 接单问诊。
-export async function acceptConsult(id: string, payload: AcceptConsultPayload): Promise<ConsultRecord> {
+export async function acceptConsult(id: string | number, payload: AcceptConsultPayload): Promise<ConsultRecord> {
   console.info('[admin-module] 接单问诊', id, payload);
   const response = await apiClient.post<ApiResult<ConsultRecord>>(`/consult/consults/${id}/accept`, payload);
   return response.data.data;
 }
 
 // 完成问诊。
-export async function completeConsult(id: string): Promise<ConsultRecord> {
+export async function completeConsult(id: string | number): Promise<ConsultRecord> {
   console.info('[admin-module] 完成问诊', id);
   const response = await apiClient.post<ApiResult<ConsultRecord>>(`/consult/consults/${id}/complete`);
   return response.data.data;
 }
 
 // 延长问诊。
-export async function extendConsult(id: string): Promise<ConsultRecord> {
+export async function extendConsult(id: string | number): Promise<ConsultRecord> {
   console.info('[admin-module] 延长问诊', id);
   const response = await apiClient.post<ApiResult<ConsultRecord>>(`/consult/consults/${id}/extend`);
   return response.data.data;
@@ -834,21 +807,21 @@ export async function createAppointment(payload: CreateAppointmentPayload): Prom
 }
 
 // 支付预约单。
-export async function payAppointment(id: string): Promise<AppointmentRecord> {
+export async function payAppointment(id: string | number): Promise<AppointmentRecord> {
   console.info('[admin-module] 支付预约单', id);
   const response = await apiClient.post<ApiResult<AppointmentRecord>>(`/appointment/appointments/${id}/pay`);
   return response.data.data;
 }
 
 // 预约签到。
-export async function checkInAppointment(id: string): Promise<AppointmentRecord> {
+export async function checkInAppointment(id: string | number): Promise<AppointmentRecord> {
   console.info('[admin-module] 预约签到', id);
   const response = await apiClient.post<ApiResult<AppointmentRecord>>(`/appointment/appointments/${id}/check-in`);
   return response.data.data;
 }
 
 // 抢便民门诊预约单。
-export async function grabAppointment(id: string, payload: GrabAppointmentPayload): Promise<boolean> {
+export async function grabAppointment(id: string | number, payload: GrabAppointmentPayload): Promise<boolean> {
   console.info('[admin-module] 抢预约单', id, payload);
   const response = await apiClient.post<ApiResult<boolean>>(`/appointment/appointments/${id}/grab`, payload);
   return response.data.data;
@@ -886,21 +859,21 @@ export async function createPrescription(payload: CreatePrescriptionPayload): Pr
 }
 
 // 提交处方。
-export async function submitPrescription(id: string): Promise<PrescriptionRecord> {
+export async function submitPrescription(id: string | number): Promise<PrescriptionRecord> {
   console.info('[admin-module] 提交处方', id);
   const response = await apiClient.post<ApiResult<PrescriptionRecord>>(`/prescription/prescriptions/${id}/submit`);
   return response.data.data;
 }
 
 // 审核通过处方。
-export async function approvePrescription(id: string, payload: ApprovePrescriptionPayload): Promise<PrescriptionRecord> {
+export async function approvePrescription(id: string | number, payload: ApprovePrescriptionPayload): Promise<PrescriptionRecord> {
   console.info('[admin-module] 审核通过处方', id, payload);
   const response = await apiClient.post<ApiResult<PrescriptionRecord>>(`/prescription/prescriptions/${id}/approve`, payload);
   return response.data.data;
 }
 
 // 驳回处方。
-export async function rejectPrescription(id: string, payload: RejectPrescriptionPayload): Promise<PrescriptionRecord> {
+export async function rejectPrescription(id: string | number, payload: RejectPrescriptionPayload): Promise<PrescriptionRecord> {
   console.info('[admin-module] 驳回处方', id, payload);
   const response = await apiClient.post<ApiResult<PrescriptionRecord>>(`/prescription/prescriptions/${id}/reject`, payload);
   return response.data.data;
@@ -931,48 +904,27 @@ export async function createOrder(payload: CreateOrderPayload): Promise<OrderRec
 }
 
 // 支付订单。
-export async function payOrder(id: string, payload: PayOrderPayload): Promise<OrderRecord> {
+export async function payOrder(id: string | number, payload: PayOrderPayload): Promise<OrderRecord> {
   console.info('[admin-module] 支付订单', id, payload);
   const response = await apiClient.post<ApiResult<OrderRecord>>(`/order/orders/${id}/pay`, payload);
   return response.data.data;
 }
 
-// 查询医生列表，并适配表格 rowKey。
+// 查询医生列表。
 export async function fetchDoctors(): Promise<DoctorRecord[]> {
-  const doctors = await fetchModuleRecords<BackendDoctor>('/doctor/doctors', '医生');
-  return doctors.map((doctor) => ({
-    id: doctor.id,
-    key: doctor.key ?? String(doctor.id),
-    name: doctor.name,
-    title: doctor.title,
-    department: doctor.department,
-    specialty: doctor.specialty,
-    status: doctor.status,
-    consultStatus: doctor.consultStatus,
-    schedule: doctor.schedule,
-    patientCount: doctor.patientCount,
-    consultFee: doctor.consultFee,
-  }));
+  return fetchModuleRecords<DoctorRecord>('/doctor/doctors', '医生');
 }
 
 // 查询患者列表。
 export async function fetchPatients(): Promise<PatientRecord[]> {
-  const patients = await fetchModuleRecords<PatientRecord>('/patient/patients', '患者');
-  return patients.map((patient) => ({
-    ...patient,
-    key: patient.key ?? String(patient.id),
-  }));
+  return fetchModuleRecords<PatientRecord>('/patient/patients', '患者');
 }
 
 // 查询患者详情。
 export async function fetchPatientDetail(id: number): Promise<PatientRecord> {
   console.info('[admin-module] 查询患者详情', id);
   const response = await apiClient.get<ApiResult<PatientRecord>>(`/patient/patients/${id}`);
-  const patient = response.data.data;
-  return {
-    ...patient,
-    key: patient.key ?? String(patient.id),
-  };
+  return response.data.data;
 }
 
 // 创建患者档案。
@@ -995,10 +947,7 @@ export async function fetchHealthRecords(patientId?: number): Promise<HealthReco
   const response = await apiClient.get<ApiResult<HealthRecord[]>>('/patient/health-records', {
     params: patientId ? { patientId } : undefined,
   });
-  return response.data.data.map((record) => ({
-    ...record,
-    key: record.key ?? String(record.id),
-  }));
+  return response.data.data;
 }
 
 // 创建健康档案。

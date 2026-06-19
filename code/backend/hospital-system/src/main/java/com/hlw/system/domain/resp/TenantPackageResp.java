@@ -10,10 +10,7 @@ import java.util.List;
  */
 @Getter
 @Setter
-public class TenantPackageResp {
-    /** 表格主键。 */
-    private String key;
-    /** 套餐编号。 */
+public class TenantPackageResp {    /** 套餐编号。 */
     private Long id;
     /** 套餐名称。 */
     private String packageName;

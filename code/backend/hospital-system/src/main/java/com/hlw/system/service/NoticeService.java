@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateNoticeReq;
 import com.hlw.system.domain.resp.NoticeResp;
@@ -40,7 +39,7 @@ public class NoticeService {
     public PageResult<NoticeResp> listNotices(PageQuery query) {
         log.info("查询通知公告列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-        LambdaQueryWrapper<SysNoticeEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysNoticeEntity::getDeleted);
+        LambdaQueryWrapper<SysNoticeEntity> wrapper = new LambdaQueryWrapper<SysNoticeEntity>();
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.like(SysNoticeEntity::getNoticeTitle, query.getKeyword());
         }
@@ -61,7 +60,6 @@ public class NoticeService {
         log.info("创建通知公告，noticeTitle={}", request.getNoticeTitle());
         SysNoticeEntity entity = new SysNoticeEntity();
         fillNotice(entity, request);
-        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysNoticeMapper.insert(entity);
@@ -105,10 +103,8 @@ public class NoticeService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteNotice(Long id) {
         log.info("删除通知公告，id={}", id);
-        SysNoticeEntity entity = requireNotice(id);
-        entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        entity.setUpdateTime(LocalDateTime.now());
-        sysNoticeMapper.updateById(entity);
+        requireNotice(id);
+        sysNoticeMapper.deleteById(id);
     }
 
     /**
@@ -133,7 +129,7 @@ public class NoticeService {
      */
     private NoticeResp toResp(SysNoticeEntity entity) {
         NoticeResp resp = new NoticeResp();
-        resp.setKey(String.valueOf(entity.getId()));
+        resp.setId(entity.getId());
         resp.setNoticeTitle(entity.getNoticeTitle());
         resp.setNoticeType(entity.getNoticeType());
         resp.setNoticeContent(entity.getNoticeContent());
@@ -150,7 +146,7 @@ public class NoticeService {
      */
     private SysNoticeEntity requireNotice(Long id) {
         return MybatisTenantHelpers.requireEntity(sysNoticeMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysNoticeEntity::getDeleted)
+            new LambdaQueryWrapper<SysNoticeEntity>()
                 .eq(SysNoticeEntity::getId, id)
                 .last("limit 1")), "通知公告不存在");
     }

@@ -50,8 +50,8 @@ public final class AuthTokenResolver {
         }
         try {
             long parsedTenantId = Long.parseLong(tenantHeader.trim());
-            if (parsedTenantId <= 0L) {
-                throw new BizException(400, "租户编号必须大于0");
+            if (parsedTenantId < 0L) {
+                throw new BizException(400, "租户编号不能小于0");
             }
             return parsedTenantId;
         } catch (NumberFormatException exception) {
