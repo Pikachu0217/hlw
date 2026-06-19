@@ -77,7 +77,7 @@ public final class JwtPrincipalResolver {
         principal.setUserId(resolveLong(claims, CommonConstants.JWT_USER_ID));
         principal.setTenantId(resolveLong(claims, CommonConstants.JWT_TENANT_ID));
         principal.setUserType(resolveString(claims, CommonConstants.JWT_USER_TYPE));
-        principal.setPlatformRequest(CommonConstants.PLATFORM_TENANT_ID.equals(principal.getTenantId()));
+        principal.setPlatformRequest(CommonConstants.isPlatformTenant(principal.getTenantId()));
         return principal;
     }
 

@@ -1,5 +1,6 @@
 package com.hlw.common.mybatis.datascope.context;
 
+import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -54,7 +55,7 @@ public class DataScopeContextFilter extends OncePerRequestFilter {
         DataScopeContext context;
         if (principal == null) {
             context = null;
-        } else if (Boolean.TRUE.equals(principal.getPlatformRequest())) {
+        } else if (CommonConstants.isPlatformTenant(principal.getTenantId())) {
             context = DataScopeContext.builder().ignoreAll(true).build();
         } else {
             context = dataScopeLoader.load(principal.getUserId(), principal.getTenantId());

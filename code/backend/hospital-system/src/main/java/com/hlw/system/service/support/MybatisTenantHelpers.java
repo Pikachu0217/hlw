@@ -1,13 +1,16 @@
 package com.hlw.system.service.support;
 
 import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
+import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.security.TokenPrincipal;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * MyBatis Plus 与租户上下文的公共工具方法集合，承载跨聚合复用的查询条件、忽略策略与守卫逻辑。
  */
+@Slf4j
 public final class MybatisTenantHelpers {
 
     private MybatisTenantHelpers() {
@@ -44,7 +47,9 @@ public final class MybatisTenantHelpers {
      */
     public static void ensurePlatformContext(String message) {
         TokenPrincipal principal = TokenPrincipalContext.get();
-        if (principal == null || !Boolean.TRUE.equals(principal.getPlatformRequest())) {
+        Long tenantId = principal == null ? null : principal.getTenantId();
+        if (!CommonConstants.isPlatformTenant(tenantId)) {
+            log.warn("平台租户上下文校验失败，tenantId={}，message={}", tenantId, message);
             throw new BizException(403, message);
         }
     }

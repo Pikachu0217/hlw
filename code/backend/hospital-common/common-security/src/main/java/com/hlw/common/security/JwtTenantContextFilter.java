@@ -91,7 +91,7 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
             principal.setUserId(tokenPrincipal == null ? null : tokenPrincipal.getUserId());
             principal.setUserType(tokenPrincipal == null ? null : tokenPrincipal.getUserType());
         }
-        principal.setPlatformRequest(CommonConstants.PLATFORM_TENANT_ID.equals(principal.getTenantId()));
+        principal.setPlatformRequest(CommonConstants.isPlatformTenant(principal.getTenantId()));
         return principal;
     }
 

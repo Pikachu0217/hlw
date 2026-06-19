@@ -33,4 +33,14 @@ public class CommonConstants {
 
     /** 平台租户编号，只有平台账号的租户编号为 0，享有跨租户管理权限。 */
     public static final Long PLATFORM_TENANT_ID = 0L;
+
+    /**
+     * 判断租户编号是否为平台租户编号。
+     *
+     * @param tenantId 租户编号
+     * @return 是否平台租户
+     */
+    public static boolean isPlatformTenant(Long tenantId) {
+        return PLATFORM_TENANT_ID.equals(tenantId);
+    }
 }
