@@ -28,10 +28,24 @@ public class DataScopeContextFilter extends OncePerRequestFilter {
 
     private final DataScopeLoader dataScopeLoader;
 
+    /**
+     * 构造请求级数据权限上下文过滤器。
+     *
+     * @param dataScopeLoader 数据权限上下文加载器
+     */
     public DataScopeContextFilter(DataScopeLoader dataScopeLoader) {
         this.dataScopeLoader = dataScopeLoader;
     }
 
+    /**
+     * 加载并清理请求级数据权限上下文。
+     *
+     * @param request 当前 HTTP 请求
+     * @param response 当前 HTTP 响应
+     * @param filterChain 过滤器链
+     * @throws ServletException Servlet 处理异常
+     * @throws IOException IO 处理异常
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,

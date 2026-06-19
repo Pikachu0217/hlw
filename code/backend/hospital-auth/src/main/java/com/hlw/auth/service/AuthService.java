@@ -6,6 +6,7 @@ import com.hlw.auth.domain.resp.LoginResultResp;
 import com.hlw.auth.domain.resp.LoginUserResp;
 import com.hlw.auth.domain.resp.UserDetailResp;
 import com.hlw.common.core.config.AuthTokenProperties;
+import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.enums.RedisKeyEnum;
 import com.hlw.common.core.exception.BizException;
@@ -181,7 +182,7 @@ public class AuthService {
      * @return 有效租户编号
      */
     private Long requireLoginTenantId(Long tenantId) {
-        if (tenantId == null || tenantId < 0L) {
+        if (tenantId == null || tenantId < CommonConstants.PLATFORM_TENANT_ID) {
             log.warn("用户登录认证失败，租户编号无效，tenantId={}", tenantId);
             throw new BizException(HttpStatusEnum.LOGIN_PARAMETERS_CANNOT_BE_NULL);
         }

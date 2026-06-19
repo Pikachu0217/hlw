@@ -28,6 +28,8 @@ public final class TokenPrincipalContext {
 
     /**
      * 获取线程上下文
+     *
+     * @return 登录令牌主体
      */
     public static TokenPrincipal get() {
         return HOLDER.get();

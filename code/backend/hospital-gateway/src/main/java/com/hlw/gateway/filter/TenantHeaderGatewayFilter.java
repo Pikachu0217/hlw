@@ -1,6 +1,7 @@
 package com.hlw.gateway.filter;
 
 import com.hlw.common.core.config.AuthTokenProperties;
+import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.gateway.config.GatewayAuthProperties;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
@@ -71,7 +72,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
                 .build();
 
         Long tenantId = resolveTenantId(token);
-        boolean hasValidToken = tenantId != null && tenantId >= 0;
+        boolean hasValidToken = tenantId != null && tenantId >= CommonConstants.PLATFORM_TENANT_ID;
         if (hasValidToken) {
             cleaned = cleaned.mutate()
                     .header(authTokenProperties.getTenantHeaderName(), String.valueOf(tenantId))
@@ -160,10 +161,10 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
     }
 
     /**
-     * 解析公开接口允许透传的正数租户请求头。
+     * 解析公开接口允许透传的非负数租户请求头。
      *
      * @param request 当前请求
-     * @return 正数租户请求头，非法时返回 null
+     * @return 非负数租户请求头，非法时返回 null
      */
     private String resolvePublicTenantHeader(ServerHttpRequest request) {
         String tenantHeader = request.getHeaders().getFirst(authTokenProperties.getTenantHeaderName());
@@ -172,7 +173,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
         }
         try {
             long tenantId = Long.parseLong(tenantHeader.trim());
-            return tenantId > 0 ? String.valueOf(tenantId) : null;
+            return tenantId >= CommonConstants.PLATFORM_TENANT_ID ? String.valueOf(tenantId) : null;
         } catch (NumberFormatException e) {
             log.error("公开接口租户请求头格式错误，tenantHeaderName={}，tenantHeader={}",
                     authTokenProperties.getTenantHeaderName(), tenantHeader, e);
