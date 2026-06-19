@@ -1,23 +1,13 @@
 package com.hlw.common.core.tenant;
 
 import com.hlw.common.core.constants.CommonConstants;
-import com.hlw.common.core.util.JwtUtil;
+import com.hlw.common.core.security.JwtPrincipalResolver;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.springframework.util.StringUtils;
-
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.security.Key;
-
-import lombok.extern.slf4j.Slf4j;
+import com.hlw.common.core.util.JwtUtil;
 
 /**
  * 租户 JWT 解析工具，负责从登录令牌中提取租户编号。
  */
-@Slf4j
 public final class TenantJwtResolver {
     private TenantJwtResolver() {
     }
@@ -30,29 +20,19 @@ public final class TenantJwtResolver {
      * @return 租户编号，无法解析时返回 null
      */
     public static Long resolveTenantId(String token, String jwtSecret) {
-        return resolve(token, jwtSecret, CommonConstants.JWT_TENANT_ID);
+        return JwtPrincipalResolver.resolveLongClaim(token, jwtSecret, CommonConstants.JWT_TENANT_ID);
     }
 
     /**
-     * 从 JWT 令牌解析租户编号。
+     * 从 JWT 令牌解析 Long 类型声明。
      *
      * @param token JWT 令牌
      * @param jwtSecret JWT 签名密钥
      * @param item jwt 中存储的内容 如 tenantId userId userType
-     * @return 租户编号，无法解析时返回 null
+     * @return Long 类型声明值，无法解析时返回 null
      */
     public static Long resolve(String token, String jwtSecret, String item) {
-        if (!StringUtils.hasText(token)) {
-            return null;
-        }
-        try {
-            Claims claims = JwtUtil.parseClaims(token, jwtSecret);
-            Object value = claims.get(item);
-            return value instanceof Number ? ((Number) value).longValue() : null;
-        } catch (JwtException e) {
-            log.error("解析 JWT 令牌失败", e);
-            return null;
-        }
+        return JwtPrincipalResolver.resolveLongClaim(token, jwtSecret, item);
     }
 
     /**
@@ -64,21 +44,6 @@ public final class TenantJwtResolver {
      * @throws JwtException 令牌无效或过期时抛出
      */
     public static Claims parseClaims(String token, String jwtSecret) {
-        return Jwts.parserBuilder()
-                .setSigningKey(keyFrom(jwtSecret))
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    /**
-     * 根据配置密钥创建 HMAC 签名 Key。
-     *
-     * @param jwtSecret JWT 签名密钥
-     * @return 签名 Key
-     */
-    private static Key keyFrom(String jwtSecret) {
-        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        return new SecretKeySpec(keyBytes, SignatureAlgorithm.HS256.getJcaName());
+        return JwtUtil.parseClaims(token, jwtSecret);
     }
 }

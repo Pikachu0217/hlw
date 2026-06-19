@@ -49,7 +49,7 @@ public class DictController {
      */
     @PostMapping
     public R<DictResp> createDict(@Valid @RequestBody CreateDictReq request) {
-        log.info("创建字典项，dictType={}，dictLabel={}", request.getDictType(), request.getDictLabel());
+        log.info("创建字典数据，dictType={}，dictLabel={}", request.getDictType(), request.getDictLabel());
         return R.ok(dictService.createDict(request));
     }
 
@@ -61,7 +61,7 @@ public class DictController {
      */
     @GetMapping("/{id}")
     public R<DictResp> detail(@PathVariable Long id) {
-        log.info("查询字典详情，id={}", id);
+        log.info("查询字典数据详情，id={}", id);
         return R.ok(dictService.getDict(id));
     }
 
@@ -74,7 +74,7 @@ public class DictController {
      */
     @PutMapping("/{id}")
     public R<DictResp> updateDict(@PathVariable Long id, @Valid @RequestBody CreateDictReq request) {
-        log.info("更新字典项，id={}，dictType={}，dictLabel={}", id, request.getDictType(), request.getDictLabel());
+        log.info("更新字典数据，id={}，dictType={}，dictLabel={}", id, request.getDictType(), request.getDictLabel());
         return R.ok(dictService.updateDict(id, request));
     }
 
@@ -86,7 +86,7 @@ public class DictController {
      */
     @DeleteMapping("/{id}")
     public R<Void> deleteDict(@PathVariable Long id) {
-        log.info("删除字典项，id={}", id);
+        log.info("删除字典数据，id={}", id);
         dictService.deleteDict(id);
         return R.ok(null);
     }

@@ -13,8 +13,12 @@ import java.util.List;
 public class InternalUserResp {
     /** 用户编号。 */
     private Long id;
+    /** 用户业务编号。 */
+    private String userId;
     /** 租户编号。 */
     private Long tenantId;
+    /** 租户业务编号。 */
+    private String tenantCode;
     /** 登录账号。 */
     private String username;
     /** 登录密码哈希。 */

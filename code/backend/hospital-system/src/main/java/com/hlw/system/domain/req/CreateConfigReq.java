@@ -10,16 +10,15 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateConfigReq {
-    /** 配置键。 */
+    /** 参数名称。 */
+    @NotBlank(message = "参数名称不能为空")
+    private String configName;
+    /** 参数键名。 */
     @NotBlank(message = "配置键不能为空")
     private String configKey;
-    /** 配置值。 */
+    /** 参数键值。 */
     @NotBlank(message = "配置值不能为空")
     private String configValue;
-    /** 配置类型。 */
-    private String configType;
-    /** 配置状态。 */
-    private String status;
     /** 备注。 */
     private String remark;
 }

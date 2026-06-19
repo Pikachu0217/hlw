@@ -15,12 +15,16 @@ public class RoleResp {
     private String roleName;
     /** 角色编码。 */
     private String roleCode;
+    /** 显示顺序。 */
+    private Integer orderNum;
     /** 数据范围。 */
-    private String dataScope;
+    private Integer dataScope;
     /** 成员数量。 */
     private Integer memberCount;
     /** 更新时间。 */
     private String updatedAt;
     /** 状态。 */
-    private String status;
+    private Integer status;
+    /** 备注。 */
+    private String remark;
 }

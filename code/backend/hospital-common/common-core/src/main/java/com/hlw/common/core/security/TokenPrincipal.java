@@ -18,6 +18,11 @@ public class TokenPrincipal {
     private Long userId;
 
     /**
+     * 用户类型
+     */
+    private String userType;
+
+    /**
      * 是否为平台请求的标记
      */
     private Boolean platformRequest;

@@ -24,9 +24,9 @@ public class PostConverter {
         vo.setKey(String.valueOf(entity.getId()));
         vo.setPostName(entity.getPostName());
         vo.setPostCode(entity.getPostCode());
-        vo.setSort(DefaultValueUtils.defaultIfNull(entity.getSort(), 0));
-        vo.setStatus(entity.getStatus());
+        vo.setOrderNum(DefaultValueUtils.defaultIfNull(entity.getOrderNum(), 0));
         vo.setRemark(entity.getRemark());
+        vo.setStatus(entity.getStatus());
         return vo;
     }
 }

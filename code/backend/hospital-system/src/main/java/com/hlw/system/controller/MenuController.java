@@ -49,7 +49,7 @@ public class MenuController {
      */
     @PostMapping
     public R<MenuResp> createMenu(@Valid @RequestBody CreateMenuReq request) {
-        log.info("创建菜单，menuName={}", request.getMenuName());
+        log.info("创建菜单，menuName={}，perms={}", request.getMenuName(), request.getPerms());
         return R.ok(menuService.createMenu(request));
     }
 
@@ -74,7 +74,7 @@ public class MenuController {
      */
     @PutMapping("/{id}")
     public R<MenuResp> updateMenu(@PathVariable Long id, @Valid @RequestBody CreateMenuReq request) {
-        log.info("更新菜单，id={}，menuName={}", id, request.getMenuName());
+        log.info("更新菜单，id={}，menuName={}，perms={}", id, request.getMenuName(), request.getPerms());
         return R.ok(menuService.updateMenu(id, request));
     }
 

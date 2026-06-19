@@ -37,6 +37,7 @@ public class FeignUserRepository implements UserRepository {
         }
         return new LoginUserResp(
             data.getId(),
+            data.getUserId(),
             data.getTenantId(),
             data.getUsername(),
             data.getPassword(),
@@ -62,6 +63,7 @@ public class FeignUserRepository implements UserRepository {
         UserDetailResp resp = new UserDetailResp();
         resp.setKey(String.valueOf(data.getId()));
         resp.setUserId(data.getId());
+        resp.setBusinessUserId(data.getUserId());
         resp.setTenantId(data.getTenantId());
         resp.setUsername(data.getUsername());
         resp.setPhone(data.getPhone());

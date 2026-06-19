@@ -10,6 +10,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateDictReq {
+    /** 字典名称。 */
+    private String dictName;
     /** 字典类型。 */
     @NotBlank(message = "字典类型不能为空")
     private String dictType;
@@ -20,9 +22,7 @@ public class CreateDictReq {
     @NotBlank(message = "字典键值不能为空")
     private String dictValue;
     /** 排序。 */
-    private Integer sort;
-    /** 状态。 */
-    private String status;
+    private Integer dictSort;
     /** 备注。 */
     private String remark;
 }

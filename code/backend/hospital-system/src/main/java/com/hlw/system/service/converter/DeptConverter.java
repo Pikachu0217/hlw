@@ -26,7 +26,10 @@ public class DeptConverter {
         vo.setParentId(DefaultValueUtils.defaultIfNull(entity.getParentId(), 0L));
         vo.setDeptName(entity.getDeptName());
         vo.setAncestors(DefaultValueUtils.defaultIfBlank(entity.getAncestors(), "0"));
-        vo.setSort(DefaultValueUtils.defaultIfNull(entity.getSort(), 0));
+        vo.setOrderNum(DefaultValueUtils.defaultIfNull(entity.getOrderNum(), 0));
+        vo.setLeader(entity.getLeader());
+        vo.setPhone(entity.getPhone());
+        vo.setEmail(entity.getEmail());
         vo.setStatus(entity.getStatus());
         return vo;
     }

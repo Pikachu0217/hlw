@@ -465,6 +465,34 @@ else:
 PY
 }
 
+# 从最近一次接口响应 data 中提取指定字段，便于串联业务主键。
+extract_data_value() {
+  local body="$1"
+  local field="$2"
+
+  if ! command -v python3 >/dev/null 2>&1; then
+    printf ''
+    return
+  fi
+
+  BODY="${body}" FIELD="${field}" python3 - <<'PY'
+import json
+import os
+
+try:
+    payload = json.loads(os.environ.get("BODY", ""))
+except Exception:
+    print("")
+else:
+    data = payload.get("data") or {}
+    field = os.environ.get("FIELD", "")
+    if isinstance(data, dict):
+        print(data.get(field) or "")
+    else:
+        print("")
+PY
+}
+
 # 写出 Markdown 和 JSON 两种报告。
 write_reports() {
   mkdir -p "${REPORT_DIR}"
@@ -542,113 +570,144 @@ run_all_cases() {
   fi
 
   # 系统管理接口。
+  run_case "查询登录用户信息" "GET" "/system/getInfo"
+  run_case "查询登录用户路由" "GET" "/system/getRouters"
   run_case "查询租户列表" "GET" "/system/tenant"
-  run_case "创建租户" "POST" "/system/tenant" "{\"tenantName\":\"接口测试医院\",\"packageName\":\"标准医疗版\",\"adminName\":\"接口管理员\",\"expireAt\":\"2026-12-31\",\"status\":\"正常\"}"
+  run_case "查询租户套餐列表" "GET" "/system/tenant-package"
+  run_case "创建租户套餐" "POST" "/system/tenant-package" "{\"packageName\":\"接口测试套餐\",\"menuIds\":[1],\"remark\":\"脚本自动创建\"}"
+  local tenant_package_id
+  tenant_package_id="$(extract_data_id "${last_body}")"
+  if [ -n "${tenant_package_id}" ]; then
+    run_case "查询租户套餐详情" "GET" "/system/tenant-package/${tenant_package_id}"
+    run_case "更新租户套餐" "PUT" "/system/tenant-package/${tenant_package_id}" "{\"packageName\":\"接口测试套餐更新\",\"menuIds\":[1],\"remark\":\"脚本自动更新\"}"
+    run_case "删除租户套餐" "DELETE" "/system/tenant-package/${tenant_package_id}"
+  else
+    record_skip_case "租户套餐详情更新删除" "GET/PUT/DELETE" "/system/tenant-package/{id}" "-" "创建租户套餐未返回 data.key 或 data.id，跳过串联用例"
+  fi
+  run_case "创建租户" "POST" "/system/tenant" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008888\",\"companyName\":\"接口测试医院\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址\",\"intro\":\"脚本自动创建\",\"domain\":\"api-test\",\"remark\":\"接口测试租户\",\"packageId\":1,\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":50,\"status\":\"0\"}"
   local tenant_id
   tenant_id="$(extract_data_id "${last_body}")"
   if [ -n "${tenant_id}" ]; then
     run_case "查询租户详情" "GET" "/system/tenant/${tenant_id}"
-    run_case "更新租户" "PUT" "/system/tenant/${tenant_id}" "{\"tenantName\":\"接口测试医院更新\",\"packageName\":\"标准医疗版\",\"adminName\":\"接口管理员\",\"expireAt\":\"2026-12-31\",\"status\":\"正常\"}"
+    run_case "更新租户" "PUT" "/system/tenant/${tenant_id}" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008889\",\"companyName\":\"接口测试医院更新\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址更新\",\"intro\":\"脚本自动更新\",\"domain\":\"api-test\",\"remark\":\"接口测试租户更新\",\"packageId\":1,\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":60,\"status\":\"0\"}"
     run_case "删除租户" "DELETE" "/system/tenant/${tenant_id}"
   else
     record_skip_case "租户详情更新删除" "GET/PUT/DELETE" "/system/tenant/{id}" "-" "创建租户未返回 data.key 或 data.id，跳过串联用例"
   fi
   run_case "查询后台用户列表" "GET" "/system/user"
-  run_case "创建后台用户" "POST" "/system/user" "{\"username\":\"api_user\",\"phone\":\"13800006666\",\"deptName\":\"接口测试部\",\"roleName\":\"接口测试角色\",\"userType\":\"ADMIN\",\"status\":\"启用\"}"
+  run_case "创建后台用户" "POST" "/system/user" "{\"userName\":\"api_user\",\"nickName\":\"接口测试用户\",\"deptId\":1,\"userType\":\"ADMIN\",\"phone\":\"13800006666\",\"email\":\"api_user@example.com\",\"sex\":\"0\",\"password\":\"123456\",\"status\":0,\"remark\":\"脚本自动创建\"}"
   local user_id
   user_id="$(extract_data_id "${last_body}")"
+  local business_user_id
+  business_user_id="$(extract_data_value "${last_body}" "userId")"
   if [ -n "${user_id}" ]; then
     run_case "查询后台用户详情" "GET" "/system/user/${user_id}"
-    run_case "更新后台用户" "PUT" "/system/user/${user_id}" "{\"username\":\"api_user\",\"phone\":\"13800006667\",\"deptName\":\"接口测试部\",\"roleName\":\"接口测试角色\",\"userType\":\"ADMIN\",\"status\":\"0\"}"
-    run_case "删除后台用户" "DELETE" "/system/user/${user_id}"
+    run_case "更新后台用户" "PUT" "/system/user/${user_id}" "{\"userName\":\"api_user\",\"nickName\":\"接口测试用户更新\",\"deptId\":1,\"userType\":\"ADMIN\",\"phone\":\"13800006667\",\"email\":\"api_user@example.com\",\"sex\":\"0\",\"password\":\"123456\",\"status\":0,\"remark\":\"脚本自动更新\"}"
   else
     record_skip_case "后台用户详情更新删除" "GET/PUT/DELETE" "/system/user/{id}" "-" "创建后台用户未返回 data.key 或 data.id，跳过串联用例"
   fi
   run_case "查询角色列表" "GET" "/system/role"
-  run_case "创建角色" "POST" "/system/role" "{\"roleName\":\"接口测试角色\",\"roleCode\":\"API_TEST_ROLE\",\"dataScope\":\"本租户数据\",\"status\":\"启用\"}"
+  run_case "创建角色" "POST" "/system/role" "{\"roleName\":\"接口测试角色\",\"roleCode\":\"API_TEST_ROLE\",\"orderNum\":99,\"dataScope\":1,\"status\":0,\"remark\":\"脚本自动创建\"}"
   local role_id
   role_id="$(extract_data_id "${last_body}")"
   if [ -n "${role_id}" ]; then
     run_case "查询角色详情" "GET" "/system/role/${role_id}"
-    run_case "更新角色" "PUT" "/system/role/${role_id}" "{\"roleName\":\"接口测试角色更新\",\"roleCode\":\"API_TEST_ROLE\",\"dataScope\":\"本租户数据\",\"status\":\"0\"}"
-    run_case "删除角色" "DELETE" "/system/role/${role_id}"
+    run_case "更新角色" "PUT" "/system/role/${role_id}" "{\"roleName\":\"接口测试角色更新\",\"roleCode\":\"API_TEST_ROLE\",\"orderNum\":98,\"dataScope\":1,\"status\":0,\"remark\":\"脚本自动更新\"}"
   else
     record_skip_case "角色详情更新删除" "GET/PUT/DELETE" "/system/role/{id}" "-" "创建角色未返回 data.key 或 data.id，跳过串联用例"
   fi
   run_case "查询菜单列表" "GET" "/system/menu"
-  run_case "创建菜单" "POST" "/system/menu" "{\"menuName\":\"接口测试菜单\",\"permission\":\"api:test:menu\",\"routePath\":\"/api-test/menu\",\"menuType\":\"菜单\",\"parentId\":0,\"sort\":99,\"status\":\"启用\"}"
+  run_case "创建菜单" "POST" "/system/menu" "{\"menuName\":\"接口测试菜单\",\"parentId\":0,\"orderNum\":99,\"path\":\"/api-test/menu\",\"component\":\"system/api-test/index\",\"isFrame\":1,\"menuType\":\"C\",\"visible\":\"0\",\"status\":\"0\",\"perms\":\"api:test:menu\",\"icon\":\"documentation\",\"remark\":\"脚本自动创建\"}"
   local menu_id
   menu_id="$(extract_data_id "${last_body}")"
   if [ -n "${menu_id}" ]; then
     run_case "查询菜单详情" "GET" "/system/menu/${menu_id}"
-    run_case "更新菜单" "PUT" "/system/menu/${menu_id}" "{\"menuName\":\"接口测试菜单更新\",\"permission\":\"api:test:menu\",\"routePath\":\"/api-test/menu\",\"menuType\":\"菜单\",\"parentId\":0,\"sort\":98,\"status\":\"0\"}"
-    run_case "删除菜单" "DELETE" "/system/menu/${menu_id}"
+    run_case "更新菜单" "PUT" "/system/menu/${menu_id}" "{\"menuName\":\"接口测试菜单更新\",\"parentId\":0,\"orderNum\":98,\"path\":\"/api-test/menu\",\"component\":\"system/api-test/index\",\"isFrame\":1,\"menuType\":\"C\",\"visible\":\"0\",\"status\":\"0\",\"perms\":\"api:test:menu\",\"icon\":\"documentation\",\"remark\":\"脚本自动更新\"}"
   else
     record_skip_case "菜单详情更新删除" "GET/PUT/DELETE" "/system/menu/{id}" "-" "创建菜单未返回 data.key 或 data.id，跳过串联用例"
   fi
   run_case "查询字典列表" "GET" "/system/dict"
-  run_case "创建字典项" "POST" "/system/dict" "{\"dictType\":\"api_test\",\"dictLabel\":\"接口测试\",\"dictValue\":\"API_TEST\",\"sort\":99,\"remark\":\"脚本自动创建\"}"
+  run_case "创建字典项" "POST" "/system/dict" "{\"dictName\":\"接口测试字典\",\"dictType\":\"api_test\",\"dictLabel\":\"接口测试\",\"dictValue\":\"API_TEST\",\"dictSort\":99,\"remark\":\"脚本自动创建\"}"
   local dict_id
   dict_id="$(extract_data_id "${last_body}")"
   if [ -n "${dict_id}" ]; then
     run_case "查询字典详情" "GET" "/system/dict/${dict_id}"
-    run_case "更新字典项" "PUT" "/system/dict/${dict_id}" "{\"dictType\":\"api_test\",\"dictLabel\":\"接口测试更新\",\"dictValue\":\"API_TEST\",\"sort\":98,\"status\":\"0\",\"remark\":\"脚本自动更新\"}"
+    run_case "更新字典项" "PUT" "/system/dict/${dict_id}" "{\"dictName\":\"接口测试字典\",\"dictType\":\"api_test\",\"dictLabel\":\"接口测试更新\",\"dictValue\":\"API_TEST\",\"dictSort\":98,\"remark\":\"脚本自动更新\"}"
     run_case "删除字典项" "DELETE" "/system/dict/${dict_id}"
   else
     record_skip_case "字典详情更新删除" "GET/PUT/DELETE" "/system/dict/{id}" "-" "创建字典未返回 data.key 或 data.id，跳过串联用例"
   fi
   run_case "查询参数配置列表" "GET" "/system/config"
-  run_case "创建参数配置" "POST" "/system/config" "{\"configKey\":\"api.test.timeout\",\"configValue\":\"30\",\"configType\":\"业务参数\",\"status\":\"0\",\"remark\":\"脚本自动创建\"}"
+  run_case "创建参数配置" "POST" "/system/config" "{\"configName\":\"接口超时时间\",\"configKey\":\"api.test.timeout\",\"configValue\":\"30\",\"remark\":\"脚本自动创建\"}"
   local config_id
   config_id="$(extract_data_id "${last_body}")"
   if [ -n "${config_id}" ]; then
     run_case "查询参数配置详情" "GET" "/system/config/${config_id}"
-    run_case "更新参数配置" "PUT" "/system/config/${config_id}" "{\"configValue\":\"60\",\"remark\":\"接口测试更新\"}"
+    run_case "更新参数配置" "PUT" "/system/config/${config_id}" "{\"configName\":\"接口超时时间\",\"configKey\":\"api.test.timeout\",\"configValue\":\"60\",\"remark\":\"接口测试更新\"}"
     run_case "删除参数配置" "DELETE" "/system/config/${config_id}"
   else
     record_skip_case "参数配置详情更新删除" "GET/PUT/DELETE" "/system/config/{id}" "-" "创建参数配置未返回 data.key 或 data.id，跳过串联用例"
   fi
   run_case "查询岗位列表" "GET" "/system/post"
-  run_case "创建岗位" "POST" "/system/post" "{\"postName\":\"接口测试岗\",\"postCode\":\"API_TEST_POST\",\"sort\":99,\"remark\":\"脚本自动创建\"}"
+  run_case "创建岗位" "POST" "/system/post" "{\"postName\":\"接口测试岗\",\"postCode\":\"API_TEST_POST\",\"orderNum\":99,\"status\":0,\"remark\":\"脚本自动创建\"}"
   local post_id
   post_id="$(extract_data_id "${last_body}")"
   if [ -n "${post_id}" ]; then
     run_case "查询岗位详情" "GET" "/system/post/${post_id}"
-    run_case "更新岗位" "PUT" "/system/post/${post_id}" "{\"postName\":\"接口测试岗更新\",\"postCode\":\"API_TEST_POST\",\"sort\":98,\"status\":\"0\",\"remark\":\"脚本自动更新\"}"
+    run_case "更新岗位" "PUT" "/system/post/${post_id}" "{\"postName\":\"接口测试岗更新\",\"postCode\":\"API_TEST_POST\",\"orderNum\":98,\"status\":0,\"remark\":\"脚本自动更新\"}"
     run_case "删除岗位" "DELETE" "/system/post/${post_id}"
   else
     record_skip_case "岗位详情更新删除" "GET/PUT/DELETE" "/system/post/{id}" "-" "创建岗位未返回 data.key 或 data.id，跳过串联用例"
   fi
-  run_case "查询权限码列表" "GET" "/system/permission"
-  run_case "创建权限码" "POST" "/system/permission" "{\"permissionName\":\"接口测试权限\",\"permissionCode\":\"api:test:create\",\"resourceType\":\"按钮\",\"menuId\":1,\"status\":\"启用\"}"
-  local permission_id
-  permission_id="$(extract_data_id "${last_body}")"
-  if [ -n "${permission_id}" ]; then
-    run_case "查询权限码详情" "GET" "/system/permission/${permission_id}"
-    run_case "更新权限码" "PUT" "/system/permission/${permission_id}" "{\"permissionName\":\"接口测试权限更新\",\"permissionCode\":\"api:test:create\",\"resourceType\":\"按钮\",\"menuId\":1,\"status\":\"0\"}"
-    run_case "删除权限码" "DELETE" "/system/permission/${permission_id}"
+  run_case "查询通知公告列表" "GET" "/system/notice"
+  run_case "创建通知公告" "POST" "/system/notice" "{\"noticeTitle\":\"接口测试公告\",\"noticeType\":\"1\",\"noticeContent\":\"脚本自动创建公告\",\"status\":\"0\",\"remark\":\"脚本自动创建\"}"
+  local notice_id
+  notice_id="$(extract_data_id "${last_body}")"
+  if [ -n "${notice_id}" ]; then
+    run_case "查询通知公告详情" "GET" "/system/notice/${notice_id}"
+    run_case "更新通知公告" "PUT" "/system/notice/${notice_id}" "{\"noticeTitle\":\"接口测试公告更新\",\"noticeType\":\"1\",\"noticeContent\":\"脚本自动更新公告\",\"status\":\"0\",\"remark\":\"脚本自动更新\"}"
+    run_case "删除通知公告" "DELETE" "/system/notice/${notice_id}"
   else
-    record_skip_case "权限码详情更新删除" "GET/PUT/DELETE" "/system/permission/{id}" "-" "创建权限码未返回 data.key 或 data.id，跳过串联用例"
+    record_skip_case "通知公告详情更新删除" "GET/PUT/DELETE" "/system/notice/{id}" "-" "创建通知公告未返回 data.key 或 data.id，跳过串联用例"
   fi
+  run_case "查询登录日志列表" "GET" "/system/log/login"
+  run_case "查询操作日志列表" "GET" "/system/log/operator"
   run_case "查询用户角色授权" "GET" "/system/user-role"
-  run_case "绑定用户角色" "POST" "/system/user-role" "{\"userId\":1,\"roleId\":1}"
   local user_role_id
-  user_role_id="$(extract_data_id "${last_body}")"
-  if [ -n "${user_role_id}" ]; then
-    run_case "查询用户角色授权详情" "GET" "/system/user-role/${user_role_id}"
-    run_case "删除用户角色授权" "DELETE" "/system/user-role/${user_role_id}"
+  if [ -n "${business_user_id}" ] && [ -n "${role_id}" ]; then
+    run_case "绑定用户角色" "POST" "/system/user-role" "{\"userId\":\"${business_user_id}\",\"roleId\":${role_id}}"
+    user_role_id="$(extract_data_id "${last_body}")"
+    if [ -n "${user_role_id}" ]; then
+      run_case "查询用户角色授权详情" "GET" "/system/user-role/${user_role_id}"
+      run_case "删除用户角色授权" "DELETE" "/system/user-role/${user_role_id}"
+    else
+      record_skip_case "用户角色授权详情删除" "GET/DELETE" "/system/user-role/{id}" "-" "绑定用户角色未返回 data.key 或 data.id，跳过串联用例"
+    fi
   else
-    record_skip_case "用户角色授权详情删除" "GET/DELETE" "/system/user-role/{id}" "-" "绑定用户角色未返回 data.key 或 data.id，跳过串联用例"
+    record_skip_case "绑定用户角色" "POST" "/system/user-role" "-" "缺少本轮新建用户或角色，跳过授权绑定用例，避免修改初始化授权关系"
   fi
   run_case "查询角色菜单授权" "GET" "/system/role-menu"
-  run_case "绑定角色菜单" "POST" "/system/role-menu" "{\"roleId\":1,\"menuId\":1}"
   local role_menu_id
-  role_menu_id="$(extract_data_id "${last_body}")"
-  if [ -n "${role_menu_id}" ]; then
-    run_case "查询角色菜单授权详情" "GET" "/system/role-menu/${role_menu_id}"
-    run_case "删除角色菜单授权" "DELETE" "/system/role-menu/${role_menu_id}"
+  if [ -n "${role_id}" ] && [ -n "${menu_id}" ]; then
+    run_case "绑定角色菜单" "POST" "/system/role-menu" "{\"roleId\":${role_id},\"menuId\":${menu_id}}"
+    role_menu_id="$(extract_data_id "${last_body}")"
+    if [ -n "${role_menu_id}" ]; then
+      run_case "查询角色菜单授权详情" "GET" "/system/role-menu/${role_menu_id}"
+      run_case "删除角色菜单授权" "DELETE" "/system/role-menu/${role_menu_id}"
+    else
+      record_skip_case "角色菜单授权详情删除" "GET/DELETE" "/system/role-menu/{id}" "-" "绑定角色菜单未返回 data.key 或 data.id，跳过串联用例"
+    fi
   else
-    record_skip_case "角色菜单授权详情删除" "GET/DELETE" "/system/role-menu/{id}" "-" "绑定角色菜单未返回 data.key 或 data.id，跳过串联用例"
+    record_skip_case "绑定角色菜单" "POST" "/system/role-menu" "-" "缺少本轮新建角色或菜单，跳过授权绑定用例，避免修改初始化授权关系"
+  fi
+  if [ -n "${menu_id}" ]; then
+    run_case "删除菜单" "DELETE" "/system/menu/${menu_id}"
+  fi
+  if [ -n "${role_id}" ]; then
+    run_case "删除角色" "DELETE" "/system/role/${role_id}"
+  fi
+  if [ -n "${user_id}" ]; then
+    run_case "删除后台用户" "DELETE" "/system/user/${user_id}"
   fi
 
   # 网关管理接口。

@@ -17,14 +17,13 @@ public class AuthorizationConverter {
      * 转换用户角色绑定关系为展示对象。
      *
      * @param entity 用户角色实体
-     * @param userId 用户编号
+     * @param userId 用户业务编号
      * @param roleId 角色编号
      * @return 关系绑定展示对象
      */
-    public RelationBindingResp toRelationBindingVO(SysUserRoleEntity entity, Long userId, Long roleId) {
+    public RelationBindingResp toRelationBindingVO(SysUserRoleEntity entity, String userId, Long roleId) {
         RelationBindingResp vo = new RelationBindingResp();
         vo.setKey(String.valueOf(entity.getId()));
-        vo.setStatus(entity.getStatus());
         vo.setUserId(userId);
         vo.setRoleId(roleId);
         vo.setMenuId(null);
@@ -42,7 +41,6 @@ public class AuthorizationConverter {
     public RelationBindingResp toRelationBindingVO(SysRoleMenuEntity entity, Long roleId, Long menuId) {
         RelationBindingResp vo = new RelationBindingResp();
         vo.setKey(String.valueOf(entity.getId()));
-        vo.setStatus(entity.getStatus());
         vo.setUserId(null);
         vo.setRoleId(roleId);
         vo.setMenuId(menuId);

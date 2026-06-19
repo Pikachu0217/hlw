@@ -11,13 +11,13 @@
 - `hospital-common/common-redis`：Redis 通用工具服务与 Redisson 分布式锁辅助服务。
 - `hospital-common/common-security`：Sa-Token 辅助工具、JWT 签发解析、BCrypt 密码编码和统一租户上下文过滤器。
 - `hospital-common/common-mq`：本地消息队列抽象与重试策略。
-- `resources/sql/init.sql`：PostgreSQL 16 基线建库建表脚本。
+- `resources/sql/001-mysql8-baseline.sql`：MySQL 8 基线建库建表脚本。
 
 本阶段新增：
 
 - `hospital-gateway`：网关租户请求头透传过滤器，会基于 JWT 登录令牌生成可信 `X-Tenant-Id`，并新增平台级网关路由配置 CRUD 管理接口。
 - `hospital-auth`：登录服务与认证资料接口已改造为 MyBatis Plus + VO 分层实现，登录令牌改为 JWT，密码校验改为 BCrypt，并新增登录记录自动写入与 CRUD 管理接口。
-- `hospital-system`：租户、用户、角色、菜单、字典、参数配置、岗位、权限码、用户角色和角色菜单已改造为 MyBatis Plus + DTO/VO 分层实现，并补齐基础资源详情、更新和删除接口。
+- `hospital-system`：按当前 `hospital_system` schema 重构为类 RuoYi 后台管理模块，覆盖租户、租户套餐、用户、角色、菜单、字典、参数配置、岗位、通知公告、登录日志、操作日志、用户角色和角色菜单，并补齐后台登录信息与路由接口。
 - `hospital-doctor`：医生、科室、医生科室绑定、排班和挂号费规则已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-patient`：患者档案、健康档案、风险等级、身份证与就诊信息已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-appointment`：预约单创建、支付、签到、便民门诊抢单、号源锁定和放号配置已改造为 MyBatis Plus + DTO/VO 分层实现。
@@ -30,7 +30,7 @@
 
 - JDK 17 或更高版本，Maven 构建按 Java 17 release 编译。
 - Maven 3.6+。
-- 完整本地运行需要 PostgreSQL 16、Redis 7、Nacos 2.3、RabbitMQ、MinIO。
+- 完整本地运行需要 MySQL 8、Redis 7、Nacos 2.3、RabbitMQ、MinIO。
 
 中间件由开发者自行安装和管理。本仓库的 `docker-compose.yml` 只作为本地依赖服务、端口和默认账号的参考，不作为必须启动方式。
 
@@ -65,7 +65,7 @@ code/backend/
 
 | 组件 | 版本 | 地址 |
 | --- | --- | --- |
-| PostgreSQL | 16 | `localhost:5432` |
+| MySQL | 8 | `localhost:3306` |
 | Redis | 7 | `localhost:6379` |
 | Nacos | 2.3 | `localhost:8848` |
 | RabbitMQ | 3 management | `localhost:5672`，控制台 `localhost:15672` |
@@ -74,8 +74,8 @@ code/backend/
 `docker-compose.yml` 中记录的默认本地账号：
 
 ```text
-PostgreSQL 用户：postgres
-PostgreSQL 密码：hospital123
+MySQL 用户：root
+MySQL 密码：hospital123
 MinIO Root 用户：minio
 MinIO Root 密码：minio123
 ```
@@ -89,11 +89,11 @@ Nacos 公共认证配置：
 
 ## 初始化数据库
 
-PostgreSQL 16 启动后，在仓库根目录执行基线脚本：
+MySQL 8 启动后，在仓库根目录执行基线脚本：
 
 ```bash
 cd /Users/pakachuzy/Desktop/zzz/project/hlw
-psql -U postgres -f resources/sql/init.sql
+mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 ```
 
 脚本会创建以下逻辑库：
@@ -116,16 +116,22 @@ psql -U postgres -f resources/sql/init.sql
 `hospital_system` 当前已补齐基础管理表：
 
 - `sys_tenant`：租户主数据表，基线脚本默认写入租户 `100 / 明亮互联网医院`，供管理端登录前选择。
-- `sys_user`：后台用户展示与管理基础表。
+- `sys_user`：后台用户展示与管理基础表，业务用户编号统一为 `U_` 加 32 位 UUID 字符串。
 - `sys_role`：角色与数据范围基础表。
 - `sys_menu`：菜单、路由和权限标识基础表。
-- `sys_dict`：字典类型和字典项。
+- `sys_dict_type`：字典类型表。
+- `sys_dict_data`：字典数据表。
 - `sys_config`：系统参数配置。
 - `sys_post`：岗位基础资料。
 - `sys_user_post`：用户岗位关系。
-- `sys_permission`：权限码清单。
 - `sys_user_role`：用户角色关系。
 - `sys_role_menu`：角色菜单关系。
+- `sys_role_dept`：角色部门数据权限关系。
+- `sys_tenant_package`：租户套餐基础表。
+- `sys_tenant_package_menu`：租户套餐菜单关系。
+- `sys_notice`：通知公告表。
+- `sys_login_info`：系统登录日志表。
+- `sys_operator_log`：系统操作日志表。
 
 `hospital_auth` 当前已补齐认证审计表：
 
@@ -166,15 +172,17 @@ HLW_API_TENANT_HEADER_NAME=X-Tenant-Id
 HLW_API_USERNAME=门诊运营
 HLW_API_PASSWORD=123456
 HLW_API_TENANT_ID=100
-HLW_AUTH_DB_URL=jdbc:postgresql://127.0.0.1:5432/hospital_auth
-HLW_AUTH_DB_USERNAME=postgres
+HLW_AUTH_DB_URL=jdbc:mysql://127.0.0.1:3306/hospital_auth?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+HLW_AUTH_DB_USERNAME=root
 HLW_AUTH_DB_PASSWORD=hospital123
-HLW_GATEWAY_DB_URL=jdbc:postgresql://127.0.0.1:5432/hospital_gateway
-HLW_GATEWAY_DB_USERNAME=postgres
+HLW_GATEWAY_DB_URL=jdbc:mysql://127.0.0.1:3306/hospital_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+HLW_GATEWAY_DB_USERNAME=root
 HLW_GATEWAY_DB_PASSWORD=hospital123
 ```
 
-`resources/sql/init.sql` 是当前唯一数据库初始化脚本，兼作完整领域设计基线和本地联调用脚本；后续新增字段、表或演示数据时只维护这一处，并为每个字段补充 `COMMENT ON COLUMN`。
+`resources/sql/001-mysql8-baseline.sql` 是当前 MySQL 8 初始化脚本，兼作现有领域设计基线和本地联调用脚本；每个表和字段必须补充中文 `COMMENT`。
+
+MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护。后续每次修改 schema 时新增一份独立 SQL 执行文件，例如 `002-xxx.sql`、`003-xxx.sql`，不要继续把所有变更堆叠到 `init.sql` 中。
 
 ## 构建与测试
 
@@ -201,11 +209,11 @@ cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
 mvn -pl hospital-common/common-mq test
 ```
 
-执行 PostgreSQL schema 文件存在性测试：
+执行 MySQL schema 文件存在性测试：
 
 ```bash
 cd /Users/pakachuzy/Desktop/zzz/project/hlw/code/backend
-mvn -pl hospital-common/common-core test -Dtest=PostgresInitSqlTest
+mvn -pl hospital-common/common-core test -Dtest=MysqlInitSqlTest
 ```
 
 执行 Task 4 相关模块测试时，建议带上 `-am`，让 Maven 同时构建本地依赖模块：
@@ -319,7 +327,7 @@ cd /Users/pakachuzy/Desktop/zzz/project/hlw
 SPRING_PROFILES_ACTIVE=prod SKIP_FRONTEND=1 ./resources/scripts/service.sh start
 ```
 
-脚本运行时会在仓库根目录生成 `.runtime/pids` 和 `.runtime/logs`，分别保存进程 pid 与服务日志。脚本只负责项目进程启停，不会自动启动 PostgreSQL、Redis、Nacos、RabbitMQ、MinIO 等本地中间件。
+脚本运行时会在仓库根目录生成 `.runtime/pids` 和 `.runtime/logs`，分别保存进程 pid 与服务日志。脚本只负责项目进程启停，不会自动启动 MySQL、Redis、Nacos、RabbitMQ、MinIO 等本地中间件。
 
 当前 `hospital-gateway`、`hospital-auth`、`hospital-system` 以及各业务服务模块已具备接口骨架，但尚未全部补齐完整联调能力。后续模块启动方式、端口、依赖或环境变量发生变化时，需要同步更新本文档和 `resources/scripts/service.sh`。
 
@@ -373,7 +381,7 @@ HLW_LOG_ROOT_LEVEL=INFO
 每个模块当前包含三类配置文件：
 
 - `application.yml`：统一声明端口、服务名、Nacos、数据库、Redis、RabbitMQ 等键位，并通过 Nacos Config 引入 `hlw-common-auth.yml` 与模块私有配置。
-- `application-local.yml`：本地开发默认值，主要指向 `127.0.0.1` 与本地 PostgreSQL/Redis/Nacos。
+- `application-local.yml`：本地开发默认值，主要指向 `127.0.0.1` 与本地 MySQL/Redis/Nacos。
 - `application-prod.yml`：生产占位配置，主要通过环境变量注入。
 
 当前阶段这些配置文件用于明确服务启动约定与环境变量命名，并不代表所有模块已经完成可直接启动的 Spring Boot 主类和完整联调。
@@ -416,11 +424,18 @@ POST /auth/login-record
 GET /auth/login-record/{id}
 PUT /auth/login-record/{id}
 DELETE /auth/login-record/{id}
+GET /system/getInfo
+GET /system/getRouters
 GET /system/tenant
 POST /system/tenant
 GET /system/tenant/{id}
 PUT /system/tenant/{id}
 DELETE /system/tenant/{id}
+GET /system/tenant-package
+POST /system/tenant-package
+GET /system/tenant-package/{id}
+PUT /system/tenant-package/{id}
+DELETE /system/tenant-package/{id}
 GET /system/user
 POST /system/user
 GET /system/user/{id}
@@ -456,11 +471,13 @@ POST /system/post
 GET /system/post/{id}
 PUT /system/post/{id}
 DELETE /system/post/{id}
-GET /system/permission
-POST /system/permission
-GET /system/permission/{id}
-PUT /system/permission/{id}
-DELETE /system/permission/{id}
+GET /system/notice
+POST /system/notice
+GET /system/notice/{id}
+PUT /system/notice/{id}
+DELETE /system/notice/{id}
+GET /system/log/login
+GET /system/log/operator
 GET /system/user-role
 POST /system/user-role
 GET /system/user-role/{id}
@@ -476,7 +493,7 @@ PUT /gateway/route/{id}
 DELETE /gateway/route/{id}
 ```
 
-认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。登录成功和失败会自动写入 `auth_login_record`，退出登录会按令牌摘要回写退出时间。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict`、`sys_config`、`sys_post`、`sys_permission`、`sys_user_role` 和 `sys_role_menu` 表；租户、用户、部门、角色、菜单、字典、参数配置、岗位、权限码均提供列表、详情、新增、更新和逻辑删除接口，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
+认证资料接口会从登录令牌解析用户编号和租户编号，并回查认证库 `sys_user` 返回登录用户资料。登录成功和失败会自动写入 `auth_login_record`，退出登录会按令牌摘要回写退出时间。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_role` 和 `sys_role_menu` 表；租户、租户套餐、用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
 
 `hospital-auth` 当前约定补充如下：
 

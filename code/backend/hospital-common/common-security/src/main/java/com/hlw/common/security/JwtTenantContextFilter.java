@@ -3,8 +3,8 @@ package com.hlw.common.security;
 import com.hlw.common.core.config.AuthTokenProperties;
 import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.security.AuthTokenResolver;
+import com.hlw.common.core.security.JwtPrincipalResolver;
 import com.hlw.common.core.security.TokenPrincipal;
-import com.hlw.common.core.tenant.TenantJwtResolver;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -65,37 +65,85 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
                 request.getHeader(authTokenProperties.getTokenName()),
                 authTokenProperties.getTokenPrefix()
         );
-        Long tenantId;
-        Long userId = null;
-        boolean platformRequest = false;
-
-        if (StringUtils.hasText(tenantHeader)) {
-            try {
-                tenantId = Long.parseLong(tenantHeader);
-                platformRequest = CommonConstants.PLATFORM_TENANT_ID.equals(tenantId);
-                userId = TenantJwtResolver.resolve(tenantHeader, jwtSecret, CommonConstants.JWT_USER_ID);
-
-            } catch (NumberFormatException e) {
-                log.warn("解析租户请求头失败，tenantHeader={}", tenantHeader);
-                tenantId = CommonConstants.ISOLATED_TENANT_ID;
-            }
-        } else if (StringUtils.hasText(token)) {
-            tenantId = TenantJwtParser.resolveTenantId(token, jwtSecret);
-            platformRequest = CommonConstants.PLATFORM_TENANT_ID.equals(tenantId);
-            userId = TenantJwtResolver.resolve(token, jwtSecret, CommonConstants.JWT_USER_ID);
-        } else {
-            tenantId = CommonConstants.ISOLATED_TENANT_ID;
-        }
-
-        TokenPrincipal principal = new TokenPrincipal();
-        principal.setTenantId(tenantId);
-        principal.setUserId(userId);
-        principal.setPlatformRequest(platformRequest);
+        TokenPrincipal principal = resolvePrincipal(tenantHeader, token);
         TokenPrincipalContext.set(principal);
         try {
             filterChain.doFilter(request, response);
         } finally {
             TokenPrincipalContext.clear();
         }
+    }
+
+    /**
+     * 解析当前请求登录主体。
+     *
+     * @param tenantHeader 网关透传的可信租户请求头
+     * @param token 已剥离前缀的 JWT 令牌
+     * @return 登录主体
+     */
+    private TokenPrincipal resolvePrincipal(String tenantHeader, String token) {
+        TokenPrincipal tokenPrincipal = JwtPrincipalResolver.resolveNullable(token, jwtSecret);
+        Long tokenTenantId = tokenPrincipal == null ? null : tokenPrincipal.getTenantId();
+        Long headerTenantId = resolveTenantHeader(tenantHeader);
+        TokenPrincipal principal = new TokenPrincipal();
+        principal.setTenantId(resolveEffectiveTenantId(headerTenantId, tokenTenantId));
+        if (!isTenantMismatch(headerTenantId, tokenTenantId)) {
+            principal.setUserId(tokenPrincipal == null ? null : tokenPrincipal.getUserId());
+            principal.setUserType(tokenPrincipal == null ? null : tokenPrincipal.getUserType());
+        }
+        principal.setPlatformRequest(CommonConstants.PLATFORM_TENANT_ID.equals(principal.getTenantId()));
+        return principal;
+    }
+
+    /**
+     * 解析可信租户请求头。
+     *
+     * @param tenantHeader 租户请求头
+     * @return 租户编号，缺失时返回 null，格式错误时返回隔离租户编号
+     */
+    private Long resolveTenantHeader(String tenantHeader) {
+        if (!StringUtils.hasText(tenantHeader)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(tenantHeader.trim());
+        } catch (NumberFormatException exception) {
+            log.warn("解析租户请求头失败，tenantHeader={}", tenantHeader);
+            return CommonConstants.ISOLATED_TENANT_ID;
+        }
+    }
+
+    /**
+     * 解析最终生效租户编号。
+     *
+     * @param headerTenantId 请求头租户编号
+     * @param tokenTenantId 令牌租户编号
+     * @return 生效租户编号
+     */
+    private Long resolveEffectiveTenantId(Long headerTenantId, Long tokenTenantId) {
+        if (isTenantMismatch(headerTenantId, tokenTenantId)) {
+            log.warn("租户请求头与 JWT 租户不一致，headerTenantId={}，tokenTenantId={}", headerTenantId, tokenTenantId);
+            return CommonConstants.ISOLATED_TENANT_ID;
+        }
+        if (headerTenantId != null) {
+            return headerTenantId;
+        }
+        if (tokenTenantId != null) {
+            return tokenTenantId;
+        }
+        return CommonConstants.ISOLATED_TENANT_ID;
+    }
+
+    /**
+     * 判断请求头租户和令牌租户是否冲突。
+     *
+     * @param headerTenantId 请求头租户编号
+     * @param tokenTenantId 令牌租户编号
+     * @return 是否冲突
+     */
+    private boolean isTenantMismatch(Long headerTenantId, Long tokenTenantId) {
+        return headerTenantId != null
+                && tokenTenantId != null
+                && !headerTenantId.equals(tokenTenantId);
     }
 }

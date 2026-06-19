@@ -19,8 +19,14 @@ public class DeptResp {
     private String deptName;
     /** 祖级列表。 */
     private String ancestors;
-    /** 排序。 */
-    private Integer sort;
+    /** 显示顺序。 */
+    private Integer orderNum;
+    /** 负责人用户ID。 */
+    private String leader;
+    /** 联系电话。 */
+    private String phone;
+    /** 邮箱。 */
+    private String email;
     /** 状态。 */
-    private String status;
+    private Integer status;
 }

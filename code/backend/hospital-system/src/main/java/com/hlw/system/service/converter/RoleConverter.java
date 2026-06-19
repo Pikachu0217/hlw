@@ -28,10 +28,12 @@ public class RoleConverter {
         vo.setKey(String.valueOf(entity.getId()));
         vo.setRoleName(entity.getRoleName());
         vo.setRoleCode(entity.getRoleCode());
+        vo.setOrderNum(entity.getOrderNum());
         vo.setDataScope(entity.getDataScope());
         vo.setMemberCount(memberCount);
         vo.setUpdatedAt(entity.getUpdateTime() == null ? "-" : entity.getUpdateTime().format(DATE_TIME_FORMATTER));
         vo.setStatus(entity.getStatus());
+        vo.setRemark(entity.getRemark());
         return vo;
     }
 }

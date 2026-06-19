@@ -49,7 +49,7 @@ public class UserController {
      */
     @PostMapping
     public R<UserResp> createUser(@Valid @RequestBody CreateUserReq request) {
-        log.info("创建后台用户，username={}", request.getUsername());
+        log.info("创建后台用户，userName={}", request.getUserName());
         return R.ok(userService.createUser(request));
     }
 
@@ -74,7 +74,7 @@ public class UserController {
      */
     @PutMapping("/{id}")
     public R<UserResp> updateUser(@PathVariable Long id, @Valid @RequestBody CreateUserReq request) {
-        log.info("更新后台用户，id={}，username={}", id, request.getUsername());
+        log.info("更新后台用户，id={}，userName={}", id, request.getUserName());
         return R.ok(userService.updateUser(id, request));
     }
 

@@ -1,130 +1,163 @@
 package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
-import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
-import com.hlw.common.core.enums.CommonStatusEnum;
-import com.hlw.common.core.enums.DeletedStatusEnum;
+import com.hlw.system.entity.SysMenuEntity;
 import com.hlw.system.entity.SysRoleEntity;
+import com.hlw.system.entity.SysRoleMenuEntity;
 import com.hlw.system.entity.SysUserEntity;
 import com.hlw.system.entity.SysUserRoleEntity;
+import com.hlw.system.mapper.SysMenuMapper;
 import com.hlw.system.mapper.SysRoleMapper;
+import com.hlw.system.mapper.SysRoleMenuMapper;
 import com.hlw.system.mapper.SysUserMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
+import com.hlw.system.service.support.MybatisTenantHelpers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
- * 内部用户查询服务，承接 hospital-auth 通过 OpenFeign 发起的登录认证与资料查询。
+ * 系统内部用户查询服务，供认证服务通过 Feign 调用。
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class InternalUserService {
-
-    /**
-     * 用户数据访问组件。
-     */
+    /** 用户数据访问组件。 */
     private final SysUserMapper sysUserMapper;
-    private final SysRoleMapper sysRoleMapper;
+    /** 用户角色关系数据访问组件。 */
     private final SysUserRoleMapper sysUserRoleMapper;
+    /** 角色数据访问组件。 */
+    private final SysRoleMapper sysRoleMapper;
+    /** 角色菜单关系数据访问组件。 */
+    private final SysRoleMenuMapper sysRoleMenuMapper;
+    /** 菜单数据访问组件。 */
+    private final SysMenuMapper sysMenuMapper;
 
     /**
      * 按租户编号和登录账号查询用户。
      *
      * @param tenantId 租户编号
      * @param username 登录账号
-     * @return 内部用户展示对象，不存在返回 null
+     * @return 内部用户展示对象
      */
+    @Transactional(readOnly = true)
     public InternalUserResp findByTenantIdAndUsername(Long tenantId, String username) {
         log.info("内部查询用户，tenantId={}，username={}", tenantId, username);
-        LambdaQueryWrapper<SysUserEntity> queryWrapper = new LambdaQueryWrapper<SysUserEntity>()
-                .eq(SysUserEntity::getTenantId, tenantId)
-                .eq(SysUserEntity::getUsername, username)
-                .eq(SysUserEntity::getStatus, CommonStatusEnum.ENABLED.getStatus())
-                .orderByAsc(SysUserEntity::getId)
-                .last("limit 1");
-        SysUserEntity entity = InterceptorIgnoreHelper.execute(
-                ignoreTenantLine(),
-                () -> sysUserMapper.selectOne(queryWrapper)
-        );
-        if (null == entity) {
-            return null;
-        }
-        return toInternalUserResp(entity, queryRoleCodeByUserIdAndTenantId(entity.getId(), tenantId));
+        SysUserEntity entity = sysUserMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+            .eq(SysUserEntity::getTenantId, String.valueOf(tenantId))
+            .eq(SysUserEntity::getUserName, username)
+            .last("limit 1"));
+        return entity == null ? null : toInternalUserResp(entity);
     }
 
     /**
-     * 按用户编号和租户编号查询用户。
+     * 按用户表主键和租户编号查询用户。
      *
-     * @param uid       用户编号
+     * @param id 用户表主键
      * @param tenantId 租户编号
-     * @return 内部用户展示对象，不存在返回 null
+     * @return 内部用户展示对象
      */
-    public InternalUserResp findByIdAndTenantId(Long uid, Long tenantId) {
-        LambdaQueryWrapper<SysUserEntity> queryWrapper = new LambdaQueryWrapper<SysUserEntity>()
-                .eq(SysUserEntity::getId, uid)
-                .eq(SysUserEntity::getTenantId, tenantId)
-                .last("limit 1");
-        SysUserEntity entity = sysUserMapper.selectOne(queryWrapper);
-        String roleCode = queryRoleCodeByUserIdAndTenantId(uid, tenantId);
-        return entity == null ? null : toInternalUserResp(entity, roleCode);
+    @Transactional(readOnly = true)
+    public InternalUserResp findByIdAndTenantId(Long id, Long tenantId) {
+        log.info("内部查询用户资料，id={}，tenantId={}", id, tenantId);
+        SysUserEntity entity = sysUserMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysUserEntity::getDeleted)
+            .eq(SysUserEntity::getId, id)
+            .eq(SysUserEntity::getTenantId, String.valueOf(tenantId))
+            .last("limit 1"));
+        return entity == null ? null : toInternalUserResp(entity);
     }
 
     /**
-     * 根据用户 id 和租户 id 查询 roleCode
-     * @param uid
-     * @param tenantId
-     * @return
-     */
-    private String queryRoleCodeByUserIdAndTenantId(Long uid, Long tenantId) {
-        LambdaQueryWrapper<SysUserRoleEntity> userRoleQueryWrapper = new LambdaQueryWrapper<SysUserRoleEntity>()
-                .eq(SysUserRoleEntity::getUserId, uid)
-                .eq(SysUserRoleEntity::getTenantId, tenantId)
-                .last("limit 1");
-        SysUserRoleEntity sysUserRoleEntity = sysUserRoleMapper.selectOne(userRoleQueryWrapper);
-        if (null == sysUserRoleEntity) {
-            return null;
-        }
-        LambdaQueryWrapper<SysRoleEntity> roleQueryWrapper = new LambdaQueryWrapper<SysRoleEntity>()
-                .eq(SysRoleEntity::getDeleted, DeletedStatusEnum.NOT_DELETED.getType())
-                .eq(SysRoleEntity::getId, sysUserRoleEntity.getRoleId())
-                .eq(SysRoleEntity::getTenantId, tenantId)
-                .last("limit 1");
-        SysRoleEntity roleEntity = sysRoleMapper.selectOne(roleQueryWrapper);
-        if (null == roleEntity) {
-            return null;
-        }
-        return roleEntity.getRoleCode();
-    }
-
-    /**
-     * 构造忽略租户行拦截策略。
-     *
-     * @return 忽略策略
-     */
-    private IgnoreStrategy ignoreTenantLine() {
-        return IgnoreStrategy.builder().tenantLine(true).build();
-    }
-
-    /**
-     * 转换为内部用户展示对象。
+     * 转换内部用户展示对象。
      *
      * @param entity 用户实体
      * @return 内部用户展示对象
      */
-    private InternalUserResp toInternalUserResp(SysUserEntity entity, String roleCode) {
+    private InternalUserResp toInternalUserResp(SysUserEntity entity) {
+        List<SysRoleEntity> roles = loadRoles(entity.getUserId());
+        Set<Long> roleIds = roles.stream().map(SysRoleEntity::getId).collect(Collectors.toSet());
+        List<String> perms = loadPerms(roleIds);
         InternalUserResp resp = new InternalUserResp();
         resp.setId(entity.getId());
-        resp.setTenantId(entity.getTenantId());
-        resp.setUsername(entity.getUsername());
+        resp.setUserId(entity.getUserId());
+        resp.setTenantId(parseTenantId(entity.getTenantId()));
+        resp.setTenantCode(entity.getTenantId());
+        resp.setUsername(entity.getUserName());
         resp.setPassword(entity.getPassword());
         resp.setPhone(entity.getPhone());
         resp.setUserType(entity.getUserType());
-        resp.setRoleCode(roleCode);
-        resp.setStatus(entity.getStatus());
+        resp.setRoleCode(roles.stream().map(SysRoleEntity::getRoleCode).findFirst().orElse(""));
+        resp.setResourceRoutePathList(perms);
+        resp.setStatus(String.valueOf(entity.getStatus()));
         return resp;
+    }
+
+    /**
+     * 加载用户角色。
+     *
+     * @param userId 用户业务编号
+     * @return 角色列表
+     */
+    private List<SysRoleEntity> loadRoles(String userId) {
+        List<Long> roleIds = sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>()
+                .eq(SysUserRoleEntity::getUserId, userId)).stream()
+            .map(SysUserRoleEntity::getRoleId)
+            .distinct()
+            .toList();
+        if (roleIds.isEmpty()) {
+            return List.of();
+        }
+        return sysRoleMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysRoleEntity::getDeleted)
+            .eq(SysRoleEntity::getStatus, 0)
+            .in(SysRoleEntity::getId, roleIds));
+    }
+
+    /**
+     * 加载角色权限标识。
+     *
+     * @param roleIds 角色编号集合
+     * @return 权限标识列表
+     */
+    private List<String> loadPerms(Set<Long> roleIds) {
+        if (roleIds.isEmpty()) {
+            return List.of();
+        }
+        List<Long> menuIds = sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenuEntity>()
+                .in(SysRoleMenuEntity::getRoleId, roleIds)).stream()
+            .map(SysRoleMenuEntity::getMenuId)
+            .distinct()
+            .toList();
+        if (menuIds.isEmpty()) {
+            return List.of();
+        }
+        return sysMenuMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysMenuEntity::getDeleted)
+                .eq(SysMenuEntity::getStatus, "0")
+                .in(SysMenuEntity::getId, menuIds)).stream()
+            .map(SysMenuEntity::getPerms)
+            .filter(value -> value != null && !value.isBlank())
+            .distinct()
+            .toList();
+    }
+
+    /**
+     * 解析租户编号。
+     *
+     * @param tenantId 租户编号字符串
+     * @return Long 租户编号
+     */
+    private Long parseTenantId(String tenantId) {
+        try {
+            return Long.parseLong(tenantId);
+        } catch (NumberFormatException exception) {
+            log.warn("租户编号无法转换为 Long，tenantId={}", tenantId);
+            return -1L;
+        }
     }
 }

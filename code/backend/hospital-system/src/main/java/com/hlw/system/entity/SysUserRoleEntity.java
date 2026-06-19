@@ -1,7 +1,8 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.hlw.common.core.entity.BaseEntity;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,11 +12,14 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_user_role")
-public class SysUserRoleEntity extends BaseEntity {
+public class SysUserRoleEntity {
+    /** 主键编号。 */
+    @TableId(type = IdType.AUTO)
+    private Long id;
+    /** 租户编号。 */
+    private String tenantId;
     /** 用户编号。 */
-    private Long userId;
+    private String userId;
     /** 角色编号。 */
     private Long roleId;
-    /** 关联状态。 */
-    private String status;
 }

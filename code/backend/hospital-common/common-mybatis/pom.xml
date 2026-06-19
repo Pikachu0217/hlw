@@ -39,10 +39,10 @@
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
         </dependency>
-        <!-- PostgreSQL 驱动，所有业务模块通过 common-mybatis 传递获得 -->
+        <!-- MySQL 8 驱动，所有业务模块通过 common-mybatis 传递获得 -->
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
 

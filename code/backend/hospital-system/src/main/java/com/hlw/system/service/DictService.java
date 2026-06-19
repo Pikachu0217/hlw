@@ -4,141 +4,203 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.CommonStatusEnum;
 import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateDictReq;
-import com.hlw.system.entity.SysDictEntity;
-import com.hlw.system.mapper.SysDictMapper;
+import com.hlw.system.domain.resp.DictResp;
+import com.hlw.system.entity.SysDictDataEntity;
+import com.hlw.system.entity.SysDictTypeEntity;
+import com.hlw.system.mapper.SysDictDataMapper;
+import com.hlw.system.mapper.SysDictTypeMapper;
 import com.hlw.system.service.converter.DictConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
-import com.hlw.system.domain.resp.DictResp;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
-
-import lombok.extern.slf4j.Slf4j;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 字典聚合服务，负责字典项的查询与创建编排。
+ * 字典聚合服务。
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class DictService {
+    /** 字典类型数据访问组件。 */
+    private final SysDictTypeMapper sysDictTypeMapper;
     /** 字典数据访问组件。 */
-    private final SysDictMapper sysDictMapper;
+    private final SysDictDataMapper sysDictDataMapper;
     /** 字典展示对象转换器。 */
     private final DictConverter dictConverter;
 
     /**
-     * 分页查询字典列表，按类型、排序、主键升序排列。
+     * 分页查询字典数据列表。
      *
      * @param query 分页查询条件
      * @return 字典分页结果
      */
     @Transactional(readOnly = true)
     public PageResult<DictResp> listDicts(PageQuery query) {
-        log.info("查询系统字典列表分页，pageNum={}，pageSize={}，keyword={}",
+        log.info("查询字典数据列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-
-        Page<SysDictEntity> page = query.toPage();
-        LambdaQueryWrapper<SysDictEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysDictEntity::getDeleted);
+        LambdaQueryWrapper<SysDictDataEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysDictDataEntity::getDeleted);
         if (StringUtils.hasText(query.getKeyword())) {
-            String keyword = query.getKeyword();
-            wrapper.and(w -> w.like(SysDictEntity::getDictLabel, keyword).or().like(SysDictEntity::getDictType, keyword));
+            wrapper.and(item -> item.like(SysDictDataEntity::getDictType, query.getKeyword())
+                .or()
+                .like(SysDictDataEntity::getDictLabel, query.getKeyword()));
         }
-        wrapper.orderByAsc(SysDictEntity::getDictType)
-            .orderByAsc(SysDictEntity::getSort)
-            .orderByAsc(SysDictEntity::getId);
-
-        Page<SysDictEntity> result = sysDictMapper.selectPage(page, wrapper);
-        List<DictResp> records = result.getRecords().stream()
-            .map(dictConverter::toDictVO)
+        wrapper.orderByAsc(SysDictDataEntity::getDictType).orderByAsc(SysDictDataEntity::getDictSort).orderByAsc(SysDictDataEntity::getId);
+        Page<SysDictDataEntity> page = sysDictDataMapper.selectPage(query.toPage(), wrapper);
+        Map<String, SysDictTypeEntity> typeMap = loadTypeMap(page.getRecords().stream().map(SysDictDataEntity::getDictType).toList());
+        List<DictResp> records = page.getRecords().stream()
+            .map(data -> dictConverter.toDictVO(data, typeMap.get(data.getDictType())))
             .toList();
-        return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
+        return new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize());
     }
 
     /**
-     * 创建字典项。
+     * 创建字典数据。
      *
-     * @param request 创建字典请求
-     * @return 新建字典展示对象
+     * @param request 字典创建请求
+     * @return 字典展示对象
      */
     @Transactional(rollbackFor = Exception.class)
     public DictResp createDict(CreateDictReq request) {
-        log.info("创建字典项，dictType={}，dictLabel={}", request.getDictType(), request.getDictLabel());
-        SysDictEntity entity = new SysDictEntity();
+        log.info("创建字典数据，dictType={}，dictValue={}", request.getDictType(), request.getDictValue());
+        SysDictTypeEntity typeEntity = ensureDictType(request);
+        SysDictDataEntity entity = new SysDictDataEntity();
         entity.setDictType(request.getDictType());
         entity.setDictLabel(request.getDictLabel());
         entity.setDictValue(request.getDictValue());
-        entity.setSort(DefaultValueUtils.defaultIfNull(request.getSort(), 0));
-        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
-        entity.setRemark(DefaultValueUtils.defaultIfBlank(request.getRemark(), ""));
-        entity.setDeleted(0);
-        sysDictMapper.insert(entity);
-        return dictConverter.toDictVO(entity);
+        entity.setDictSort(DefaultValueUtils.defaultIfNull(request.getDictSort(), 0));
+        entity.setRemark(request.getRemark());
+        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        sysDictDataMapper.insert(entity);
+        return dictConverter.toDictVO(entity, typeEntity);
     }
 
     /**
-     * 查询字典详情。
+     * 查询字典数据详情。
      *
-     * @param dictId 字典编号
+     * @param id 字典数据编号
      * @return 字典展示对象
      */
     @Transactional(readOnly = true)
-    public DictResp getDict(Long dictId) {
-        log.info("查询系统字典详情，dictId={}", dictId);
-        return dictConverter.toDictVO(requireActiveDict(dictId));
+    public DictResp getDict(Long id) {
+        log.info("查询字典数据详情，id={}", id);
+        SysDictDataEntity entity = requireDictData(id);
+        SysDictTypeEntity typeEntity = findDictType(entity.getDictType());
+        return dictConverter.toDictVO(entity, typeEntity);
     }
 
     /**
-     * 更新字典项。
+     * 更新字典数据。
      *
-     * @param dictId 字典编号
+     * @param id 字典数据编号
      * @param request 字典更新请求
-     * @return 更新后的字典展示对象
+     * @return 字典展示对象
      */
     @Transactional(rollbackFor = Exception.class)
-    public DictResp updateDict(Long dictId, CreateDictReq request) {
-        log.info("更新系统字典项，dictId={}，dictType={}，dictLabel={}", dictId, request.getDictType(), request.getDictLabel());
-        SysDictEntity entity = requireActiveDict(dictId);
+    public DictResp updateDict(Long id, CreateDictReq request) {
+        log.info("更新字典数据，id={}，dictType={}，dictValue={}", id, request.getDictType(), request.getDictValue());
+        SysDictTypeEntity typeEntity = ensureDictType(request);
+        SysDictDataEntity entity = requireDictData(id);
         entity.setDictType(request.getDictType());
         entity.setDictLabel(request.getDictLabel());
         entity.setDictValue(request.getDictValue());
-        entity.setSort(DefaultValueUtils.defaultIfNull(request.getSort(), 0));
-        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
-        entity.setRemark(DefaultValueUtils.defaultIfBlank(request.getRemark(), ""));
-        sysDictMapper.updateById(entity);
-        return dictConverter.toDictVO(entity);
+        entity.setDictSort(DefaultValueUtils.defaultIfNull(request.getDictSort(), 0));
+        entity.setRemark(request.getRemark());
+        entity.setUpdateTime(LocalDateTime.now());
+        sysDictDataMapper.updateById(entity);
+        return dictConverter.toDictVO(entity, typeEntity);
     }
 
     /**
-     * 删除字典项。
+     * 删除字典数据。
      *
-     * @param dictId 字典编号
+     * @param id 字典数据编号
      */
     @Transactional(rollbackFor = Exception.class)
-    public void deleteDict(Long dictId) {
-        log.info("删除系统字典项，dictId={}", dictId);
-        SysDictEntity entity = requireActiveDict(dictId);
+    public void deleteDict(Long id) {
+        log.info("删除字典数据，id={}", id);
+        SysDictDataEntity entity = requireDictData(id);
         entity.setDeleted(DeletedStatusEnum.DELETED.getType());
-        sysDictMapper.updateById(entity);
+        entity.setUpdateTime(LocalDateTime.now());
+        sysDictDataMapper.updateById(entity);
     }
 
     /**
-     * 校验字典项处于可用状态。
+     * 确保字典类型存在。
      *
-     * @param dictId 字典编号
-     * @return 字典实体
+     * @param request 字典请求
+     * @return 字典类型实体
      */
-    private SysDictEntity requireActiveDict(Long dictId) {
-        return MybatisTenantHelpers.requireEntity(sysDictMapper.selectOne(
-            MybatisTenantHelpers.notDeletedWrapper(SysDictEntity::getDeleted)
-                .eq(SysDictEntity::getId, dictId)
-                .last("limit 1")), "字典项不存在");
+    private SysDictTypeEntity ensureDictType(CreateDictReq request) {
+        SysDictTypeEntity existed = findDictType(request.getDictType());
+        if (existed != null) {
+            if (StringUtils.hasText(request.getDictName()) && !request.getDictName().equals(existed.getDictName())) {
+                existed.setDictName(request.getDictName());
+                existed.setUpdateTime(LocalDateTime.now());
+                sysDictTypeMapper.updateById(existed);
+            }
+            return existed;
+        }
+        SysDictTypeEntity entity = new SysDictTypeEntity();
+        entity.setDictType(request.getDictType());
+        entity.setDictName(DefaultValueUtils.defaultIfBlank(request.getDictName(), request.getDictType()));
+        entity.setRemark(request.getRemark());
+        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        sysDictTypeMapper.insert(entity);
+        return entity;
+    }
+
+    /**
+     * 查询字典类型。
+     *
+     * @param dictType 字典类型
+     * @return 字典类型实体
+     */
+    private SysDictTypeEntity findDictType(String dictType) {
+        return sysDictTypeMapper.selectOne(MybatisTenantHelpers.notDeletedWrapper(SysDictTypeEntity::getDeleted)
+            .eq(SysDictTypeEntity::getDictType, dictType)
+            .last("limit 1"));
+    }
+
+    /**
+     * 批量加载字典类型映射。
+     *
+     * @param dictTypes 字典类型列表
+     * @return 字典类型映射
+     */
+    private Map<String, SysDictTypeEntity> loadTypeMap(List<String> dictTypes) {
+        if (dictTypes.isEmpty()) {
+            return Map.of();
+        }
+        return sysDictTypeMapper.selectList(MybatisTenantHelpers.notDeletedWrapper(SysDictTypeEntity::getDeleted)
+                .in(SysDictTypeEntity::getDictType, dictTypes)).stream()
+            .collect(Collectors.toMap(SysDictTypeEntity::getDictType, item -> item, (left, right) -> left));
+    }
+
+    /**
+     * 校验字典数据存在。
+     *
+     * @param id 字典数据编号
+     * @return 字典数据实体
+     */
+    private SysDictDataEntity requireDictData(Long id) {
+        return MybatisTenantHelpers.requireEntity(sysDictDataMapper.selectOne(
+            MybatisTenantHelpers.notDeletedWrapper(SysDictDataEntity::getDeleted)
+                .eq(SysDictDataEntity::getId, id)
+                .last("limit 1")), "字典数据不存在");
     }
 }

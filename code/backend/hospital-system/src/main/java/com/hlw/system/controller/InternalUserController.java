@@ -45,7 +45,7 @@ public class InternalUserController {
      * @param tenantId 租户编号
      * @return 内部用户展示对象，不存在返回 data=null
      */
-    @GetMapping("/user/{id}")
+    @GetMapping({"/user/{id}", "/users/{id}"})
     public R<InternalUserResp> detail(@PathVariable Long id, @RequestParam Long tenantId) {
         log.info("接收内部用户资料查询请求，id={}，tenantId={}", id, tenantId);
         return R.ok(internalUserService.findByIdAndTenantId(id, tenantId));

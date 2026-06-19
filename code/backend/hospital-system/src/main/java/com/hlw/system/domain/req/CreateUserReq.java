@@ -12,19 +12,23 @@ import lombok.Setter;
 public class CreateUserReq {
     /** 登录账号。 */
     @NotBlank(message = "用户账号不能为空")
-    private String username;
-    /** 联系电话。 */
-    private String phone;
-    /** 用户类型。 */
-    private String userType;
+    private String userName;
+    /** 用户昵称。 */
+    private String nickName;
     /** 部门编号。 */
     private Long deptId;
-    /** 部门名称。 */
-    private String deptName;
-    /** 角色名称。 */
-    private String roleName;
+    /** 用户类型。 */
+    private String userType;
+    /** 用户邮箱。 */
+    private String email;
+    /** 联系电话。 */
+    private String phone;
+    /** 用户性别。 */
+    private String sex;
     /** 账号状态。 */
-    private String status;
+    private Integer status;
     /** 登录密码。 */
     private String password;
+    /** 备注。 */
+    private String remark;
 }

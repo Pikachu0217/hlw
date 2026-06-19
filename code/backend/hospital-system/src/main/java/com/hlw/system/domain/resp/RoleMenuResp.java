@@ -16,7 +16,5 @@ public class RoleMenuResp {
     /** 菜单名称。 */
     private String menuName;
     /** 权限标识。 */
-    private String permission;
-    /** 授权状态。 */
-    private String status;
+    private String perms;
 }

@@ -11,10 +11,10 @@ import lombok.Setter;
 public class UserRoleResp {
     /** 表格主键。 */
     private String key;
+    /** 用户业务编号。 */
+    private String userId;
     /** 用户名称。 */
-    private String username;
+    private String userName;
     /** 角色名称。 */
     private String roleName;
-    /** 授权状态。 */
-    private String status;
 }

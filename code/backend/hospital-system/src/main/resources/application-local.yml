@@ -6,8 +6,8 @@ hlw:
     username: nacos
     password: nacos
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/hospital_system
-    username: postgres
+    url: jdbc:mysql://127.0.0.1:3306/hospital_system?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: root
     password: hospital123
   redis:
     host: 127.0.0.1

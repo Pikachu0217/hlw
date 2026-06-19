@@ -50,6 +50,7 @@ public class TenantController {
      */
     @PostMapping
     public R<TenantResp> createTenant(@Valid @RequestBody CreateTenantReq request) {
+        log.info("创建租户，companyName={}", request.getCompanyName());
         return R.ok(tenantService.createTenant(request));
     }
 

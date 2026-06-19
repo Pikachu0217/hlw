@@ -1,8 +1,9 @@
 package com.hlw.system.service.converter;
 
 import com.hlw.common.core.util.DefaultValueUtils;
-import com.hlw.system.entity.SysDictEntity;
 import com.hlw.system.domain.resp.DictResp;
+import com.hlw.system.entity.SysDictDataEntity;
+import com.hlw.system.entity.SysDictTypeEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -16,17 +17,18 @@ public class DictConverter {
     /**
      * 转换为字典展示对象。
      *
-     * @param entity 字典实体
+     * @param entity 字典数据实体
+     * @param typeEntity 字典类型实体
      * @return 字典展示对象
      */
-    public DictResp toDictVO(SysDictEntity entity) {
+    public DictResp toDictVO(SysDictDataEntity entity, SysDictTypeEntity typeEntity) {
         DictResp vo = new DictResp();
         vo.setKey(String.valueOf(entity.getId()));
+        vo.setDictName(typeEntity == null ? "" : typeEntity.getDictName());
         vo.setDictType(entity.getDictType());
         vo.setDictLabel(entity.getDictLabel());
         vo.setDictValue(entity.getDictValue());
-        vo.setSort(DefaultValueUtils.defaultIfNull(entity.getSort(), 0));
-        vo.setStatus(entity.getStatus());
+        vo.setDictSort(DefaultValueUtils.defaultIfNull(entity.getDictSort(), 0));
         vo.setRemark(entity.getRemark());
         return vo;
     }

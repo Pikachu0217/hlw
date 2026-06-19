@@ -24,7 +24,7 @@ public class MybatisPlusTenantConfig {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         interceptor.addInnerInterceptor(new TenantLineInnerInterceptor(new HlwTenantLineHandler()));
         interceptor.addInnerInterceptor(new DataPermissionInterceptor(dataPermissionHandler));
-        PaginationInnerInterceptor pageInterceptor = new PaginationInnerInterceptor(DbType.POSTGRE_SQL);
+        PaginationInnerInterceptor pageInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
         pageInterceptor.setMaxLimit(DEFAULT_PAGE_MAX_LIMIT);
         pageInterceptor.setOverflow(false);
         interceptor.addInnerInterceptor(pageInterceptor);

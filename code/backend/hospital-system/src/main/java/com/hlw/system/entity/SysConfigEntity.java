@@ -1,7 +1,6 @@
 package com.hlw.system.entity;
 
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.hlw.common.core.entity.BaseEntity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,15 +10,13 @@ import lombok.Setter;
 @Getter
 @Setter
 @TableName("sys_config")
-public class SysConfigEntity extends BaseEntity {
-    /** 配置键。 */
+public class SysConfigEntity extends SystemBaseEntity {
+    /** 参数名称。 */
+    private String configName;
+    /** 参数键名。 */
     private String configKey;
-    /** 配置值。 */
+    /** 参数键值。 */
     private String configValue;
-    /** 配置类型。 */
-    private String configType;
-    /** 配置状态。 */
-    private String status;
     /** 备注。 */
     private String remark;
 }

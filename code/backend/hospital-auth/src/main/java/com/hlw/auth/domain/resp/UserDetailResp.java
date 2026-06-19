@@ -15,6 +15,8 @@ public class UserDetailResp {
     private String key;
     /** 用户编号。 */
     private Long userId;
+    /** 用户业务编号。 */
+    private String businessUserId;
     /** 租户编号。 */
     private Long tenantId;
     /** 登录账号。 */

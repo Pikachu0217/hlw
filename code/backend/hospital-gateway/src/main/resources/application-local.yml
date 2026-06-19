@@ -6,8 +6,8 @@ hlw:
     username: nacos
     password: nacos
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/hospital_gateway
-    username: postgres
+    url: jdbc:mysql://127.0.0.1:3306/hospital_gateway?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
+    username: root
     password: hospital123
 
 spring:

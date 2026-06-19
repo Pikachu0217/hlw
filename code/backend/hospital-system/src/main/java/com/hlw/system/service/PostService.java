@@ -1,29 +1,28 @@
 package com.hlw.system.service;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
-import com.hlw.common.core.enums.CommonStatusEnum;
 import com.hlw.common.core.enums.DeletedStatusEnum;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreatePostReq;
+import com.hlw.system.domain.resp.PostResp;
 import com.hlw.system.entity.SysPostEntity;
 import com.hlw.system.mapper.SysPostMapper;
 import com.hlw.system.service.converter.PostConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
-import com.hlw.system.domain.resp.PostResp;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-import lombok.extern.slf4j.Slf4j;
-
 /**
- * 岗位聚合服务，负责岗位的查询与创建编排。
+ * 岗位聚合服务。
  */
 @Service
 @RequiredArgsConstructor
@@ -35,47 +34,41 @@ public class PostService {
     private final PostConverter postConverter;
 
     /**
-     * 分页查询岗位列表，按排序、主键升序排列。
+     * 分页查询岗位列表。
      *
      * @param query 分页查询条件
      * @return 岗位分页结果
      */
     @Transactional(readOnly = true)
     public PageResult<PostResp> listPosts(PageQuery query) {
-        log.info("查询系统岗位列表分页，pageNum={}，pageSize={}，keyword={}",
+        log.info("查询岗位列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
-
-        Page<SysPostEntity> page = query.toPage();
         LambdaQueryWrapper<SysPostEntity> wrapper = MybatisTenantHelpers.notDeletedWrapper(SysPostEntity::getDeleted);
         if (StringUtils.hasText(query.getKeyword())) {
-            wrapper.like(SysPostEntity::getPostName, query.getKeyword());
+            wrapper.and(item -> item.like(SysPostEntity::getPostName, query.getKeyword())
+                .or()
+                .like(SysPostEntity::getPostCode, query.getKeyword()));
         }
-        wrapper.orderByAsc(SysPostEntity::getSort)
-            .orderByAsc(SysPostEntity::getId);
-
-        Page<SysPostEntity> result = sysPostMapper.selectPage(page, wrapper);
-        List<PostResp> records = result.getRecords().stream()
-            .map(postConverter::toPostVO)
-            .toList();
-        return new PageResult<>(records, result.getTotal(), result.getCurrent(), result.getSize());
+        wrapper.orderByAsc(SysPostEntity::getOrderNum).orderByAsc(SysPostEntity::getId);
+        Page<SysPostEntity> page = sysPostMapper.selectPage(query.toPage(), wrapper);
+        List<PostResp> records = page.getRecords().stream().map(postConverter::toPostVO).toList();
+        return new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize());
     }
 
     /**
      * 创建岗位。
      *
-     * @param request 创建岗位请求
-     * @return 新建岗位展示对象
+     * @param request 岗位创建请求
+     * @return 岗位展示对象
      */
     @Transactional(rollbackFor = Exception.class)
     public PostResp createPost(CreatePostReq request) {
-        log.info("创建岗位，postName={}，postCode={}", request.getPostName(), request.getPostCode());
+        log.info("创建岗位，postCode={}，postName={}", request.getPostCode(), request.getPostName());
         SysPostEntity entity = new SysPostEntity();
-        entity.setPostName(request.getPostName());
-        entity.setPostCode(request.getPostCode());
-        entity.setSort(DefaultValueUtils.defaultIfNull(request.getSort(), 0));
-        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
-        entity.setRemark(DefaultValueUtils.defaultIfBlank(request.getRemark(), ""));
-        entity.setDeleted(0);
+        fillPost(entity, request);
+        entity.setDeleted(DeletedStatusEnum.NOT_DELETED.getType());
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
         sysPostMapper.insert(entity);
         return postConverter.toPostVO(entity);
     }
@@ -83,31 +76,28 @@ public class PostService {
     /**
      * 查询岗位详情。
      *
-     * @param postId 岗位编号
+     * @param id 岗位编号
      * @return 岗位展示对象
      */
     @Transactional(readOnly = true)
-    public PostResp getPost(Long postId) {
-        log.info("查询系统岗位详情，postId={}", postId);
-        return postConverter.toPostVO(requireActivePost(postId));
+    public PostResp getPost(Long id) {
+        log.info("查询岗位详情，id={}", id);
+        return postConverter.toPostVO(requirePost(id));
     }
 
     /**
      * 更新岗位。
      *
-     * @param postId 岗位编号
+     * @param id 岗位编号
      * @param request 岗位更新请求
-     * @return 更新后的岗位展示对象
+     * @return 岗位展示对象
      */
     @Transactional(rollbackFor = Exception.class)
-    public PostResp updatePost(Long postId, CreatePostReq request) {
-        log.info("更新系统岗位，postId={}，postName={}，postCode={}", postId, request.getPostName(), request.getPostCode());
-        SysPostEntity entity = requireActivePost(postId);
-        entity.setPostName(request.getPostName());
-        entity.setPostCode(request.getPostCode());
-        entity.setSort(DefaultValueUtils.defaultIfNull(request.getSort(), 0));
-        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), CommonStatusEnum.ENABLED.getStatus()));
-        entity.setRemark(DefaultValueUtils.defaultIfBlank(request.getRemark(), ""));
+    public PostResp updatePost(Long id, CreatePostReq request) {
+        log.info("更新岗位，id={}，postName={}", id, request.getPostName());
+        SysPostEntity entity = requirePost(id);
+        fillPost(entity, request);
+        entity.setUpdateTime(LocalDateTime.now());
         sysPostMapper.updateById(entity);
         return postConverter.toPostVO(entity);
     }
@@ -115,26 +105,42 @@ public class PostService {
     /**
      * 删除岗位。
      *
-     * @param postId 岗位编号
+     * @param id 岗位编号
      */
     @Transactional(rollbackFor = Exception.class)
-    public void deletePost(Long postId) {
-        log.info("删除系统岗位，postId={}", postId);
-        SysPostEntity entity = requireActivePost(postId);
+    public void deletePost(Long id) {
+        log.info("删除岗位，id={}", id);
+        SysPostEntity entity = requirePost(id);
         entity.setDeleted(DeletedStatusEnum.DELETED.getType());
+        entity.setUpdateTime(LocalDateTime.now());
         sysPostMapper.updateById(entity);
     }
 
     /**
-     * 校验岗位处于可用状态。
+     * 按编号查询岗位实体。
      *
-     * @param postId 岗位编号
+     * @param id 岗位编号
      * @return 岗位实体
      */
-    private SysPostEntity requireActivePost(Long postId) {
+    @Transactional(readOnly = true)
+    public SysPostEntity requirePost(Long id) {
         return MybatisTenantHelpers.requireEntity(sysPostMapper.selectOne(
             MybatisTenantHelpers.notDeletedWrapper(SysPostEntity::getDeleted)
-                .eq(SysPostEntity::getId, postId)
+                .eq(SysPostEntity::getId, id)
                 .last("limit 1")), "岗位不存在");
+    }
+
+    /**
+     * 填充岗位实体字段。
+     *
+     * @param entity 岗位实体
+     * @param request 岗位请求
+     */
+    private void fillPost(SysPostEntity entity, CreatePostReq request) {
+        entity.setPostCode(request.getPostCode());
+        entity.setPostName(request.getPostName());
+        entity.setOrderNum(DefaultValueUtils.defaultIfNull(request.getOrderNum(), 0));
+        entity.setRemark(request.getRemark());
+        entity.setStatus(DefaultValueUtils.defaultIfNull(request.getStatus(), 0));
     }
 }

@@ -11,8 +11,12 @@ import lombok.Setter;
 public class UserResp {
     /** 表格主键。 */
     private String key;
-    /** 用户名称。 */
-    private String username;
+    /** 用户业务编号。 */
+    private String userId;
+    /** 登录账号。 */
+    private String userName;
+    /** 用户昵称。 */
+    private String nickName;
     /** 部门编号。 */
     private Long deptId;
     /** 部门名称。 */
@@ -23,8 +27,12 @@ public class UserResp {
     private String postName;
     /** 联系电话。 */
     private String phone;
+    /** 用户邮箱。 */
+    private String email;
+    /** 用户类型。 */
+    private String userType;
     /** 最近登录时间。 */
     private String lastLogin;
     /** 状态。 */
-    private String status;
+    private Integer status;
 }

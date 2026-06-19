@@ -16,7 +16,13 @@ public class CreateDeptReq {
     @NotBlank(message = "部门名称不能为空")
     private String deptName;
     /** 显示顺序。 */
-    private Integer sort;
+    private Integer orderNum;
+    /** 负责人用户ID。 */
+    private String leader;
+    /** 联系电话。 */
+    private String phone;
+    /** 邮箱。 */
+    private String email;
     /** 部门状态。 */
-    private String status;
+    private Integer status;
 }

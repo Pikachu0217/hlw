@@ -16,8 +16,12 @@ public class CreateRoleReq {
     /** 角色编码。 */
     @NotBlank(message = "角色编码不能为空")
     private String roleCode;
+    /** 显示顺序。 */
+    private Integer orderNum;
     /** 数据范围。 */
-    private String dataScope;
+    private Integer dataScope;
     /** 角色状态。 */
-    private String status;
+    private Integer status;
+    /** 备注。 */
+    private String remark;
 }

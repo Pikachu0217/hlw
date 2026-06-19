@@ -15,10 +15,10 @@ public class PostResp {
     private String postName;
     /** 岗位编码。 */
     private String postCode;
-    /** 排序。 */
-    private Integer sort;
-    /** 状态。 */
-    private String status;
+    /** 显示顺序。 */
+    private Integer orderNum;
     /** 备注。 */
     private String remark;
+    /** 状态。 */
+    private Integer status;
 }

@@ -22,12 +22,16 @@ public class UserConverter {
     public UserResp toUserVO(SysUserEntity entity, String postName) {
         UserResp vo = new UserResp();
         vo.setKey(String.valueOf(entity.getId()));
-        vo.setUsername(entity.getUsername());
+        vo.setUserId(entity.getUserId());
+        vo.setUserName(entity.getUserName());
+        vo.setNickName(entity.getNickName());
         vo.setDeptId(entity.getDeptId());
-        vo.setDeptName(entity.getDeptName());
-        vo.setRoleName(entity.getRoleName());
+        vo.setDeptName("-");
+        vo.setRoleName("-");
         vo.setPhone(entity.getPhone());
-        vo.setLastLogin(entity.getLastLogin());
+        vo.setEmail(entity.getEmail());
+        vo.setUserType(entity.getUserType());
+        vo.setLastLogin(entity.getLoginDate() == null ? "-" : entity.getLoginDate().toString());
         vo.setStatus(entity.getStatus());
         vo.setPostName(postName);
         return vo;

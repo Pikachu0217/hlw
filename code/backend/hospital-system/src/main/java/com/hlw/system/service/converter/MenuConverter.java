@@ -25,9 +25,14 @@ public class MenuConverter {
         vo.setParentId(String.valueOf(DefaultValueUtils.defaultIfNull(entity.getParentId(), 0L)));
         vo.setMenuName(entity.getMenuName());
         vo.setMenuType(entity.getMenuType());
-        vo.setPermission(entity.getPermission());
-        vo.setRoutePath(entity.getRoutePath());
-        vo.setSort(DefaultValueUtils.defaultIfNull(entity.getSort(), 0));
+        vo.setPerms(entity.getPerms());
+        vo.setPath(entity.getPath());
+        vo.setComponent(entity.getComponent());
+        vo.setIsFrame(entity.getIsFrame());
+        vo.setVisible(entity.getVisible());
+        vo.setOrderNum(DefaultValueUtils.defaultIfNull(entity.getOrderNum(), 0));
+        vo.setIcon(entity.getIcon());
+        vo.setRemark(entity.getRemark());
         vo.setStatus(entity.getStatus());
         return vo;
     }

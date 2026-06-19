@@ -6,7 +6,7 @@ hlw:
     username: ${NACOS_USERNAME}
     password: ${NACOS_PASSWORD}
   datasource:
-    url: jdbc:postgresql://${SYSTEM_DB_HOST}:${SYSTEM_DB_PORT:5432}/${SYSTEM_DB_NAME:hospital_system}
+    url: jdbc:mysql://${SYSTEM_DB_HOST}:${SYSTEM_DB_PORT:3306}/${SYSTEM_DB_NAME:hospital_system}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: ${SYSTEM_DB_USERNAME}
     password: ${SYSTEM_DB_PASSWORD}
   redis:

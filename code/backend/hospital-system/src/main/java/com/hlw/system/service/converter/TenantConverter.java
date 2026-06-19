@@ -1,5 +1,6 @@
 package com.hlw.system.service.converter;
 
+import com.hlw.system.entity.SysTenantPackageEntity;
 import com.hlw.system.entity.SysTenantEntity;
 import com.hlw.system.domain.resp.TenantResp;
 import lombok.RequiredArgsConstructor;
@@ -14,22 +15,31 @@ import java.time.format.DateTimeFormatter;
 @RequiredArgsConstructor
 public class TenantConverter {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     /**
      * 转换为租户展示对象。
      *
      * @param entity 租户实体
+     * @param packageEntity 租户套餐实体
      * @return 租户展示对象
      */
-    public TenantResp toTenantVO(SysTenantEntity entity) {
+    public TenantResp toTenantVO(SysTenantEntity entity, SysTenantPackageEntity packageEntity) {
         TenantResp vo = new TenantResp();
         vo.setKey(String.valueOf(entity.getId()));
         vo.setTenantId(entity.getTenantId());
-        vo.setTenantName(entity.getTenantName());
-        vo.setPackageName(entity.getPackageName());
-        vo.setAdminName(entity.getAdminName());
-        vo.setExpireAt(entity.getExpireAt() == null ? "" : entity.getExpireAt().format(DATE_FORMATTER));
+        vo.setContactUserName(entity.getContactUserName());
+        vo.setContactPhone(entity.getContactPhone());
+        vo.setCompanyName(entity.getCompanyName());
+        vo.setLicenseNumber(entity.getLicenseNumber());
+        vo.setAddress(entity.getAddress());
+        vo.setIntro(entity.getIntro());
+        vo.setDomain(entity.getDomain());
+        vo.setRemark(entity.getRemark());
+        vo.setPackageId(entity.getPackageId());
+        vo.setPackageName(packageEntity == null ? "" : packageEntity.getPackageName());
+        vo.setExpireTime(entity.getExpireTime() == null ? "" : entity.getExpireTime().format(DATE_TIME_FORMATTER));
+        vo.setAccountCount(entity.getAccountCount());
         vo.setStatus(entity.getStatus());
         return vo;
     }

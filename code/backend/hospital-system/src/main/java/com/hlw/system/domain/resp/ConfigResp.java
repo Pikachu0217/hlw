@@ -11,14 +11,12 @@ import lombok.Setter;
 public class ConfigResp {
     /** 表格主键。 */
     private String key;
-    /** 配置键。 */
+    /** 参数名称。 */
+    private String configName;
+    /** 参数键名。 */
     private String configKey;
-    /** 配置值。 */
+    /** 参数键值。 */
     private String configValue;
-    /** 配置类型。 */
-    private String configType;
-    /** 状态。 */
-    private String status;
     /** 备注。 */
     private String remark;
 }

@@ -18,11 +18,21 @@ public class MenuResp {
     /** 菜单类型。 */
     private String menuType;
     /** 权限标识。 */
-    private String permission;
+    private String perms;
     /** 路由路径。 */
-    private String routePath;
+    private String path;
+    /** 组件路径。 */
+    private String component;
+    /** 是否外链。 */
+    private Integer isFrame;
+    /** 显示状态。 */
+    private String visible;
     /** 排序。 */
-    private Integer sort;
+    private Integer orderNum;
+    /** 图标。 */
+    private String icon;
+    /** 备注。 */
+    private String remark;
     /** 状态。 */
     private String status;
 }
