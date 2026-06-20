@@ -143,7 +143,7 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再在系统模块中保留 `JdbcOperations` 直查实现。
 - 系统服务会优先读取网关透传的可信租户头写入租户上下文，只有缺少租户头时才兜底解析登录令牌；默认请求头为 `Authorization: Bearer <token>`，实际名称和前缀以 `hlw.auth` 公共配置为准。无法识别租户时会进入隔离上下文，不再默认落到平台租户。
 - 涉及租户、租户套餐等平台级全局配置的列表、详情、新增、更新和删除，会在 Service 中校验平台令牌上下文；登录前租户选项接口不鉴权，仅公开租户编号、企业名称和状态。
-- 创建新租户时必须选择租户套餐，系统会在同一事务内按套餐绑定的平台模板菜单复制 `sys_menu` 数据到新 `tenant_id`，为租户初始化 `运营中心` 部门、`运营管理员` 岗位，创建 `tenant_admin`、`tenant_user` 默认角色，给租户管理员绑定部门、岗位和套餐内全部菜单，并创建默认管理员账号 `admin / 123456` 绑定到 `tenant_admin`。
+- 创建新租户时必须选择租户套餐，系统会在同一事务内按套餐绑定的平台模板菜单复制 `sys_menu` 数据到新 `tenant_id`，为租户初始化 `运营中心` 部门、`运营管理员` 岗位，创建 `tenant_admin`、`tenant_user` 默认角色，给租户管理员绑定部门、岗位和套餐内全部菜单，并创建默认管理员账号 `admin / 123456` 绑定到 `tenant_admin`；租户套餐变更时会先清理该租户旧套餐复制菜单及其角色菜单绑定，再按新套餐重新初始化菜单和默认角色权限。
 - 系统模块通过本地 MVC 拦截器自动记录 `/system/**` 操作日志并写入 `sys_operator_log`，日志查询接口 `/system/log/**` 会被排除，避免查询日志时递归产生日志。
 
 ## 认证与租户上下文
@@ -484,7 +484,7 @@ PUT /gateway/route/{id}
 DELETE /gateway/route/{id}
 ```
 
-认证资料接口会从登录令牌解析用户编号和租户编号，并通过 Feign 回查 `hospital-system` 的 `sys_user` 返回登录用户资料。登录成功和失败会通过 internal Feign 写入系统模块 `sys_login_info`；退出登录只写入 Redis 黑名单，不再回写数据库。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_post`、`sys_user_role` 和 `sys_role_menu` 表；登录前租户选项接口仅返回最小展示字段，租户和租户套餐管理接口仅允许平台租户上下文访问，租户套餐创建和更新接口通过 `menuIds` 覆盖绑定套餐可用菜单，后端会校验平台模板菜单存在、自动补齐父级模板、去重写入 `sys_tenant_package_menu`，删除套餐时同步清理套餐菜单关系；创建租户时会按套餐复制 `tenant_id=0` 的模板菜单到新租户自己的 `sys_menu` 数据，同时复制平台默认部门和岗位到新租户并绑定默认管理员，再初始化默认角色、角色菜单权限和管理员角色绑定；用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，其中 `/system/menu` 列表按 `parentId` 返回带 `children` 的菜单树；按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并强制用户、角色、菜单和关系处于当前 `tenant_id`。系统模块会自动采集 `/system/**` 请求的操作日志并写入 `sys_operator_log`，网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
+认证资料接口会从登录令牌解析用户编号和租户编号，并通过 Feign 回查 `hospital-system` 的 `sys_user` 返回登录用户资料。登录成功和失败会通过 internal Feign 写入系统模块 `sys_login_info`；退出登录只写入 Redis 黑名单，不再回写数据库。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_post`、`sys_user_role` 和 `sys_role_menu` 表；登录前租户选项接口仅返回最小展示字段，租户和租户套餐管理接口仅允许平台租户上下文访问，租户套餐创建和更新接口通过 `menuIds` 覆盖绑定套餐可用菜单，后端会校验平台模板菜单存在、自动补齐父级模板、去重写入 `sys_tenant_package_menu`，删除套餐时同步清理套餐菜单关系；创建租户时会按套餐复制 `tenant_id=0` 的模板菜单到新租户自己的 `sys_menu` 数据，同时复制平台默认部门和岗位到新租户并绑定默认管理员，再初始化默认角色、角色菜单权限和管理员角色绑定；租户套餐变更时会删除旧套餐复制菜单及其角色菜单绑定，再按新套餐重新复制菜单并覆盖默认角色权限；用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，其中 `/system/menu` 列表按 `parentId` 返回带 `children` 的菜单树；按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并强制用户、角色、菜单和关系处于当前 `tenant_id`。系统模块会自动采集 `/system/**` 请求的操作日志并写入 `sys_operator_log`，网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
 
 `hospital-auth` 当前约定补充如下：
 

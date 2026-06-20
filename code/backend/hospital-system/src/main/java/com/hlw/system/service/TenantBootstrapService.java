@@ -77,11 +77,34 @@ public class TenantBootstrapService {
      * @param tenant 租户实体
      */
     public void initializeTenant(SysTenantEntity tenant) {
+        initializeTenantData(tenant, true, "初始化");
+    }
+
+    /**
+     * 重建租户套餐菜单和权限绑定。
+     *
+     * @param tenant 租户实体
+     */
+    public void rebuildTenantPackageBindings(SysTenantEntity tenant) {
+        log.info("开始重建租户套餐权限绑定，tenantId={}，packageId={}", tenant.getTenantId(), tenant.getPackageId());
+        clearTenantPackageBindings(tenant.getTenantId());
+        initializeTenantData(tenant, false, "重建");
+        log.info("租户套餐权限绑定重建完成，tenantId={}，packageId={}", tenant.getTenantId(), tenant.getPackageId());
+    }
+
+    /**
+     * 初始化或重建租户权限基础数据。
+     *
+     * @param tenant 租户实体
+     * @param resetAdminUserRoles 是否覆盖管理员用户角色
+     * @param actionName 操作名称
+     */
+    private void initializeTenantData(SysTenantEntity tenant, boolean resetAdminUserRoles, String actionName) {
         if (tenant.getPackageId() == null) {
             log.warn("租户初始化失败，租户未绑定套餐，tenantId={}", tenant.getTenantId());
             throw new BizException(400, "租户套餐不能为空");
         }
-        log.info("开始初始化租户权限数据，tenantId={}，packageId={}", tenant.getTenantId(), tenant.getPackageId());
+        log.info("开始{}租户权限数据，tenantId={}，packageId={}", actionName, tenant.getTenantId(), tenant.getPackageId());
         SysUserEntity adminUser = upsertTenantAdminUser(tenant);
         SysDeptEntity tenantDept = upsertTenantDept(tenant, adminUser);
         SysPostEntity tenantPost = upsertTenantPost(tenant.getTenantId());
@@ -96,9 +119,27 @@ public class TenantBootstrapService {
             SystemTenantConstants.TENANT_USER_ROLE_ORDER);
         bindRoleMenus(tenant.getTenantId(), adminRole.getId(), tenantMenuMap.values().stream().map(SysMenuEntity::getId).toList());
         bindRoleMenus(tenant.getTenantId(), userRole.getId(), resolveTenantUserMenuIds(templateMenus, tenantMenuMap));
-        bindUserRole(tenant.getTenantId(), adminUser.getUserId(), adminRole.getId());
-        log.info("租户权限数据初始化完成，tenantId={}，deptId={}，postId={}，menuCount={}，adminRoleId={}，userRoleId={}，adminUserId={}",
-            tenant.getTenantId(), tenantDept.getId(), tenantPost.getId(), tenantMenuMap.size(), adminRole.getId(), userRole.getId(), adminUser.getUserId());
+        if (resetAdminUserRoles) {
+            bindUserRole(tenant.getTenantId(), adminUser.getUserId(), adminRole.getId());
+        } else {
+            ensureUserRole(tenant.getTenantId(), adminUser.getUserId(), adminRole.getId());
+        }
+        log.info("租户权限数据{}完成，tenantId={}，deptId={}，postId={}，menuCount={}，adminRoleId={}，userRoleId={}，adminUserId={}",
+            actionName, tenant.getTenantId(), tenantDept.getId(), tenantPost.getId(), tenantMenuMap.size(), adminRole.getId(), userRole.getId(), adminUser.getUserId());
+    }
+
+    /**
+     * 清理租户旧套餐菜单和角色菜单绑定。
+     *
+     * @param tenantId 租户编号
+     */
+    private void clearTenantPackageBindings(String tenantId) {
+        ignoreTenantLine(() -> {
+            int roleMenuCount = sysRoleMenuMapper.physicalDeleteByTenantCopiedMenus(tenantId);
+            int menuCount = sysMenuMapper.physicalDeleteCopiedByTenantId(tenantId);
+            log.info("清理租户旧套餐权限绑定，tenantId={}，roleMenuCount={}，menuCount={}", tenantId, roleMenuCount, menuCount);
+            return null;
+        });
     }
 
     /**
@@ -585,6 +626,35 @@ public class TenantBootstrapService {
             relation.setCreateTime(LocalDateTime.now());
             relation.setUpdateTime(LocalDateTime.now());
             sysUserRoleMapper.insert(relation);
+            return null;
+        });
+    }
+
+    /**
+     * 确保用户角色关系存在。
+     *
+     * @param tenantId 租户编号
+     * @param userId 用户业务编号
+     * @param roleId 角色编号
+     */
+    private void ensureUserRole(String tenantId, String userId, Long roleId) {
+        log.info("确保管理员角色绑定存在，tenantId={}，userId={}，roleId={}", tenantId, userId, roleId);
+        ignoreTenantLine(() -> {
+            SysUserRoleEntity existing = sysUserRoleMapper.selectOne(new LambdaQueryWrapper<SysUserRoleEntity>()
+                .eq(SysUserRoleEntity::getTenantId, tenantId)
+                .eq(SysUserRoleEntity::getUserId, userId)
+                .eq(SysUserRoleEntity::getRoleId, roleId)
+                .last("limit 1"));
+            if (existing == null) {
+                SysUserRoleEntity relation = new SysUserRoleEntity();
+                relation.setTenantId(tenantId);
+                relation.setUserId(userId);
+                relation.setRoleId(roleId);
+                relation.setCreateTime(LocalDateTime.now());
+                relation.setUpdateTime(LocalDateTime.now());
+                sysUserRoleMapper.insert(relation);
+                log.info("新增管理员角色绑定，tenantId={}，userId={}，roleId={}", tenantId, userId, roleId);
+            }
             return null;
         });
     }

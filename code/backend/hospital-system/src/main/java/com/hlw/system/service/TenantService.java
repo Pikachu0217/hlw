@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -136,8 +137,10 @@ public class TenantService {
     @Transactional(rollbackFor = Exception.class)
     public TenantResp updateTenant(Long id, UpdateTenantReq request) {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以更新租户");
-        log.info("更新租户，id={}，companyName={}", id, request.getCompanyName());
+        log.info("更新租户，id={}，companyName={}，packageId={}", id, request.getCompanyName(), request.getPackageId());
         SysTenantEntity entity = requireTenant(id);
+        Long oldPackageId = entity.getPackageId();
+        SysTenantPackageEntity packageEntity = requirePackage(request.getPackageId());
         entity.setContactUserName(request.getContactUserName());
         entity.setContactPhone(request.getContactPhone());
         entity.setCompanyName(request.getCompanyName());
@@ -152,7 +155,12 @@ public class TenantService {
         entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), "0"));
         entity.setUpdateTime(LocalDateTime.now());
         sysTenantMapper.updateById(entity);
-        return tenantConverter.toTenantVO(entity, loadPackage(entity.getPackageId()));
+        if (!Objects.equals(oldPackageId, entity.getPackageId())) {
+            log.info("租户套餐发生变更，开始重建套餐权限绑定，tenantId={}，oldPackageId={}，newPackageId={}",
+                entity.getTenantId(), oldPackageId, entity.getPackageId());
+            tenantBootstrapService.rebuildTenantPackageBindings(entity);
+        }
+        return tenantConverter.toTenantVO(entity, packageEntity);
     }
 
     /**
