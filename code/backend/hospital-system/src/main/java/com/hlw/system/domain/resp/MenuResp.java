@@ -14,7 +14,7 @@ public class MenuResp {
     /** 主键编号。 */
     private Long id;
     /** 父级菜单编号。 */
-    private String parentId;
+    private Long parentId;
     /** 菜单名称。 */
     private String menuName;
     /** 菜单类型。 */

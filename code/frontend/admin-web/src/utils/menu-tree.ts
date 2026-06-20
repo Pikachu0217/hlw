@@ -8,7 +8,7 @@ export interface MenuTreeSource {
   /** 菜单编号。 */
   id: number;
   /** 父级菜单编号。 */
-  parentId?: number | string | null;
+  parentId?: number | null;
   /** 菜单名称。 */
   menuName: string;
   /** 权限标识。 */
@@ -175,12 +175,8 @@ function compareMenuRecord<T extends MenuTreeSource>(current: T, next: T): numbe
  * @param parentId 原始父级菜单编号
  * @return 标准父级菜单编号
  */
-function normalizeParentId(parentId?: number | string | null): number {
-  if (parentId == null) {
-    return ROOT_MENU_PARENT_ID;
-  }
-  const parsedParentId = Number(parentId);
-  return Number.isFinite(parsedParentId) ? parsedParentId : ROOT_MENU_PARENT_ID;
+function normalizeParentId(parentId?: number | null): number {
+  return parentId ?? ROOT_MENU_PARENT_ID;
 }
 
 /**

@@ -14,7 +14,7 @@ import {
 
 export interface MenuRecord {
   id: number;
-  parentId?: number | string;
+  parentId?: number;
   menuName: string;
   menuType: string;
   perms?: string;
