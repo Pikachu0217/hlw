@@ -50,6 +50,24 @@ public final class SystemTenantConstants {
     public static final String DEFAULT_USER_TYPE = "sys_user";
     /** 默认未知性别。 */
     public static final String DEFAULT_UNKNOWN_SEX = "2";
+    /** 默认租户部门名称。 */
+    public static final String DEFAULT_TENANT_DEPT_NAME = "运营中心";
+    /** 默认租户部门祖级列表。 */
+    public static final String DEFAULT_TENANT_DEPT_ANCESTORS = "0";
+    /** 默认租户部门排序。 */
+    public static final Integer DEFAULT_TENANT_DEPT_ORDER = 1;
+    /** 默认租户部门邮箱。 */
+    public static final String DEFAULT_TENANT_DEPT_EMAIL = "ops@hlw.local";
+    /** 默认租户部门电话。 */
+    public static final String DEFAULT_TENANT_DEPT_PHONE = "13800001111";
+    /** 默认租户管理员岗位编码。 */
+    public static final String DEFAULT_TENANT_ADMIN_POST_CODE = "OPERATIONS_ADMIN";
+    /** 默认租户管理员岗位名称。 */
+    public static final String DEFAULT_TENANT_ADMIN_POST_NAME = "运营管理员";
+    /** 默认租户管理员岗位备注。 */
+    public static final String DEFAULT_TENANT_ADMIN_POST_REMARK = "负责平台日常运营";
+    /** 默认租户管理员岗位排序。 */
+    public static final Integer DEFAULT_TENANT_ADMIN_POST_ORDER = 1;
     /** 普通用户基础菜单权限标识集合。 */
     public static final Set<String> TENANT_USER_BASIC_PERMS = Set.of("dashboard:view");
 

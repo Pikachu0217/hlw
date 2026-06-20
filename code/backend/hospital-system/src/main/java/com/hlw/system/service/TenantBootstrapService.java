@@ -6,18 +6,24 @@ import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.security.PasswordEncoder;
 import com.hlw.system.constants.SystemTenantConstants;
+import com.hlw.system.entity.SysDeptEntity;
 import com.hlw.system.entity.SysMenuEntity;
+import com.hlw.system.entity.SysPostEntity;
 import com.hlw.system.entity.SysRoleEntity;
 import com.hlw.system.entity.SysRoleMenuEntity;
 import com.hlw.system.entity.SysTenantEntity;
 import com.hlw.system.entity.SysTenantPackageMenuEntity;
 import com.hlw.system.entity.SysUserEntity;
+import com.hlw.system.entity.SysUserPostEntity;
 import com.hlw.system.entity.SysUserRoleEntity;
+import com.hlw.system.mapper.SysDeptMapper;
 import com.hlw.system.mapper.SysMenuMapper;
+import com.hlw.system.mapper.SysPostMapper;
 import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysRoleMenuMapper;
 import com.hlw.system.mapper.SysTenantPackageMenuMapper;
 import com.hlw.system.mapper.SysUserMapper;
+import com.hlw.system.mapper.SysUserPostMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
 import com.hlw.system.service.support.MybatisTenantHelpers;
 import com.hlw.system.service.support.UserIdGenerator;
@@ -50,12 +56,18 @@ public class TenantBootstrapService {
     private final SysMenuMapper sysMenuMapper;
     /** 租户套餐菜单关系数据访问组件。 */
     private final SysTenantPackageMenuMapper sysTenantPackageMenuMapper;
+    /** 部门数据访问组件。 */
+    private final SysDeptMapper sysDeptMapper;
+    /** 岗位数据访问组件。 */
+    private final SysPostMapper sysPostMapper;
     /** 角色数据访问组件。 */
     private final SysRoleMapper sysRoleMapper;
     /** 角色菜单关系数据访问组件。 */
     private final SysRoleMenuMapper sysRoleMenuMapper;
     /** 用户数据访问组件。 */
     private final SysUserMapper sysUserMapper;
+    /** 用户岗位关系数据访问组件。 */
+    private final SysUserPostMapper sysUserPostMapper;
     /** 用户角色关系数据访问组件。 */
     private final SysUserRoleMapper sysUserRoleMapper;
 
@@ -71,6 +83,9 @@ public class TenantBootstrapService {
         }
         log.info("开始初始化租户权限数据，tenantId={}，packageId={}", tenant.getTenantId(), tenant.getPackageId());
         SysUserEntity adminUser = upsertTenantAdminUser(tenant);
+        SysDeptEntity tenantDept = upsertTenantDept(tenant, adminUser);
+        SysPostEntity tenantPost = upsertTenantPost(tenant.getTenantId());
+        bindAdminOrganization(tenant.getTenantId(), adminUser, tenantDept, tenantPost);
         List<SysMenuEntity> templateMenus = loadPackageTemplateMenus(tenant.getPackageId());
         Map<Long, SysMenuEntity> tenantMenuMap = copyPackageMenus(tenant.getTenantId(), templateMenus);
         SysRoleEntity adminRole = upsertRole(tenant.getTenantId(),
@@ -82,8 +97,8 @@ public class TenantBootstrapService {
         bindRoleMenus(tenant.getTenantId(), adminRole.getId(), tenantMenuMap.values().stream().map(SysMenuEntity::getId).toList());
         bindRoleMenus(tenant.getTenantId(), userRole.getId(), resolveTenantUserMenuIds(templateMenus, tenantMenuMap));
         bindUserRole(tenant.getTenantId(), adminUser.getUserId(), adminRole.getId());
-        log.info("租户权限数据初始化完成，tenantId={}，menuCount={}，adminRoleId={}，userRoleId={}，adminUserId={}",
-            tenant.getTenantId(), tenantMenuMap.size(), adminRole.getId(), userRole.getId(), adminUser.getUserId());
+        log.info("租户权限数据初始化完成，tenantId={}，deptId={}，postId={}，menuCount={}，adminRoleId={}，userRoleId={}，adminUserId={}",
+            tenant.getTenantId(), tenantDept.getId(), tenantPost.getId(), tenantMenuMap.size(), adminRole.getId(), userRole.getId(), adminUser.getUserId());
     }
 
     /**
@@ -125,6 +140,238 @@ public class TenantBootstrapService {
             log.info("创建租户管理员账号，tenantId={}，userId={}", tenant.getTenantId(), user.getUserId());
             return user;
         });
+    }
+
+    /**
+     * 创建或更新租户默认部门。
+     *
+     * @param tenant 租户实体
+     * @param adminUser 租户管理员用户
+     * @return 租户部门实体
+     */
+    private SysDeptEntity upsertTenantDept(SysTenantEntity tenant, SysUserEntity adminUser) {
+        return ignoreTenantLine(() -> {
+            SysDeptEntity template = loadPlatformDeptTemplate();
+            String deptName = resolveDeptName(template);
+            SysDeptEntity dept = sysDeptMapper.selectOne(new LambdaQueryWrapper<SysDeptEntity>()
+                .eq(SysDeptEntity::getTenantId, tenant.getTenantId())
+                .eq(SysDeptEntity::getParentId, SystemTenantConstants.ROOT_MENU_PARENT_ID)
+                .eq(SysDeptEntity::getDeptName, deptName)
+                .last("limit 1"));
+            boolean create = dept == null;
+            if (create) {
+                dept = new SysDeptEntity();
+                dept.setTenantId(tenant.getTenantId());
+                dept.setParentId(SystemTenantConstants.ROOT_MENU_PARENT_ID);
+                dept.setCreateTime(LocalDateTime.now());
+            }
+            dept.setAncestors(resolveDeptAncestors(template));
+            dept.setDeptName(deptName);
+            dept.setOrderNum(resolveDeptOrder(template));
+            dept.setLeader(adminUser.getUserId());
+            dept.setPhone(resolveDeptPhone(tenant, template));
+            dept.setEmail(resolveDeptEmail(template));
+            dept.setStatus(SystemTenantConstants.STATUS_NORMAL_VALUE);
+            dept.setUpdateTime(LocalDateTime.now());
+            if (create) {
+                sysDeptMapper.insert(dept);
+                log.info("创建租户默认部门，tenantId={}，deptId={}，deptName={}", tenant.getTenantId(), dept.getId(), dept.getDeptName());
+            } else {
+                sysDeptMapper.updateById(dept);
+                log.info("复用租户默认部门，tenantId={}，deptId={}，deptName={}", tenant.getTenantId(), dept.getId(), dept.getDeptName());
+            }
+            return dept;
+        });
+    }
+
+    /**
+     * 创建或更新租户默认岗位。
+     *
+     * @param tenantId 租户编号
+     * @return 租户岗位实体
+     */
+    private SysPostEntity upsertTenantPost(String tenantId) {
+        return ignoreTenantLine(() -> {
+            SysPostEntity template = loadPlatformPostTemplate();
+            String postCode = resolvePostCode(template);
+            SysPostEntity post = sysPostMapper.selectOne(new LambdaQueryWrapper<SysPostEntity>()
+                .eq(SysPostEntity::getTenantId, tenantId)
+                .eq(SysPostEntity::getPostCode, postCode)
+                .last("limit 1"));
+            boolean create = post == null;
+            if (create) {
+                post = new SysPostEntity();
+                post.setTenantId(tenantId);
+                post.setPostCode(postCode);
+                post.setCreateTime(LocalDateTime.now());
+            }
+            post.setPostName(resolvePostName(template));
+            post.setOrderNum(resolvePostOrder(template));
+            post.setRemark(resolvePostRemark(template));
+            post.setStatus(SystemTenantConstants.STATUS_NORMAL_VALUE);
+            post.setUpdateTime(LocalDateTime.now());
+            if (create) {
+                sysPostMapper.insert(post);
+                log.info("创建租户默认岗位，tenantId={}，postId={}，postCode={}", tenantId, post.getId(), post.getPostCode());
+            } else {
+                sysPostMapper.updateById(post);
+                log.info("复用租户默认岗位，tenantId={}，postId={}，postCode={}", tenantId, post.getId(), post.getPostCode());
+            }
+            return post;
+        });
+    }
+
+    /**
+     * 绑定管理员部门和岗位。
+     *
+     * @param tenantId 租户编号
+     * @param adminUser 租户管理员用户
+     * @param tenantDept 租户默认部门
+     * @param tenantPost 租户默认岗位
+     */
+    private void bindAdminOrganization(String tenantId, SysUserEntity adminUser, SysDeptEntity tenantDept, SysPostEntity tenantPost) {
+        ignoreTenantLine(() -> {
+            adminUser.setDeptId(tenantDept.getId());
+            adminUser.setUpdateTime(LocalDateTime.now());
+            sysUserMapper.updateById(adminUser);
+            SysUserPostEntity existing = sysUserPostMapper.selectOne(new LambdaQueryWrapper<SysUserPostEntity>()
+                .eq(SysUserPostEntity::getTenantId, tenantId)
+                .eq(SysUserPostEntity::getUserId, adminUser.getUserId())
+                .eq(SysUserPostEntity::getPostId, tenantPost.getId())
+                .last("limit 1"));
+            if (existing == null) {
+                SysUserPostEntity relation = new SysUserPostEntity();
+                relation.setTenantId(tenantId);
+                relation.setUserId(adminUser.getUserId());
+                relation.setPostId(tenantPost.getId());
+                relation.setCreateTime(LocalDateTime.now());
+                relation.setUpdateTime(LocalDateTime.now());
+                sysUserPostMapper.insert(relation);
+                log.info("绑定租户管理员岗位，tenantId={}，userId={}，postId={}", tenantId, adminUser.getUserId(), tenantPost.getId());
+            } else {
+                log.info("复用租户管理员岗位绑定，tenantId={}，userId={}，postId={}", tenantId, adminUser.getUserId(), tenantPost.getId());
+            }
+            return null;
+        });
+    }
+
+    /**
+     * 加载平台默认部门模板。
+     *
+     * @return 平台默认部门模板
+     */
+    private SysDeptEntity loadPlatformDeptTemplate() {
+        return sysDeptMapper.selectOne(new LambdaQueryWrapper<SysDeptEntity>()
+            .eq(SysDeptEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
+            .eq(SysDeptEntity::getParentId, SystemTenantConstants.ROOT_MENU_PARENT_ID)
+            .eq(SysDeptEntity::getDeptName, SystemTenantConstants.DEFAULT_TENANT_DEPT_NAME)
+            .last("limit 1"));
+    }
+
+    /**
+     * 加载平台默认岗位模板。
+     *
+     * @return 平台默认岗位模板
+     */
+    private SysPostEntity loadPlatformPostTemplate() {
+        return sysPostMapper.selectOne(new LambdaQueryWrapper<SysPostEntity>()
+            .eq(SysPostEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
+            .eq(SysPostEntity::getPostCode, SystemTenantConstants.DEFAULT_TENANT_ADMIN_POST_CODE)
+            .last("limit 1"));
+    }
+
+    /**
+     * 解析租户默认部门名称。
+     *
+     * @param template 平台部门模板
+     * @return 部门名称
+     */
+    private String resolveDeptName(SysDeptEntity template) {
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_DEPT_NAME : template.getDeptName();
+    }
+
+    /**
+     * 解析租户默认部门祖级列表。
+     *
+     * @param template 平台部门模板
+     * @return 祖级列表
+     */
+    private String resolveDeptAncestors(SysDeptEntity template) {
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_DEPT_ANCESTORS : template.getAncestors();
+    }
+
+    /**
+     * 解析租户默认部门排序。
+     *
+     * @param template 平台部门模板
+     * @return 部门排序
+     */
+    private Integer resolveDeptOrder(SysDeptEntity template) {
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_DEPT_ORDER : template.getOrderNum();
+    }
+
+    /**
+     * 解析租户默认部门电话。
+     *
+     * @param tenant 租户实体
+     * @param template 平台部门模板
+     * @return 部门电话
+     */
+    private String resolveDeptPhone(SysTenantEntity tenant, SysDeptEntity template) {
+        if (StringUtils.hasText(tenant.getContactPhone())) {
+            return tenant.getContactPhone();
+        }
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_DEPT_PHONE : template.getPhone();
+    }
+
+    /**
+     * 解析租户默认部门邮箱。
+     *
+     * @param template 平台部门模板
+     * @return 部门邮箱
+     */
+    private String resolveDeptEmail(SysDeptEntity template) {
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_DEPT_EMAIL : template.getEmail();
+    }
+
+    /**
+     * 解析租户默认岗位编码。
+     *
+     * @param template 平台岗位模板
+     * @return 岗位编码
+     */
+    private String resolvePostCode(SysPostEntity template) {
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_ADMIN_POST_CODE : template.getPostCode();
+    }
+
+    /**
+     * 解析租户默认岗位名称。
+     *
+     * @param template 平台岗位模板
+     * @return 岗位名称
+     */
+    private String resolvePostName(SysPostEntity template) {
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_ADMIN_POST_NAME : template.getPostName();
+    }
+
+    /**
+     * 解析租户默认岗位排序。
+     *
+     * @param template 平台岗位模板
+     * @return 岗位排序
+     */
+    private Integer resolvePostOrder(SysPostEntity template) {
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_ADMIN_POST_ORDER : template.getOrderNum();
+    }
+
+    /**
+     * 解析租户默认岗位备注。
+     *
+     * @param template 平台岗位模板
+     * @return 岗位备注
+     */
+    private String resolvePostRemark(SysPostEntity template) {
+        return template == null ? SystemTenantConstants.DEFAULT_TENANT_ADMIN_POST_REMARK : template.getRemark();
     }
 
     /**
