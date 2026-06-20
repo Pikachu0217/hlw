@@ -580,19 +580,25 @@ run_all_cases() {
       run_case "查询租户套餐详情" "GET" "/system/tenant-package/${tenant_package_id}"
       run_case "绑定租户套餐菜单" "PUT" "/system/tenant-package/${tenant_package_id}" "{\"packageName\":\"接口测试套餐更新\",\"menuIds\":[1,3],\"remark\":\"脚本自动绑定菜单\"}"
       run_case "回查租户套餐菜单" "GET" "/system/tenant-package/${tenant_package_id}"
-      run_case "删除租户套餐" "DELETE" "/system/tenant-package/${tenant_package_id}"
     else
       record_skip_case "租户套餐详情更新删除" "GET/PUT/DELETE" "/system/tenant-package/{id}" "-" "创建租户套餐未返回 data.id，跳过串联用例"
     fi
-    run_case "创建租户" "POST" "/system/tenant" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008888\",\"companyName\":\"接口测试医院\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址\",\"intro\":\"脚本自动创建\",\"domain\":\"api-test\",\"remark\":\"接口测试租户\",\"packageId\":1,\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":50,\"status\":\"0\"}"
     local tenant_id
-    tenant_id="$(extract_data_id "${last_body}")"
-    if [ -n "${tenant_id}" ]; then
-      run_case "查询租户详情" "GET" "/system/tenant/${tenant_id}"
-      run_case "更新租户" "PUT" "/system/tenant/${tenant_id}" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008889\",\"companyName\":\"接口测试医院更新\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址更新\",\"intro\":\"脚本自动更新\",\"domain\":\"api-test\",\"remark\":\"接口测试租户更新\",\"packageId\":1,\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":60,\"status\":\"0\"}"
-      run_case "删除租户" "DELETE" "/system/tenant/${tenant_id}"
+    if [ -n "${tenant_package_id}" ]; then
+      run_case "创建租户" "POST" "/system/tenant" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008888\",\"companyName\":\"接口测试医院\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址\",\"intro\":\"脚本自动创建\",\"domain\":\"api-test\",\"remark\":\"接口测试租户\",\"packageId\":${tenant_package_id},\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":50,\"status\":\"0\"}"
+      tenant_id="$(extract_data_id "${last_body}")"
+      if [ -n "${tenant_id}" ]; then
+        run_case "查询租户详情" "GET" "/system/tenant/${tenant_id}"
+        run_case "更新租户" "PUT" "/system/tenant/${tenant_id}" "{\"contactUserName\":\"接口管理员\",\"contactPhone\":\"13800008889\",\"companyName\":\"接口测试医院更新\",\"licenseNumber\":\"LIC-API-TEST\",\"address\":\"接口测试地址更新\",\"intro\":\"脚本自动更新\",\"domain\":\"api-test\",\"remark\":\"接口测试租户更新\",\"packageId\":${tenant_package_id},\"expireTime\":\"2026-12-31 23:59:59\",\"accountCount\":60,\"status\":\"0\"}"
+        run_case "删除租户" "DELETE" "/system/tenant/${tenant_id}"
+      else
+        record_skip_case "租户详情更新删除" "GET/PUT/DELETE" "/system/tenant/{id}" "-" "创建租户未返回 data.id，跳过串联用例"
+      fi
     else
-      record_skip_case "租户详情更新删除" "GET/PUT/DELETE" "/system/tenant/{id}" "-" "创建租户未返回 data.id，跳过串联用例"
+      record_skip_case "创建租户" "POST" "/system/tenant" "-" "创建租户套餐未返回 data.id，无法传入套餐编号"
+    fi
+    if [ -n "${tenant_package_id}" ]; then
+      run_case "删除租户套餐" "DELETE" "/system/tenant-package/${tenant_package_id}"
     fi
   else
     record_skip_case "平台级租户管理" "GET/POST/PUT/DELETE" "/system/tenant" "-" "默认不执行全局租户管理写操作，设置 HLW_API_RUN_PLATFORM_CASES=1 后执行"
