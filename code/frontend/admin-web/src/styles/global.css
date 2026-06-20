@@ -515,6 +515,10 @@ body {
   width: 100%;
 }
 
+.module-form__select {
+  width: 100%;
+}
+
 .module-form__tree-select {
   width: 100%;
 }

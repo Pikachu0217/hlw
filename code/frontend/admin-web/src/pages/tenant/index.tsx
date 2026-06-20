@@ -1,7 +1,7 @@
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { createTenant, deleteTenant, fetchTenants, updateTenant } from '@/api/modules';
+import { createTenant, deleteTenant, fetchTenantPackages, fetchTenants, updateTenant } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
@@ -25,16 +25,22 @@ export interface TenantRecord {
 
 function TenantPage() {
   const { records, loading, refresh } = useModuleRecords(fetchTenants, '租户');
+  const { records: tenantPackages, loading: packageLoading } = useModuleRecords(fetchTenantPackages, '租户套餐');
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<TenantRecord | null>(null);
   const disabledCount = records.filter((record) => record.status !== '0').length;
+  const packageOptions = useMemo(
+    () => tenantPackages.map((item) => ({ label: item.packageName, value: item.id })),
+    [tenantPackages],
+  );
+  const firstPackageId = packageOptions[0]?.value;
 
   const handleOpenCreate = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ packageId: 1, accountCount: 50, status: '0' });
+    form.setFieldsValue({ packageId: firstPackageId, accountCount: 50, status: '0' });
     setOpen(true);
   };
 
@@ -156,8 +162,16 @@ function TenantPage() {
           <Form.Item name="contactPhone" label="联系电话" rules={[{ required: true, message: '请输入联系电话' }]}>
             <Input placeholder="请输入联系电话" />
           </Form.Item>
-          <Form.Item name="packageId" label="套餐编号">
-            <InputNumber min={1} className="module-form__number" />
+          <Form.Item name="packageId" label="租户套餐" rules={[{ required: true, message: '请选择租户套餐' }]}>
+            <Select
+              className="module-form__select"
+              loading={packageLoading}
+              placeholder={packageOptions.length === 0 ? '暂无可用套餐' : '请选择租户套餐'}
+              disabled={packageOptions.length === 0}
+              showSearch
+              optionFilterProp="label"
+              options={packageOptions}
+            />
           </Form.Item>
           <Form.Item name="expireTime" label="到期时间">
             <Input placeholder="例如：2026-12-31 23:59:59" />
