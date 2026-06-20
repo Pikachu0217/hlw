@@ -11,17 +11,31 @@ interface MetricCardItem {
 }
 
 interface ModulePageProps<T extends { id: string | number }> {
+  /** 页面眉标。 */
   eyebrow: string;
+  /** 页面标题。 */
   title: string;
+  /** 页面说明。 */
   description: string;
+  /** 页面徽标文案。 */
   badgeText?: string;
+  /** 指标卡片。 */
   metrics: MetricCardItem[];
+  /** 表格列配置。 */
   columns: ColumnsType<T>;
+  /** 表格数据。 */
   dataSource: T[];
+  /** 加载状态。 */
   loading?: boolean;
+  /** 表格标题。 */
   tableTitle: string;
+  /** 搜索占位文案。 */
   searchPlaceholder: string;
+  /** 搜索文本提取函数。 */
   getSearchText: (record: T) => string;
+  /** 自定义过滤函数。 */
+  filterDataSource?: (records: T[], keyword: string, getSearchText: (record: T) => string) => T[];
+  /** 新增回调。 */
   onCreate?: () => void;
 }
 
@@ -37,13 +51,18 @@ function ModulePage<T extends { id: string | number }>({
   tableTitle,
   searchPlaceholder,
   getSearchText,
+  filterDataSource,
   onCreate,
 }: ModulePageProps<T>) {
   const [keyword, setKeyword] = useState('');
 
-  const filteredData = keyword.trim()
-    ? dataSource.filter((record) => getSearchText(record).toLowerCase().includes(keyword.trim().toLowerCase()))
-    : dataSource;
+  const filteredData = filterDataSource
+    ? filterDataSource(dataSource, keyword, getSearchText)
+    : (
+      keyword.trim()
+        ? dataSource.filter((record) => getSearchText(record).toLowerCase().includes(keyword.trim().toLowerCase()))
+        : dataSource
+    );
 
   return (
     <div className="page-shell">

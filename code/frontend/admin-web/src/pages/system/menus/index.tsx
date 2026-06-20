@@ -1,9 +1,15 @@
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, TreeSelect, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { createMenu, deleteMenu, fetchMenus, updateMenu } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
+import {
+  buildMenuTree,
+  buildParentMenuTreeData,
+  filterMenuTree,
+  type MenuTreeRecord,
+} from '@/utils/menu-tree';
 
 export interface MenuRecord {
   id: number;
@@ -33,6 +39,11 @@ function MenusPage() {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MenuRecord | null>(null);
+  const menuTreeData = useMemo(() => buildMenuTree(records), [records]);
+  const parentMenuTreeData = useMemo(
+    () => buildParentMenuTreeData(records, editingRecord?.id),
+    [editingRecord?.id, records],
+  );
 
   const handleOpenCreate = () => {
     setEditingRecord(null);
@@ -88,7 +99,7 @@ function MenusPage() {
     });
   };
 
-  const columns = useMemo<ColumnsType<MenuRecord>>(
+  const columns = useMemo<ColumnsType<MenuTreeRecord<MenuRecord>>>(
     () => [
       { title: '菜单名称', dataIndex: 'menuName' },
       { title: '类型', dataIndex: 'menuType', render: (value: string) => menuTypeMap[value] ?? value },
@@ -121,7 +132,7 @@ function MenusPage() {
 
   return (
     <>
-      <ModulePage<MenuRecord>
+      <ModulePage<MenuTreeRecord<MenuRecord>>
         eyebrow="系统管理"
         title="菜单与按钮权限"
         description="维护路由节点、组件路径与按钮权限标识，权限控制统一读取菜单 perms。"
@@ -131,11 +142,12 @@ function MenusPage() {
           { label: '按钮权限', value: String(records.filter((record) => record.menuType === 'F' || record.perms).length), hint: '覆盖当前返回菜单' },
         ]}
         columns={columns}
-        dataSource={records}
+        dataSource={menuTreeData}
         loading={loading}
         tableTitle="菜单配置"
         searchPlaceholder="搜索菜单、权限标识或路由"
         getSearchText={(record) => `${record.menuName} ${record.perms ?? ''} ${record.path ?? ''} ${record.component ?? ''}`}
+        filterDataSource={filterMenuTree}
         onCreate={handleOpenCreate}
       />
       <Modal
@@ -168,8 +180,14 @@ function MenusPage() {
               ]}
             />
           </Form.Item>
-          <Form.Item name="parentId" label="父级编号">
-            <InputNumber min={0} className="module-form__number" />
+          <Form.Item name="parentId" label="父级菜单">
+            <TreeSelect
+              allowClear
+              treeDefaultExpandAll
+              treeData={parentMenuTreeData}
+              placeholder="请选择父级菜单"
+              className="module-form__tree-select"
+            />
           </Form.Item>
           <Form.Item name="orderNum" label="排序">
             <InputNumber min={0} className="module-form__number" />

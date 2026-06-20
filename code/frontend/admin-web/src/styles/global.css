@@ -398,6 +398,23 @@ body {
   width: 100%;
 }
 
+.module-form__tree-select {
+  width: 100%;
+}
+
+.role-menu-tree {
+  max-height: 420px;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid rgba(17, 38, 58, 0.08);
+  border-radius: 12px;
+  background: rgba(247, 251, 253, 0.72);
+}
+
+.role-menu-tree .ant-tree-treenode {
+  padding-block: 4px;
+}
+
 .appointment-side-card {
   height: 100%;
 }

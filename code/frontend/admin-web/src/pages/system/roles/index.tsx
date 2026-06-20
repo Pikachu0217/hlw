@@ -1,9 +1,11 @@
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, Tree, message } from 'antd';
+import type { Key } from 'react';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
 import { bindRoleMenus, createRole, deleteRole, fetchMenus, fetchRoleMenus, fetchRoles, updateRole } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
+import { buildRoleMenuTreeData } from '@/utils/menu-tree';
 
 export interface RoleRecord {
   id: number;
@@ -25,6 +27,9 @@ const dataScopeMap: Record<number, string> = {
   5: '仅本人数据',
 };
 
+/** 角色菜单绑定弹窗宽度。 */
+const ROLE_MENU_MODAL_WIDTH = 720;
+
 function RolesPage() {
   const { records, loading, refresh } = useModuleRecords(fetchRoles, '角色');
   const { records: menuOptions } = useModuleRecords(fetchMenus, '菜单');
@@ -38,6 +43,8 @@ function RolesPage() {
   const [editingRecord, setEditingRecord] = useState<RoleRecord | null>(null);
   const [bindingRecord, setBindingRecord] = useState<RoleRecord | null>(null);
   const memberCount = records.reduce((sum, record) => sum + (record.memberCount ?? 0), 0);
+  const roleMenuTreeData = useMemo(() => buildRoleMenuTreeData(menuOptions), [menuOptions]);
+  const checkedMenuIds = Form.useWatch('menuIds', menuForm) ?? [];
 
   const handleOpenCreate = () => {
     setEditingRecord(null);
@@ -121,6 +128,16 @@ function RolesPage() {
     } finally {
       setMenuSubmitting(false);
     }
+  };
+
+  /**
+   * 同步角色菜单树勾选结果到表单。
+   *
+   * @param checkedKeys 勾选菜单编号
+   */
+  const handleMenuTreeCheck = (checkedKeys: Key[] | { checked: Key[]; halfChecked: Key[] }) => {
+    const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked;
+    menuForm.setFieldsValue({ menuIds: keys.map(Number).filter(Number.isFinite) });
   };
 
   const columns = useMemo<ColumnsType<RoleRecord>>(
@@ -221,6 +238,7 @@ function RolesPage() {
       <Modal
         title={bindingRecord ? `绑定菜单：${bindingRecord.roleName}` : '绑定菜单'}
         open={menuOpen}
+        width={ROLE_MENU_MODAL_WIDTH}
         confirmLoading={menuSubmitting}
         onOk={handleBindMenu}
         onCancel={() => setMenuOpen(false)}
@@ -228,16 +246,13 @@ function RolesPage() {
       >
         <Form form={menuForm} layout="vertical" className="module-form">
           <Form.Item name="menuIds" label="菜单">
-            <Select
-              mode="multiple"
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              placeholder="请选择菜单"
-              options={menuOptions.map((menu) => ({
-                label: menu.perms ? `${menu.menuName}（${menu.perms}）` : menu.menuName,
-                value: menu.id,
-              }))}
+            <Tree
+              checkable
+              defaultExpandAll
+              checkedKeys={checkedMenuIds}
+              treeData={roleMenuTreeData}
+              onCheck={handleMenuTreeCheck}
+              className="role-menu-tree"
             />
           </Form.Item>
         </Form>
