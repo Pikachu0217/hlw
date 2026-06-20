@@ -34,7 +34,6 @@ const menuTypeMap: Record<string, string> = {
   C: '菜单',
   F: '按钮',
 };
-const MENU_TABLE_SCROLL_WIDTH = 1380;
 
 function MenusPage() {
   const { records, loading, refresh } = useModuleRecords(fetchMenus, '菜单');
@@ -108,26 +107,25 @@ function MenusPage() {
       {
         title: '菜单名称',
         dataIndex: 'menuName',
-        width: 280,
+        width: 220,
         className: 'menu-config-table__name-column',
         render: (value: string) => <span className="menu-config-table__name">{value}</span>,
       },
-      { title: '类型', dataIndex: 'menuType', width: 96, render: (value: string) => menuTypeMap[value] ?? value },
-      { title: '权限标识', dataIndex: 'perms', width: 280 },
-      { title: '路由路径', dataIndex: 'path', width: 240 },
-      { title: '组件路径', dataIndex: 'component', width: 280 },
-      { title: '排序', dataIndex: 'orderNum', width: 90 },
+      { title: '类型', dataIndex: 'menuType', width: 72, render: (value: string) => menuTypeMap[value] ?? value },
+      { title: '权限标识', dataIndex: 'perms', width: 210 },
+      { title: '路由路径', dataIndex: 'path', width: 170 },
+      { title: '组件路径', dataIndex: 'component', width: 210 },
+      { title: '排序', dataIndex: 'orderNum', width: 64 },
       {
         title: '状态',
         dataIndex: 'status',
-        width: 110,
+        width: 82,
         render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag>,
       },
       {
         title: '操作',
         key: 'actions',
-        width: 100,
-        fixed: 'right',
+        width: 82,
         render: (_: unknown, record: MenuRecord) => (
           <Space size="small">
             <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
@@ -162,7 +160,6 @@ function MenusPage() {
         getSearchText={(record) => `${record.menuName} ${record.perms ?? ''} ${record.path ?? ''} ${record.component ?? ''}`}
         filterDataSource={filterMenuTree}
         tableClassName="menu-config-table"
-        tableScrollX={MENU_TABLE_SCROLL_WIDTH}
         onCreate={handleOpenCreate}
       />
       <Modal

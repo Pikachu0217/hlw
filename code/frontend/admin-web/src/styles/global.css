@@ -473,11 +473,25 @@ body {
 }
 
 .menu-config-table .ant-table {
-  min-width: 1380px;
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.menu-config-table .ant-table-content,
+.menu-config-table .ant-table-container {
+  overflow-x: hidden !important;
+}
+
+.menu-config-table .ant-table-cell {
+  overflow: hidden;
+  padding: 14px 10px !important;
+  font-size: 14px;
+  text-overflow: ellipsis;
 }
 
 .menu-config-table__name-column {
-  min-width: 280px;
+  min-width: 220px;
 }
 
 .menu-config-table__name-column .ant-table-row-indent {
@@ -494,7 +508,7 @@ body {
 
 .menu-config-table__name {
   display: inline-block;
-  max-width: 170px;
+  max-width: min(128px, 100%);
   overflow: hidden;
   vertical-align: bottom;
   text-overflow: ellipsis;
