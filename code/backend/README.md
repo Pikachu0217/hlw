@@ -483,7 +483,7 @@ PUT /gateway/route/{id}
 DELETE /gateway/route/{id}
 ```
 
-认证资料接口会从登录令牌解析用户编号和租户编号，并通过 Feign 回查 `hospital-system` 的 `sys_user` 返回登录用户资料。登录成功和失败会通过 internal Feign 写入系统模块 `sys_login_info`；退出登录只写入 Redis 黑名单，不再回写数据库。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_role` 和 `sys_role_menu` 表；登录前租户选项接口仅返回最小展示字段，租户和租户套餐管理接口仅允许平台租户上下文访问，用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。系统模块会自动采集 `/system/**` 请求的操作日志并写入 `sys_operator_log`，网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
+认证资料接口会从登录令牌解析用户编号和租户编号，并通过 Feign 回查 `hospital-system` 的 `sys_user` 返回登录用户资料。登录成功和失败会通过 internal Feign 写入系统模块 `sys_login_info`；退出登录只写入 Redis 黑名单，不再回写数据库。系统管理接口已接入 `sys_tenant`、系统库 `sys_user`、`sys_dept`、`sys_role`、`sys_menu`、`sys_dict_type`、`sys_dict_data`、`sys_config`、`sys_post`、`sys_tenant_package`、`sys_tenant_package_menu`、`sys_notice`、`sys_login_info`、`sys_operator_log`、`sys_user_role` 和 `sys_role_menu` 表；登录前租户选项接口仅返回最小展示字段，租户和租户套餐管理接口仅允许平台租户上下文访问，用户、部门、角色、菜单、字典、参数配置、岗位、通知公告均提供列表、详情、新增、更新和逻辑删除接口，其中 `/system/menu` 列表按 `parentId` 返回带 `children` 的菜单树；按钮权限统一使用 `sys_menu.perms`，用户角色和角色菜单绑定接口保持创建或覆盖绑定语义，并补充关系详情和逻辑删除接口。系统模块会自动采集 `/system/**` 请求的操作日志并写入 `sys_operator_log`，网关路由配置接口已接入 `gw_route_config`，记录按平台租户 `0` 管理，当前不动态刷新网关主链路路由。
 
 `hospital-auth` 当前约定补充如下：
 

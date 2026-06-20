@@ -15,10 +15,12 @@ export interface MenuTreeSource {
   perms?: string;
   /** 排序号。 */
   orderNum?: number;
+  /** 子菜单列表。 */
+  children?: MenuTreeSource[];
 }
 
 /** 带子节点的菜单树记录。 */
-export type MenuTreeRecord<T extends MenuTreeSource> = T & {
+export type MenuTreeRecord<T extends MenuTreeSource> = Omit<T, 'children'> & {
   /** 子菜单节点。 */
   children?: Array<MenuTreeRecord<T>>;
 };
@@ -46,10 +48,11 @@ export interface MenuTreeSelectNode {
 export function buildMenuTree<T extends MenuTreeSource>(records: T[]): Array<MenuTreeRecord<T>> {
   const nodeMap = new Map<number, MenuTreeRecord<T>>();
   const roots: Array<MenuTreeRecord<T>> = [];
-  const sortedRecords = [...records].sort(compareMenuRecord);
+  const sortedRecords = flattenMenuRecords(records).sort(compareMenuRecord);
 
   sortedRecords.forEach((record) => {
-    nodeMap.set(record.id, { ...record });
+    const { children: ignoredChildren, ...nodeRecord } = record;
+    nodeMap.set(record.id, { ...nodeRecord } as MenuTreeRecord<T>);
   });
 
   sortedRecords.forEach((record) => {
@@ -67,6 +70,23 @@ export function buildMenuTree<T extends MenuTreeSource>(records: T[]): Array<Men
   });
 
   return roots;
+}
+
+/**
+ * 将后端树形菜单或平铺菜单统一展开为平铺列表。
+ *
+ * @param records 菜单记录列表
+ * @return 平铺菜单记录列表
+ */
+function flattenMenuRecords<T extends MenuTreeSource>(records: T[]): T[] {
+  const flattened: T[] = [];
+  records.forEach((record) => {
+    flattened.push(record);
+    if (record.children?.length) {
+      flattened.push(...flattenMenuRecords(record.children as T[]));
+    }
+  });
+  return flattened;
 }
 
 /**

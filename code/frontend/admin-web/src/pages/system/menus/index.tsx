@@ -25,6 +25,7 @@ export interface MenuRecord {
   icon?: string;
   status: string;
   remark?: string;
+  children?: MenuRecord[];
 }
 
 const menuTypeMap: Record<string, string> = {

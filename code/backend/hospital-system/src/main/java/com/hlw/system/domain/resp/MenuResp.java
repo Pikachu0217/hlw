@@ -3,6 +3,8 @@ package com.hlw.system.domain.resp;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 /**
  * 菜单展示对象。
  */
@@ -35,4 +37,6 @@ public class MenuResp {
     private String remark;
     /** 状态。 */
     private String status;
+    /** 子菜单列表。 */
+    private List<MenuResp> children;
 }

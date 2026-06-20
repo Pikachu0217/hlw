@@ -1,7 +1,6 @@
 package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
@@ -33,6 +32,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class MenuService {
+    /** 顶级菜单父编号。 */
+    private static final Long ROOT_MENU_PARENT_ID = 0L;
+    /** 默认菜单排序值。 */
+    private static final Integer DEFAULT_MENU_ORDER = 0;
+
     /** 菜单数据访问组件。 */
     private final SysMenuMapper sysMenuMapper;
     /** 菜单展示对象转换器。 */
@@ -49,9 +53,10 @@ public class MenuService {
         log.info("查询菜单列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
         LambdaQueryWrapper<SysMenuEntity> wrapper = buildListWrapper(query);
-        Page<SysMenuEntity> page = sysMenuMapper.selectPage(query.toPage(), wrapper);
-        List<MenuResp> records = page.getRecords().stream().map(menuConverter::toMenuVO).toList();
-        return new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize());
+        List<SysMenuEntity> menus = sysMenuMapper.selectList(wrapper);
+        List<MenuResp> records = buildMenuTree(menus);
+        log.info("菜单树构建完成，rootCount={}，totalCount={}", records.size(), menus.size());
+        return new PageResult<>(records, menus.size(), query.getPageNum(), query.getPageSize());
     }
 
     /**
@@ -80,7 +85,7 @@ public class MenuService {
         Map<Long, List<SysMenuEntity>> childrenMap = menus.stream()
             .filter(menu -> !"F".equals(menu.getMenuType()))
             .collect(Collectors.groupingBy(SysMenuEntity::getParentId));
-        return childrenMap.getOrDefault(0L, List.of()).stream()
+        return childrenMap.getOrDefault(ROOT_MENU_PARENT_ID, List.of()).stream()
             .sorted(Comparator.comparing(SysMenuEntity::getOrderNum).thenComparing(SysMenuEntity::getId))
             .map(menu -> toRouter(menu, childrenMap))
             .toList();
@@ -176,6 +181,65 @@ public class MenuService {
     }
 
     /**
+     * 将菜单实体列表组装为菜单树。
+     *
+     * @param menus 菜单实体列表
+     * @return 菜单树
+     */
+    private List<MenuResp> buildMenuTree(List<SysMenuEntity> menus) {
+        Map<Long, SysMenuEntity> menuMap = menus.stream()
+            .collect(Collectors.toMap(SysMenuEntity::getId, menu -> menu, (current, next) -> current));
+        Map<Long, List<SysMenuEntity>> childrenMap = menus.stream()
+            .collect(Collectors.groupingBy(menu -> DefaultValueUtils.defaultIfNull(menu.getParentId(), ROOT_MENU_PARENT_ID)));
+        return menus.stream()
+            .filter(menu -> isRootMenu(menu, menuMap))
+            .sorted(menuComparator())
+            .map(menu -> toMenuTreeNode(menu, childrenMap))
+            .toList();
+    }
+
+    /**
+     * 判断菜单是否为树根节点。
+     *
+     * @param menu 菜单实体
+     * @param menuMap 菜单编号映射
+     * @return 是否根节点
+     */
+    private boolean isRootMenu(SysMenuEntity menu, Map<Long, SysMenuEntity> menuMap) {
+        Long parentId = DefaultValueUtils.defaultIfNull(menu.getParentId(), ROOT_MENU_PARENT_ID);
+        return ROOT_MENU_PARENT_ID.equals(parentId) || !menuMap.containsKey(parentId);
+    }
+
+    /**
+     * 转换菜单树节点。
+     *
+     * @param menu 菜单实体
+     * @param childrenMap 子菜单映射
+     * @return 菜单树节点
+     */
+    private MenuResp toMenuTreeNode(SysMenuEntity menu, Map<Long, List<SysMenuEntity>> childrenMap) {
+        MenuResp node = menuConverter.toMenuVO(menu);
+        List<MenuResp> children = childrenMap.getOrDefault(menu.getId(), List.of()).stream()
+            .filter(child -> !child.getId().equals(menu.getId()))
+            .sorted(menuComparator())
+            .map(child -> toMenuTreeNode(child, childrenMap))
+            .toList();
+        node.setChildren(children);
+        return node;
+    }
+
+    /**
+     * 构造菜单排序器。
+     *
+     * @return 菜单排序器
+     */
+    private Comparator<SysMenuEntity> menuComparator() {
+        return Comparator.comparing(
+                (SysMenuEntity menu) -> DefaultValueUtils.defaultIfNull(menu.getOrderNum(), DEFAULT_MENU_ORDER))
+            .thenComparing(SysMenuEntity::getId);
+    }
+
+    /**
      * 填充菜单实体字段。
      *
      * @param entity 菜单实体
@@ -183,8 +247,8 @@ public class MenuService {
      */
     private void fillMenu(SysMenuEntity entity, CreateMenuReq request) {
         entity.setMenuName(request.getMenuName());
-        entity.setParentId(DefaultValueUtils.defaultIfNull(request.getParentId(), 0L));
-        entity.setOrderNum(DefaultValueUtils.defaultIfNull(request.getOrderNum(), 0));
+        entity.setParentId(DefaultValueUtils.defaultIfNull(request.getParentId(), ROOT_MENU_PARENT_ID));
+        entity.setOrderNum(DefaultValueUtils.defaultIfNull(request.getOrderNum(), DEFAULT_MENU_ORDER));
         entity.setPath(DefaultValueUtils.defaultIfBlank(request.getPath(), ""));
         entity.setComponent(request.getComponent());
         entity.setIsFrame(DefaultValueUtils.defaultIfNull(request.getIsFrame(), 1));
