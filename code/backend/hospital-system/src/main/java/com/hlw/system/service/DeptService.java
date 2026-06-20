@@ -101,6 +101,9 @@ public class DeptService {
     public DeptResp updateDept(Long id, CreateDeptReq request) {
         log.info("更新部门，id={}，deptName={}", id, request.getDeptName());
         SysDeptEntity entity = requireDept(id);
+        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
+            throw new com.hlw.common.core.exception.BizException(403, "禁止修改系统默认部门");
+        }
         fillDept(entity, request);
         entity.setAncestors(resolveAncestors(entity.getParentId()));
         entity.setUpdateTime(LocalDateTime.now());
@@ -116,7 +119,10 @@ public class DeptService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteDept(Long id) {
         log.info("删除部门，id={}", id);
-        requireDept(id);
+        SysDeptEntity entity = requireDept(id);
+        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
+            throw new com.hlw.common.core.exception.BizException(403, "禁止删除系统默认部门");
+        }
         sysDeptMapper.deleteById(id);
     }
 

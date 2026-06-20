@@ -30,6 +30,7 @@ public class DeptConverter {
         vo.setPhone(entity.getPhone());
         vo.setEmail(entity.getEmail());
         vo.setStatus(entity.getStatus());
+        vo.setIsDefault(entity.getIsDefault());
         return vo;
     }
 }

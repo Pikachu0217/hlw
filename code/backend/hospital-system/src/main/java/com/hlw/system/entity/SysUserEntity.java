@@ -36,6 +36,8 @@ public class SysUserEntity extends BaseEntity {
     private String password;
     /** 账号状态。 */
     private Integer status;
+    /** 是否默认数据（0=系统默认不可删除，1=普通数据可删除）。 */
+    private Integer isDefault;
     /** 最后登录IP。 */
     private String loginIp;
     /** 最后登录时间。 */

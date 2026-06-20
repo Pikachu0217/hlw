@@ -78,6 +78,7 @@ export interface SystemDeptRecord {
   phone?: string;
   email?: string;
   status: number;
+  isDefault?: number;
 }
 
 export interface CreateSystemDeptPayload {

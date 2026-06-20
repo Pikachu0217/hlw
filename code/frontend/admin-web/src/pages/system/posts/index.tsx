@@ -11,6 +11,7 @@ export interface PostRecord {
   postCode: string;
   orderNum?: number;
   status: number;
+  isDefault?: number;
   remark?: string;
 }
 
@@ -89,16 +90,19 @@ function PostsPage() {
       {
         title: '操作',
         key: 'actions',
-        render: (_: unknown, record: PostRecord) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_: unknown, record: PostRecord) => {
+          const isDefaultPost = record.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenEdit(record)} disabled={isDefaultPost}>
+                编辑
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDelete(record)} disabled={isDefaultPost}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [],

@@ -41,6 +41,7 @@ public class TenantConverter {
         vo.setExpireTime(entity.getExpireTime() == null ? "" : entity.getExpireTime().format(DATE_TIME_FORMATTER));
         vo.setAccountCount(entity.getAccountCount());
         vo.setStatus(entity.getStatus());
+        vo.setIsDefault(entity.getIsDefault());
         return vo;
     }
 }

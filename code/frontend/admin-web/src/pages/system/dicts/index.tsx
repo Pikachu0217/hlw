@@ -330,13 +330,13 @@ function DictsPage() {
         width: 210,
         render: (_: unknown, group: DictTypeGroup) => (
           <Space size="small">
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleOpenTypeEdit(group)}>
+            <Button type="link" size="small" onClick={() => handleOpenTypeEdit(group)}>
               修改
             </Button>
-            <Button type="link" size="small" icon={<UnorderedListOutlined />} onClick={() => handleOpenDataList(group)}>
+            <Button type="link" size="small" onClick={() => handleOpenDataList(group)}>
               列表
             </Button>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteGroup(group)}>
+            <Button type="link" size="small" danger onClick={() => handleDeleteGroup(group)}>
               删除
             </Button>
           </Space>
@@ -365,10 +365,10 @@ function DictsPage() {
         width: 150,
         render: (_: unknown, record: DictRecord) => (
           <Space size="small">
-            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleOpenEdit(record)}>
+            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
               修改
             </Button>
-            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>
+            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
               删除
             </Button>
           </Space>

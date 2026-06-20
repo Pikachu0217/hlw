@@ -19,6 +19,7 @@ export interface UserRecord {
   userType?: string;
   lastLogin?: string;
   status: number;
+  isDefault?: number;
   remark?: string;
 }
 
@@ -146,19 +147,22 @@ function UsersPage() {
       {
         title: '操作',
         key: 'actions',
-        render: (_: unknown, record: UserRecord) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" size="small" onClick={() => handleOpenBindRole(record)}>
-              绑定角色
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_: unknown, record: UserRecord) => {
+          const isDefaultUser = record.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenEdit(record)} disabled={isDefaultUser}>
+                编辑
+              </Button>
+              <Button type="link" size="small" onClick={() => handleOpenBindRole(record)} disabled={isDefaultUser}>
+                绑定角色
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDelete(record)} disabled={isDefaultUser}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [userRoleRecords],

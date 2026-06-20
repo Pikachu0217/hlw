@@ -27,6 +27,7 @@ public class PostConverter {
         vo.setOrderNum(DefaultValueUtils.defaultIfNull(entity.getOrderNum(), 0));
         vo.setRemark(entity.getRemark());
         vo.setStatus(entity.getStatus());
+        vo.setIsDefault(entity.getIsDefault());
         return vo;
     }
 }

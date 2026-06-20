@@ -33,6 +33,7 @@ public class UserConverter {
         vo.setUserType(entity.getUserType());
         vo.setLastLogin(entity.getLoginDate() == null ? "-" : entity.getLoginDate().toString());
         vo.setStatus(entity.getStatus());
+        vo.setIsDefault(entity.getIsDefault());
         vo.setPostName(postName);
         return vo;
     }

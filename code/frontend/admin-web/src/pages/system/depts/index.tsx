@@ -83,16 +83,19 @@ function SystemDeptsPage() {
       {
         title: '操作',
         key: 'actions',
-        render: (_: unknown, record: SystemDeptRecord) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_: unknown, record: SystemDeptRecord) => {
+          const isDefaultDept = record.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenEdit(record)} disabled={isDefaultDept}>
+                编辑
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDelete(record)} disabled={isDefaultDept}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [],

@@ -20,6 +20,7 @@ export interface TenantRecord {
   expireTime?: string;
   accountCount?: number;
   status: string;
+  isDefault?: number;
   remark?: string;
 }
 
@@ -107,16 +108,19 @@ function TenantPage() {
       {
         title: '操作',
         key: 'actions',
-        render: (_: unknown, record: TenantRecord) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_: unknown, record: TenantRecord) => {
+          const isDefaultTenant = record.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenEdit(record)} disabled={isDefaultTenant}>
+                编辑
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDelete(record)} disabled={isDefaultTenant}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [],

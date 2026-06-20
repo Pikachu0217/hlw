@@ -16,6 +16,7 @@ export interface RoleRecord {
   memberCount?: number;
   updatedAt?: string;
   status: number;
+  isDefault?: number;
   remark?: string;
 }
 
@@ -156,19 +157,22 @@ function RolesPage() {
       {
         title: '操作',
         key: 'actions',
-        render: (_: unknown, record: RoleRecord) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" size="small" onClick={() => handleOpenBindMenu(record)}>
-              绑定菜单
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_: unknown, record: RoleRecord) => {
+          const isDefaultRole = record.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenEdit(record)} disabled={isDefaultRole}>
+                编辑
+              </Button>
+              <Button type="link" size="small" onClick={() => handleOpenBindMenu(record)} disabled={isDefaultRole}>
+                绑定菜单
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDelete(record)} disabled={isDefaultRole}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [roleMenuRecords],

@@ -139,6 +139,9 @@ public class UserService {
         String tenantId = MybatisTenantHelpers.currentTenantIdString();
         log.info("更新系统用户，tenantId={}，id={}，userName={}", tenantId, id, request.getUserName());
         SysUserEntity entity = requireUser(id);
+        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
+            throw new com.hlw.common.core.exception.BizException(403, "禁止修改系统默认用户");
+        }
         fillUser(entity, request, false);
         entity.setUpdateTime(LocalDateTime.now());
         sysUserMapper.updateById(entity);
@@ -154,7 +157,10 @@ public class UserService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(Long id) {
         log.info("删除系统用户，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
-        requireUser(id);
+        SysUserEntity entity = requireUser(id);
+        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
+            throw new com.hlw.common.core.exception.BizException(403, "禁止删除系统默认用户");
+        }
         sysUserMapper.deleteById(id);
     }
 

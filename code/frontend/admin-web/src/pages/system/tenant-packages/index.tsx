@@ -12,6 +12,7 @@ export interface TenantPackageRecord {
   packageName: string;
   remark?: string;
   status: number;
+  isDefault?: number;
   menuIds?: number[];
 }
 
@@ -186,19 +187,22 @@ function TenantPackagesPage() {
       {
         title: '操作',
         key: 'actions',
-        render: (_: unknown, record: TenantPackageRecord) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" size="small" onClick={() => handleOpenBindMenu(record)}>
-              绑定菜单
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_: unknown, record: TenantPackageRecord) => {
+          const isDefaultPackage = record.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenEdit(record)} disabled={isDefaultPackage}>
+                编辑
+              </Button>
+              <Button type="link" size="small" onClick={() => handleOpenBindMenu(record)} disabled={isDefaultPackage}>
+                绑定菜单
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDelete(record)} disabled={isDefaultPackage}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [],

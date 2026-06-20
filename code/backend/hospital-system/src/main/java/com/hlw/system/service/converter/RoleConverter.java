@@ -33,6 +33,7 @@ public class RoleConverter {
         vo.setMemberCount(memberCount);
         vo.setUpdatedAt(entity.getUpdateTime() == null ? "-" : entity.getUpdateTime().format(DATE_TIME_FORMATTER));
         vo.setStatus(entity.getStatus());
+        vo.setIsDefault(entity.getIsDefault());
         vo.setRemark(entity.getRemark());
         return vo;
     }

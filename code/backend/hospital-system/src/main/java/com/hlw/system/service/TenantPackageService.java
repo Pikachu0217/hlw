@@ -112,6 +112,9 @@ public class TenantPackageService {
         log.info("更新租户套餐，id={}，packageName={}，menuCount={}",
             id, request.getPackageName(), countMenuIds(request.getMenuIds()));
         SysTenantPackageEntity entity = requirePackage(id);
+        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
+            throw new BizException(403, "禁止修改系统默认套餐");
+        }
         fillPackage(entity, request);
         entity.setUpdateTime(LocalDateTime.now());
         sysTenantPackageMapper.updateById(entity);
@@ -128,7 +131,10 @@ public class TenantPackageService {
     public void deletePackage(Long id) {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以删除租户套餐");
         log.info("删除租户套餐，id={}", id);
-        requirePackage(id);
+        SysTenantPackageEntity entity = requirePackage(id);
+        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
+            throw new BizException(403, "禁止删除系统默认套餐");
+        }
         sysTenantPackageMenuMapper.physicalDeleteByPackageId(SystemTenantConstants.PLATFORM_TENANT_ID, id);
         sysTenantPackageMapper.deleteById(id);
     }
@@ -168,6 +174,7 @@ public class TenantPackageService {
         resp.setPackageName(entity.getPackageName());
         resp.setRemark(entity.getRemark());
         resp.setStatus(entity.getStatus());
+        resp.setIsDefault(entity.getIsDefault());
         resp.setMenuIds(sysTenantPackageMenuMapper.selectList(new LambdaQueryWrapper<SysTenantPackageMenuEntity>()
                 .eq(SysTenantPackageMenuEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
                 .eq(SysTenantPackageMenuEntity::getPackageId, entity.getId())

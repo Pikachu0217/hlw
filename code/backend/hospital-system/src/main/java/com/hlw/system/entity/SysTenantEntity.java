@@ -38,4 +38,6 @@ public class SysTenantEntity extends BaseEntity {
     private Integer accountCount;
     /** 租户状态。 */
     private String status;
+    /** 是否默认数据（0=系统默认不可删除，1=普通数据可删除）。 */
+    private Integer isDefault;
 }
