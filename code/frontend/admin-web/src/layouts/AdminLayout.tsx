@@ -2,15 +2,19 @@ import {
   BellOutlined,
   DownOutlined,
   LogoutOutlined,
+  MenuOutlined,
   UserOutlined,
 } from '@ant-design/icons';
-import { Avatar, Badge, Breadcrumb, Button, Dropdown, Layout, Menu, Space, Tag, Typography } from 'antd';
+import { Avatar, Badge, Breadcrumb, Button, Drawer, Dropdown, Layout, Menu, Space, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
+import { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getNavigationState, navigationTree } from '@/router/navigation';
 import { useAuthStore } from '@/store/auth-store';
 
 const { Header, Content, Sider } = Layout;
+const ADMIN_SIDER_WIDTH = 264;
+const MOBILE_MENU_DRAWER_WIDTH = 292;
 
 type MenuItem = Required<MenuProps>['items'][number];
 
@@ -76,19 +80,23 @@ function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { displayName, roleName, logout } = useAuthStore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigationState = getNavigationState(location.pathname);
   const breadcrumbItems = buildBreadcrumbItems(location.pathname);
   const menuItems = buildMenuItems();
   const accountInitial = displayName.trim().slice(0, 1).toUpperCase() || 'H';
 
+  /** 处理导航菜单点击，并在移动端收起抽屉。 */
   function handleMenuClick({ key }: { key: string }): void {
     const path = findPathByKey(key);
 
     if (path) {
       navigate(path);
+      setMobileMenuOpen(false);
     }
   }
 
+  /** 处理右上角账号菜单点击。 */
   function handleUserMenuClick({ key }: { key: string }): void {
     if (key === 'logout') {
       logout('用户从右上角菜单退出');
@@ -113,9 +121,10 @@ function AdminLayout() {
     },
   ];
 
-  return (
-    <Layout className="admin-shell">
-      <Sider width={264} className="admin-sider">
+  /** 渲染桌面侧边栏与移动端抽屉共用的导航内容。 */
+  function renderNavigationContent(): JSX.Element {
+    return (
+      <>
         <div className="brand-panel">
           <span className="brand-chip">HLW Cloud</span>
           <Typography.Title level={3} className="brand-title">
@@ -134,10 +143,25 @@ function AdminLayout() {
           defaultOpenKeys={navigationState.openKeys}
           onClick={handleMenuClick}
         />
+      </>
+    );
+  }
+
+  return (
+    <Layout className="admin-shell">
+      <Sider width={ADMIN_SIDER_WIDTH} className="admin-sider">
+        {renderNavigationContent()}
       </Sider>
       <Layout>
         <Header className="admin-header">
-          <Space size="large">
+          <div className="header-main">
+            <Button
+              className="admin-mobile-menu-button"
+              shape="circle"
+              icon={<MenuOutlined />}
+              aria-label="打开导航菜单"
+              onClick={() => setMobileMenuOpen(true)}
+            />
             <div>
               <Typography.Text className="header-label">租户视角</Typography.Text>
               <Breadcrumb items={breadcrumbItems} className="admin-breadcrumb" />
@@ -148,7 +172,7 @@ function AdminLayout() {
                 <Tag color="cyan">MVP 骨架</Tag>
               </div>
             </div>
-          </Space>
+          </div>
           <Space size="middle" className="header-actions">
             <Badge dot>
               <Button className="header-notice" shape="circle" icon={<BellOutlined />} />
@@ -174,6 +198,16 @@ function AdminLayout() {
           <Outlet />
         </Content>
       </Layout>
+      <Drawer
+        className="admin-mobile-drawer"
+        width={MOBILE_MENU_DRAWER_WIDTH}
+        placement="left"
+        open={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        closable={false}
+      >
+        {renderNavigationContent()}
+      </Drawer>
     </Layout>
   );
 }
