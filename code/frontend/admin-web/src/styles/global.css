@@ -472,6 +472,35 @@ body {
   padding-block: 4px;
 }
 
+.menu-config-table .ant-table {
+  min-width: 1380px;
+}
+
+.menu-config-table__name-column {
+  min-width: 280px;
+}
+
+.menu-config-table__name-column .ant-table-row-indent {
+  flex-shrink: 0;
+}
+
+.menu-config-table__name-column .ant-table-row-expand-icon {
+  flex-shrink: 0;
+}
+
+.menu-config-table__name-column .ant-table-cell-content {
+  min-width: 0;
+}
+
+.menu-config-table__name {
+  display: inline-block;
+  max-width: 170px;
+  overflow: hidden;
+  vertical-align: bottom;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .dict-list-page {
   display: flex;
   flex-direction: column;

@@ -35,6 +35,10 @@ interface ModulePageProps<T extends { id: string | number }> {
   getSearchText: (record: T) => string;
   /** 自定义过滤函数。 */
   filterDataSource?: (records: T[], keyword: string, getSearchText: (record: T) => string) => T[];
+  /** 表格样式类名。 */
+  tableClassName?: string;
+  /** 表格横向滚动宽度。 */
+  tableScrollX?: number;
   /** 新增回调。 */
   onCreate?: () => void;
 }
@@ -52,6 +56,8 @@ function ModulePage<T extends { id: string | number }>({
   searchPlaceholder,
   getSearchText,
   filterDataSource,
+  tableClassName,
+  tableScrollX,
   onCreate,
 }: ModulePageProps<T>) {
   const [keyword, setKeyword] = useState('');
@@ -104,7 +110,15 @@ function ModulePage<T extends { id: string | number }>({
             <Tag color="blue">当前 {filteredData.length} 条</Tag>
           </Space>
         </div>
-        <Table<T> rowKey="id" columns={columns} dataSource={filteredData} loading={loading} pagination={false} />
+        <Table<T>
+          rowKey="id"
+          className={tableClassName}
+          columns={columns}
+          dataSource={filteredData}
+          loading={loading}
+          pagination={false}
+          scroll={tableScrollX ? { x: tableScrollX } : undefined}
+        />
       </Card>
     </div>
   );
