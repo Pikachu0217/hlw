@@ -40,8 +40,13 @@ body {
 
 .admin-sider {
   padding: 20px 16px;
-  background: rgba(10, 35, 54, 0.94) !important;
+  background: #071a28 !important;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-sider .ant-layout-sider-children {
+  min-height: 100%;
+  background: #071a28;
 }
 
 .brand-panel {
@@ -64,18 +69,63 @@ body {
 }
 
 .admin-menu {
-  background: transparent;
+  color: rgba(243, 251, 255, 0.72);
+  background: transparent !important;
   border-inline-end: none !important;
 }
 
-.admin-menu .ant-menu-item {
+.admin-menu.ant-menu,
+.admin-menu .ant-menu,
+.admin-menu .ant-menu-sub,
+.admin-menu .ant-menu-submenu {
+  color: rgba(243, 251, 255, 0.72);
+  background: transparent !important;
+}
+
+.admin-menu .ant-menu-sub.ant-menu-inline {
+  margin-block: 4px;
+  padding-block: 4px;
+  border-radius: 16px;
+  background: rgba(1, 14, 23, 0.52) !important;
+}
+
+.admin-menu .ant-menu-item,
+.admin-menu .ant-menu-submenu-title {
   height: 48px;
   margin-block: 6px;
   border-radius: 14px;
+  color: rgba(243, 251, 255, 0.72) !important;
+  background: transparent !important;
 }
 
-.admin-menu .ant-menu-item-selected {
+.admin-menu .ant-menu-sub .ant-menu-item {
+  margin-inline: 0;
+}
+
+.admin-menu .ant-menu-item::after {
+  display: none;
+}
+
+.admin-menu .ant-menu-item:hover,
+.admin-menu .ant-menu-submenu-title:hover {
+  color: #f3fbff !important;
+  background: rgba(168, 240, 255, 0.1) !important;
+}
+
+.admin-menu .ant-menu-item-selected,
+.admin-menu .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  color: #ffffff !important;
   background: linear-gradient(135deg, rgba(15, 143, 168, 0.88), rgba(45, 126, 210, 0.72)) !important;
+}
+
+.admin-menu .ant-menu-submenu-open > .ant-menu-submenu-title {
+  color: #f3fbff !important;
+}
+
+.admin-menu .ant-menu-submenu-arrow,
+.admin-menu .ant-menu-title-content,
+.admin-menu .anticon {
+  color: currentColor !important;
 }
 
 .admin-header {
@@ -957,12 +1007,15 @@ body {
   gap: 6px;
 }
 
-.admin-mobile-drawer .ant-drawer-content {
-  background: rgba(10, 35, 54, 0.98);
+.admin-mobile-drawer .ant-drawer-content-wrapper,
+.admin-mobile-drawer .ant-drawer-content,
+.admin-mobile-drawer .ant-drawer-wrapper-body {
+  background: #071a28 !important;
 }
 
 .admin-mobile-drawer .ant-drawer-body {
   padding: 20px 16px;
+  background: #071a28;
 }
 
 .ant-modal {
