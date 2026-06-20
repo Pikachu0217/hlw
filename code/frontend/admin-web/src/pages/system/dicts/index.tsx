@@ -76,24 +76,18 @@ function DictsPage() {
     [dictTypeGroups, typeNameKeyword, typeCodeKeyword],
   );
   const selectedTypeGroup = dictTypeGroups.find((group) => group.dictType === selectedTypeKeys[0]);
-  const activeGroup = dictTypeGroups.find((group) => group.dictType === activeDictType) ?? dictTypeGroups[0];
+  const activeGroup = dictTypeGroups.find((group) => group.dictType === activeDictType);
   const selectedRecords = useMemo(
-    () => filterDictRecords(records, activeGroup?.dictType ?? '', dataKeyword),
-    [records, activeGroup?.dictType, dataKeyword],
+    () => filterDictRecords(records, activeDictType, dataKeyword),
+    [records, activeDictType, dataKeyword],
   );
   const selectedRecord = selectedDataIds.length === 1
     ? selectedRecords.find((record) => record.id === selectedDataIds[0])
     : undefined;
 
   useEffect(() => {
-    if (activeView === DICT_DATA_VIEW && !activeDictType && dictTypeGroups.length > 0) {
-      setSearchParams({ view: DICT_DATA_VIEW, dictType: dictTypeGroups[0].dictType }, { replace: true });
-    }
-  }, [activeDictType, activeView, dictTypeGroups, setSearchParams]);
-
-  useEffect(() => {
     setSelectedDataIds([]);
-  }, [activeGroup?.dictType]);
+  }, [activeDictType]);
 
   /** 聚合字典类型数据，供字典管理主列表展示。 */
   function buildDictTypeGroups(dictRecords: DictRecord[]): DictTypeGroup[] {
@@ -139,7 +133,7 @@ function DictsPage() {
   function filterDictRecords(dictRecords: DictRecord[], dictType: string, keyword: string): DictRecord[] {
     const normalizedKeyword = keyword.trim().toLowerCase();
     return dictRecords
-      .filter((record) => record.dictType === dictType)
+      .filter((record) => (dictType ? record.dictType === dictType : true))
       .filter((record) => {
         if (!normalizedKeyword) {
           return true;
@@ -484,8 +478,17 @@ function DictsPage() {
               <label className="dict-search-item">
                 <span>字典名称</span>
                 <Select
-                  value={activeGroup?.dictType}
-                  onChange={(value) => setSearchParams({ view: DICT_DATA_VIEW, dictType: value })}
+                  allowClear
+                  value={activeDictType || undefined}
+                  placeholder="请选择字典名称"
+                  onChange={(value) => {
+                    if (value) {
+                      setSearchParams({ view: DICT_DATA_VIEW, dictType: value });
+                      return;
+                    }
+                    setSearchParams({ view: DICT_DATA_VIEW });
+                  }}
+                  onClear={() => setSearchParams({ view: DICT_DATA_VIEW })}
                   options={dictTypeGroups.map((group) => ({ label: group.dictName, value: group.dictType }))}
                 />
               </label>
@@ -513,7 +516,7 @@ function DictsPage() {
             </div>
             <div className="dict-list-toolbar">
               <Space wrap>
-                <Button type="primary" ghost icon={<PlusOutlined />} onClick={() => handleOpenCreate(activeGroup)} disabled={!activeGroup}>
+                <Button type="primary" ghost icon={<PlusOutlined />} onClick={() => handleOpenCreate(activeGroup)}>
                   新增
                 </Button>
                 <Button icon={<EditOutlined />} disabled={!selectedRecord} onClick={() => selectedRecord && handleOpenEdit(selectedRecord)}>
