@@ -17,8 +17,6 @@ import { createDict, deleteDict, fetchDicts, updateDict } from '@/api/modules';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 const DEFAULT_DICT_SORT = 0;
-const DICT_TYPE_TABLE_SCROLL_WIDTH = 1120;
-const DICT_DATA_TABLE_SCROLL_WIDTH = 1080;
 const DICT_TYPE_CSV_FILE_NAME = 'dict-type.csv';
 const DICT_DATA_CSV_FILE_NAME = 'dict-data.csv';
 const DICT_DATA_VIEW = 'data';
@@ -329,7 +327,6 @@ function DictsPage() {
       {
         title: '操作',
         key: 'actions',
-        fixed: 'right',
         width: 210,
         render: (_: unknown, group: DictTypeGroup) => (
           <Space size="small">
@@ -365,7 +362,6 @@ function DictsPage() {
       {
         title: '操作',
         key: 'actions',
-        fixed: 'right',
         width: 150,
         render: (_: unknown, record: DictRecord) => (
           <Space size="small">
@@ -457,12 +453,11 @@ function DictsPage() {
             </div>
             <Table<DictTypeGroup>
               rowKey="dictType"
-              className="dict-plain-table"
+              className="system-compact-table dict-plain-table"
               columns={typeColumns}
               dataSource={filteredTypeGroups}
               loading={loading}
               pagination={{ pageSize: 10, showSizeChanger: false }}
-              scroll={{ x: DICT_TYPE_TABLE_SCROLL_WIDTH }}
               rowSelection={{
                 selectedRowKeys: selectedTypeKeys,
                 onChange: setSelectedTypeKeys,
@@ -539,12 +534,11 @@ function DictsPage() {
             </div>
             <Table<DictRecord>
               rowKey="id"
-              className="dict-plain-table"
+              className="system-compact-table dict-plain-table"
               columns={dataColumns}
               dataSource={selectedRecords}
               loading={loading}
               pagination={{ pageSize: 10, showSizeChanger: false }}
-              scroll={{ x: DICT_DATA_TABLE_SCROLL_WIDTH }}
               rowSelection={{
                 selectedRowKeys: selectedDataIds,
                 onChange: setSelectedDataIds,

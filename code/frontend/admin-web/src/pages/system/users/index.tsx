@@ -181,6 +181,7 @@ function UsersPage() {
         tableTitle="用户列表"
         searchPlaceholder="搜索账号、昵称、部门、角色"
         getSearchText={(record) => `${record.userName} ${record.nickName ?? ''} ${record.deptName ?? ''} ${record.roleName ?? ''} ${record.phone ?? ''}`}
+        tableClassName="system-compact-table"
         onCreate={handleOpenCreate}
       />
       <Modal

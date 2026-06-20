@@ -121,6 +121,7 @@ function PostsPage() {
         tableTitle="岗位列表"
         searchPlaceholder="搜索岗位名称、编码或备注"
         getSearchText={(record) => `${record.postName} ${record.postCode} ${record.remark ?? ''}`}
+        tableClassName="system-compact-table"
         onCreate={handleOpenCreate}
       />
       <Modal

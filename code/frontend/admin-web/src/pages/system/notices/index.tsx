@@ -126,6 +126,7 @@ function NoticesPage() {
         tableTitle="通知公告列表"
         searchPlaceholder="搜索标题、类型或内容"
         getSearchText={(record) => `${record.noticeTitle} ${record.noticeType} ${record.noticeContent ?? ''} ${record.remark ?? ''}`}
+        tableClassName="system-compact-table"
         onCreate={handleOpenCreate}
       />
       <Modal

@@ -155,7 +155,14 @@ function SystemLogsPage() {
                       <Tag color="blue">当前 {filteredLoginLogs.length} 条</Tag>
                     </Space>
                   </div>
-                  <Table<SystemLogRecord> rowKey="id" columns={loginColumns} dataSource={filteredLoginLogs} loading={loginLoading} pagination={false} />
+                  <Table<SystemLogRecord>
+                    rowKey="id"
+                    className="system-compact-table"
+                    columns={loginColumns}
+                    dataSource={filteredLoginLogs}
+                    loading={loginLoading}
+                    pagination={false}
+                  />
                 </>
               ),
             },
@@ -185,6 +192,7 @@ function SystemLogsPage() {
                   </div>
                   <Table<SystemLogRecord>
                     rowKey="id"
+                    className="system-compact-table"
                     columns={operatorColumns}
                     dataSource={filteredOperatorLogs}
                     loading={operatorLoading}

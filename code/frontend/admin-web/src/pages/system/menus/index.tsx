@@ -159,7 +159,7 @@ function MenusPage() {
         searchPlaceholder="搜索菜单、权限标识或路由"
         getSearchText={(record) => `${record.menuName} ${record.perms ?? ''} ${record.path ?? ''} ${record.component ?? ''}`}
         filterDataSource={filterMenuTree}
-        tableClassName="menu-config-table"
+        tableClassName="system-compact-table menu-config-table"
         onCreate={handleOpenCreate}
       />
       <Modal

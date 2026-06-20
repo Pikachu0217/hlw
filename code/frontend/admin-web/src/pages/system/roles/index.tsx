@@ -191,6 +191,7 @@ function RolesPage() {
         tableTitle="角色列表"
         searchPlaceholder="搜索角色名称、编码或数据范围"
         getSearchText={(record) => `${record.roleName} ${record.roleCode} ${dataScopeMap[record.dataScope] ?? ''} ${record.status}`}
+        tableClassName="system-compact-table"
         onCreate={handleOpenCreate}
       />
       <Modal

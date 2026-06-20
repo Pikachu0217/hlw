@@ -4,7 +4,7 @@ Java 17 / Spring Boot / Maven 多模块后端 + React 18 / TypeScript / Vite / A
 
 ## 项目工作规则
 
-所有会话必须遵守以下 6 条规则：
+所有会话必须遵守以下 7 条规则：
 
 ### 1. 文档和 Git 提交一律使用中文
 - 所有文档、注释、提交信息、PR 描述均使用中文（简体）。
@@ -32,6 +32,12 @@ Java 17 / Spring Boot / Maven 多模块后端 + React 18 / TypeScript / Vite / A
   - 后端：`code/backend/README.md`（模块列表、接口清单、端口、数据库、构建命令）
   - 前端：`code/frontend/README.md`（应用列表、页面范围、启动命令）
 - 文档更新和代码改动放在同一个提交中。
+
+### 7. 系统模块表格禁止滑动操作栏
+- `code/frontend/admin-web/src/pages/system/` 下所有表格必须保证操作列在当前可视区域内，不使用横向滚动来查看操作按钮。
+- 系统模块表格优先使用紧凑列宽、`table-layout: fixed`、文本省略和操作按钮换行来适配宽度。
+- 禁止在系统模块表格操作列使用 `fixed: 'right'`；如需表格滚动，必须保证操作列无需滑动即可点击。
+- 表格样式必须继续收口到 `src/styles/global.css`，页面只通过 `className` 引用。
 
 ## 项目结构
 

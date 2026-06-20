@@ -472,6 +472,46 @@ body {
   padding-block: 4px;
 }
 
+.system-compact-table.ant-table-wrapper,
+.system-compact-table .ant-table-wrapper {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.system-compact-table .ant-table,
+.console-card .system-compact-table .ant-table,
+.dict-plain-table.system-compact-table .ant-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.system-compact-table .ant-table-container,
+.system-compact-table .ant-table-content,
+.system-compact-table .ant-table-body {
+  overflow-x: hidden !important;
+}
+
+.system-compact-table .ant-table-cell {
+  overflow: hidden;
+  padding: 12px 8px !important;
+  font-size: 13px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.system-compact-table .ant-table-cell:last-child .ant-space {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 6px !important;
+}
+
+.system-compact-table .ant-table-cell:last-child .ant-btn {
+  height: 24px;
+  padding-inline: 2px;
+}
+
 .menu-config-table .ant-table {
   width: 100%;
   min-width: 0;

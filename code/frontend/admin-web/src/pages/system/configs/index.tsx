@@ -114,6 +114,7 @@ function ConfigsPage() {
         tableTitle="参数配置列表"
         searchPlaceholder="搜索配置名称、键或备注"
         getSearchText={(record) => `${record.configName} ${record.configKey} ${record.configValue} ${record.remark ?? ''}`}
+        tableClassName="system-compact-table"
         onCreate={handleOpenCreate}
       />
       <Modal

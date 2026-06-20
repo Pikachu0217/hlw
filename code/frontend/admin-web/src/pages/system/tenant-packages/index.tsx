@@ -147,6 +147,7 @@ function TenantPackagesPage() {
         tableTitle="租户套餐列表"
         searchPlaceholder="搜索套餐名称或备注"
         getSearchText={(record) => `${record.packageName} ${record.remark ?? ''}`}
+        tableClassName="system-compact-table"
         onCreate={handleOpenCreate}
       />
       <Modal

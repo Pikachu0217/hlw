@@ -115,6 +115,7 @@ function SystemDeptsPage() {
         tableTitle="部门列表"
         searchPlaceholder="搜索部门名称、负责人或祖级列表"
         getSearchText={(record) => `${record.deptName} ${record.leader ?? ''} ${record.ancestors} ${record.parentId}`}
+        tableClassName="system-compact-table"
         onCreate={handleOpenCreate}
       />
       <Modal
