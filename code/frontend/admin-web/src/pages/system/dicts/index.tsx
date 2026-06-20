@@ -1,22 +1,29 @@
 import {
+  CloseOutlined,
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
   PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
+  UnorderedListOutlined,
 } from '@ant-design/icons';
-import { Button, Card, Form, Input, InputNumber, Modal, Space, Table, Tag, Typography, message } from 'antd';
+import { Button, Form, Input, InputNumber, Modal, Select, Space, Table, Tag, Typography, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { Key } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { createDict, deleteDict, fetchDicts, updateDict } from '@/api/modules';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 const DEFAULT_DICT_SORT = 0;
-const DICT_TYPE_TABLE_SCROLL_WIDTH = 680;
-const DICT_DATA_TABLE_SCROLL_WIDTH = 760;
-const CSV_FILE_NAME = 'dict-data.csv';
+const DICT_TYPE_TABLE_SCROLL_WIDTH = 1120;
+const DICT_DATA_TABLE_SCROLL_WIDTH = 1080;
+const DICT_TYPE_CSV_FILE_NAME = 'dict-type.csv';
+const DICT_DATA_CSV_FILE_NAME = 'dict-data.csv';
+const DICT_DATA_VIEW = 'data';
+const DEFAULT_STATUS_TEXT = '正常';
+const EMPTY_TIME_TEXT = '-';
 
 export interface DictRecord {
   /** 字典项编号。 */
@@ -36,6 +43,8 @@ export interface DictRecord {
 }
 
 interface DictTypeGroup {
+  /** 字典类型主记录编号。 */
+  firstRecordId: number;
   /** 字典类型编码。 */
   dictType: string;
   /** 字典名称。 */
@@ -48,45 +57,45 @@ interface DictTypeGroup {
 
 function DictsPage() {
   const { records, loading, refresh } = useModuleRecords(fetchDicts, '字典');
+  const [searchParams, setSearchParams] = useSearchParams();
   const [form] = Form.useForm();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<DictRecord | null>(null);
-  const [typeKeyword, setTypeKeyword] = useState('');
+  const [typeNameKeyword, setTypeNameKeyword] = useState('');
+  const [typeCodeKeyword, setTypeCodeKeyword] = useState('');
   const [dataKeyword, setDataKeyword] = useState('');
-  const [selectedDictType, setSelectedDictType] = useState<string>('');
+  const [selectedTypeKeys, setSelectedTypeKeys] = useState<Key[]>([]);
   const [selectedDataIds, setSelectedDataIds] = useState<Key[]>([]);
+  const activeView = searchParams.get('view') === DICT_DATA_VIEW ? DICT_DATA_VIEW : 'type';
+  const activeDictType = searchParams.get('dictType') ?? '';
 
   const dictTypeGroups = useMemo<DictTypeGroup[]>(() => buildDictTypeGroups(records), [records]);
   const filteredTypeGroups = useMemo(
-    () => filterDictTypeGroups(dictTypeGroups, typeKeyword),
-    [dictTypeGroups, typeKeyword],
+    () => filterDictTypeGroups(dictTypeGroups, typeNameKeyword, typeCodeKeyword),
+    [dictTypeGroups, typeNameKeyword, typeCodeKeyword],
   );
-  const selectedGroup = dictTypeGroups.find((group) => group.dictType === selectedDictType);
+  const selectedTypeGroup = dictTypeGroups.find((group) => group.dictType === selectedTypeKeys[0]);
+  const activeGroup = dictTypeGroups.find((group) => group.dictType === activeDictType) ?? dictTypeGroups[0];
   const selectedRecords = useMemo(
-    () => filterDictRecords(records, selectedGroup?.dictType ?? '', dataKeyword),
-    [records, selectedGroup?.dictType, dataKeyword],
+    () => filterDictRecords(records, activeGroup?.dictType ?? '', dataKeyword),
+    [records, activeGroup?.dictType, dataKeyword],
   );
   const selectedRecord = selectedDataIds.length === 1
     ? selectedRecords.find((record) => record.id === selectedDataIds[0])
     : undefined;
 
   useEffect(() => {
-    if (filteredTypeGroups.length === 0) {
-      setSelectedDictType('');
-      return;
+    if (activeView === DICT_DATA_VIEW && !activeDictType && dictTypeGroups.length > 0) {
+      setSearchParams({ view: DICT_DATA_VIEW, dictType: dictTypeGroups[0].dictType }, { replace: true });
     }
-
-    if (!filteredTypeGroups.some((group) => group.dictType === selectedDictType)) {
-      setSelectedDictType(filteredTypeGroups[0].dictType);
-    }
-  }, [filteredTypeGroups, selectedDictType]);
+  }, [activeDictType, activeView, dictTypeGroups, setSearchParams]);
 
   useEffect(() => {
     setSelectedDataIds([]);
-  }, [selectedGroup?.dictType]);
+  }, [activeGroup?.dictType]);
 
-  /** 聚合字典类型数据，供左侧字典管理列表展示。 */
+  /** 聚合字典类型数据，供字典管理主列表展示。 */
   function buildDictTypeGroups(dictRecords: DictRecord[]): DictTypeGroup[] {
     const groupMap = new Map<string, DictTypeGroup>();
 
@@ -101,6 +110,7 @@ function DictsPage() {
       }
 
       groupMap.set(record.dictType, {
+        firstRecordId: record.id,
         dictType: record.dictType,
         dictName: record.dictName || record.dictType,
         remark: record.remark,
@@ -111,17 +121,21 @@ function DictsPage() {
     return Array.from(groupMap.values()).sort((left, right) => left.dictType.localeCompare(right.dictType));
   }
 
-  /** 根据字典名称和类型编码过滤左侧字典类型。 */
-  function filterDictTypeGroups(groups: DictTypeGroup[], keyword: string): DictTypeGroup[] {
-    const normalizedKeyword = keyword.trim().toLowerCase();
-    if (!normalizedKeyword) {
-      return groups;
-    }
+  /** 根据字典名称和字典类型过滤主列表。 */
+  function filterDictTypeGroups(groups: DictTypeGroup[], nameKeyword: string, codeKeyword: string): DictTypeGroup[] {
+    const normalizedNameKeyword = nameKeyword.trim().toLowerCase();
+    const normalizedCodeKeyword = codeKeyword.trim().toLowerCase();
 
-    return groups.filter((group) => `${group.dictName} ${group.dictType} ${group.remark ?? ''}`.toLowerCase().includes(normalizedKeyword));
+    return groups.filter((group) => {
+      const matchName = normalizedNameKeyword
+        ? `${group.dictName} ${group.remark ?? ''}`.toLowerCase().includes(normalizedNameKeyword)
+        : true;
+      const matchCode = normalizedCodeKeyword ? group.dictType.toLowerCase().includes(normalizedCodeKeyword) : true;
+      return matchName && matchCode;
+    });
   }
 
-  /** 根据当前选中字典类型和搜索词过滤右侧字典项。 */
+  /** 根据当前字典类型和字典标签过滤数据列表。 */
   function filterDictRecords(dictRecords: DictRecord[], dictType: string, keyword: string): DictRecord[] {
     const normalizedKeyword = keyword.trim().toLowerCase();
     return dictRecords
@@ -134,27 +148,51 @@ function DictsPage() {
       });
   }
 
-  /** 打开新增字典项弹窗，并带入当前选中的字典类型。 */
-  const handleOpenCreate = () => {
+  /** 跳转到字典数据列表，并带入当前字典类型。 */
+  function handleOpenDataList(group: DictTypeGroup): void {
+    setSearchParams({ view: DICT_DATA_VIEW, dictType: group.dictType });
+  }
+
+  /** 返回字典管理主列表。 */
+  function handleCloseDataList(): void {
+    setSearchParams({});
+  }
+
+  /** 打开新增字典项弹窗。 */
+  function handleOpenCreate(group?: DictTypeGroup): void {
+    const seedGroup = group ?? (activeView === DICT_DATA_VIEW ? activeGroup : undefined);
+
     setEditingRecord(null);
     form.resetFields();
     form.setFieldsValue({
-      dictName: selectedGroup?.dictName,
-      dictType: selectedGroup?.dictType,
+      dictName: seedGroup?.dictName,
+      dictType: seedGroup?.dictType,
       dictSort: DEFAULT_DICT_SORT,
     });
     setOpen(true);
-  };
+  }
 
   /** 打开编辑弹窗并回填当前字典项。 */
-  const handleOpenEdit = (record: DictRecord) => {
+  function handleOpenEdit(record: DictRecord): void {
     setEditingRecord(record);
     form.setFieldsValue(record);
     setOpen(true);
-  };
+  }
+
+  /** 打开字典类型编辑弹窗，使用该类型首条字典数据作为承载记录。 */
+  function handleOpenTypeEdit(group?: DictTypeGroup): void {
+    const targetGroup = group ?? selectedTypeGroup;
+    const targetRecord = records.find((record) => record.id === targetGroup?.firstRecordId);
+
+    if (!targetRecord) {
+      message.info('请选择要修改的字典');
+      return;
+    }
+    handleOpenEdit(targetRecord);
+  }
 
   /** 提交新增或编辑后的字典项数据。 */
-  const handleSubmit = async () => {
+  async function handleSubmit(): Promise<void> {
     const values = await form.validateFields();
     setSubmitting(true);
     try {
@@ -169,16 +207,18 @@ function DictsPage() {
       setEditingRecord(null);
       form.resetFields();
       refresh();
-      setSelectedDictType(values.dictType);
+      if (activeView === DICT_DATA_VIEW) {
+        setSearchParams({ view: DICT_DATA_VIEW, dictType: values.dictType });
+      }
     } catch {
       message.warning(editingRecord ? '字典项更新失败，请检查接口或稍后重试' : '字典项创建失败，请检查接口或稍后重试');
     } finally {
       setSubmitting(false);
     }
-  };
+  }
 
   /** 删除指定字典项。 */
-  const handleDelete = (record: DictRecord) => {
+  function handleDelete(record: DictRecord): void {
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除字典项"${record.dictLabel}"吗？`,
@@ -195,16 +235,76 @@ function DictsPage() {
         }
       },
     });
-  };
+  }
 
-  /** 导出当前选中字典类型下的字典项。 */
-  const handleExport = () => {
+  /** 删除指定字典类型下的全部字典项。 */
+  function handleDeleteGroup(group?: DictTypeGroup): void {
+    const targetGroup = group ?? selectedTypeGroup;
+    const targetRecords = records.filter((record) => record.dictType === targetGroup?.dictType);
+
+    if (!targetGroup || targetRecords.length === 0) {
+      message.info('请选择要删除的字典');
+      return;
+    }
+
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除字典"${targetGroup.dictName}"下的 ${targetRecords.length} 条数据吗？`,
+      okText: '确认',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await Promise.all(targetRecords.map((record) => deleteDict(record.id)));
+          message.success('字典删除成功');
+          setSelectedTypeKeys([]);
+          refresh();
+        } catch {
+          message.warning('字典删除失败，请稍后重试');
+        }
+      },
+    });
+  }
+
+  /** 导出 CSV 文件。 */
+  function exportCsv(fileName: string, csvRows: string[][]): void {
+    const csvContent = csvRows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+    const downloadUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = downloadUrl;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(downloadUrl);
+  }
+
+  /** 导出字典管理主列表。 */
+  function handleExportTypes(): void {
+    if (filteredTypeGroups.length === 0) {
+      message.info('当前没有可导出的字典');
+      return;
+    }
+
+    exportCsv(DICT_TYPE_CSV_FILE_NAME, [
+      ['字典名称', '字典类型', '状态', '备注'],
+      ...filteredTypeGroups.map((group) => [
+        group.dictName,
+        group.dictType,
+        DEFAULT_STATUS_TEXT,
+        group.remark ?? `${group.dictName}列表`,
+      ]),
+    ]);
+  }
+
+  /** 导出当前字典数据列表。 */
+  function handleExportData(): void {
     if (selectedRecords.length === 0) {
       message.info('当前没有可导出的字典数据');
       return;
     }
 
-    const csvRows = [
+    exportCsv(DICT_DATA_CSV_FILE_NAME, [
       ['字典标签', '字典键值', '字典排序', '备注'],
       ...selectedRecords.map((record) => [
         record.dictLabel,
@@ -212,73 +312,73 @@ function DictsPage() {
         String(record.dictSort ?? ''),
         record.remark ?? '',
       ]),
-    ];
-    const csvContent = csvRows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
-    const downloadUrl = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-
-    anchor.href = downloadUrl;
-    anchor.download = CSV_FILE_NAME;
-    anchor.click();
-    URL.revokeObjectURL(downloadUrl);
-  };
+    ]);
+  }
 
   const typeColumns = useMemo<ColumnsType<DictTypeGroup>>(
     () => [
-      { title: '字典名称', dataIndex: 'dictName', width: 160 },
+      { title: '字典编号', width: 110, render: (_: unknown, __: DictTypeGroup, index: number) => index + 1 },
+      { title: '字典名称', dataIndex: 'dictName', width: 180 },
       {
         title: '字典类型',
         dataIndex: 'dictType',
         width: 220,
         render: (value: string) => <Typography.Text className="dict-type-code">{value}</Typography.Text>,
       },
-      { title: '备注', dataIndex: 'remark', width: 180, render: (value?: string) => value || '-' },
+      {
+        title: '状态',
+        width: 120,
+        render: () => <Tag color="blue" className="dict-status-tag">{DEFAULT_STATUS_TEXT}</Tag>,
+      },
+      { title: '备注', dataIndex: 'remark', width: 220, render: (value: string | undefined, group: DictTypeGroup) => value || `${group.dictName}列表` },
+      { title: '创建时间', width: 180, render: () => EMPTY_TIME_TEXT },
       {
         title: '操作',
         key: 'actions',
-        width: 110,
+        fixed: 'right',
+        width: 210,
         render: (_: unknown, group: DictTypeGroup) => (
-          <Button
-            type="link"
-            size="small"
-            icon={<PlusOutlined />}
-            onClick={(event) => {
-              event.stopPropagation();
-              setSelectedDictType(group.dictType);
-              form.resetFields();
-              form.setFieldsValue({
-                dictName: group.dictName,
-                dictType: group.dictType,
-                dictSort: DEFAULT_DICT_SORT,
-              });
-              setEditingRecord(null);
-              setOpen(true);
-            }}
-          >
-            添加
-          </Button>
+          <Space size="small">
+            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleOpenTypeEdit(group)}>
+              修改
+            </Button>
+            <Button type="link" size="small" icon={<UnorderedListOutlined />} onClick={() => handleOpenDataList(group)}>
+              列表
+            </Button>
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteGroup(group)}>
+              删除
+            </Button>
+          </Space>
         ),
       },
     ],
-    [form],
+    [records, selectedTypeGroup],
   );
 
   const dataColumns = useMemo<ColumnsType<DictRecord>>(
     () => [
-      { title: '字典标签', dataIndex: 'dictLabel' },
-      { title: '字典键值', dataIndex: 'dictValue' },
-      { title: '字典排序', dataIndex: 'dictSort' },
-      { title: '备注', dataIndex: 'remark' },
+      { title: '字典编码', width: 110, render: (_: unknown, __: DictRecord, index: number) => index + 1 },
+      { title: '字典标签', dataIndex: 'dictLabel', width: 180 },
+      { title: '字典键值', dataIndex: 'dictValue', width: 180 },
+      { title: '字典排序', dataIndex: 'dictSort', width: 150 },
+      {
+        title: '状态',
+        width: 120,
+        render: () => <Tag color="blue" className="dict-status-tag">{DEFAULT_STATUS_TEXT}</Tag>,
+      },
+      { title: '备注', dataIndex: 'remark', width: 220 },
+      { title: '创建时间', width: 180, render: () => EMPTY_TIME_TEXT },
       {
         title: '操作',
         key: 'actions',
+        fixed: 'right',
+        width: 150,
         render: (_: unknown, record: DictRecord) => (
           <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              编辑
+            <Button type="link" size="small" icon={<EditOutlined />} onClick={() => handleOpenEdit(record)}>
+              修改
             </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+            <Button type="link" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>
               删除
             </Button>
           </Space>
@@ -290,119 +390,153 @@ function DictsPage() {
 
   return (
     <>
-      <div className="dict-workspace">
-        <Card className="dict-panel dict-panel--type" bordered={false}>
-          <div className="dict-panel__header">
-            <Typography.Title level={3} className="dict-panel__title">
-              字典管理
-            </Typography.Title>
-            <Space>
-              <Button shape="circle" icon={<SearchOutlined />} aria-label="搜索字典" />
-              <Button shape="circle" icon={<ReloadOutlined />} aria-label="刷新字典" onClick={refresh} />
-            </Space>
-          </div>
-          <div className="dict-panel__body">
-            <Form layout="vertical" className="dict-filter-form">
-              <Form.Item label="字典名称">
+      <div className="dict-list-page">
+        <div className="dict-view-tabs">
+          <Button type={activeView === 'type' ? 'primary' : 'default'} onClick={handleCloseDataList}>
+            字典管理
+          </Button>
+          {activeView === DICT_DATA_VIEW ? (
+            <Button type="primary">
+              字典数据
+            </Button>
+          ) : null}
+        </div>
+        {activeView === 'type' ? (
+          <>
+            <div className="dict-search-grid dict-search-grid--type">
+              <label className="dict-search-item">
+                <span>字典名称</span>
                 <Input
                   allowClear
-                  value={typeKeyword}
-                  onChange={(event) => setTypeKeyword(event.target.value)}
-                  placeholder="请输入字典名称或类型"
+                  value={typeNameKeyword}
+                  onChange={(event) => setTypeNameKeyword(event.target.value)}
+                  placeholder="请输入字典名称"
                 />
-              </Form.Item>
-              <Space wrap className="dict-toolbar">
-                <Button type="primary" ghost icon={<PlusOutlined />} onClick={handleOpenCreate}>
-                  新增
-                </Button>
-                <Button icon={<EditOutlined />} disabled>
-                  修改
-                </Button>
-                <Button danger icon={<DeleteOutlined />} disabled>
-                  删除
-                </Button>
-                <Button icon={<DownloadOutlined />} onClick={handleExport}>
-                  导出
-                </Button>
+              </label>
+              <label className="dict-search-item">
+                <span>字典类型</span>
+                <Input
+                  allowClear
+                  value={typeCodeKeyword}
+                  onChange={(event) => setTypeCodeKeyword(event.target.value)}
+                  placeholder="请输入字典类型"
+                />
+              </label>
+              <label className="dict-search-item">
+                <span>状态</span>
+                <Select allowClear placeholder="字典状态" options={[{ label: DEFAULT_STATUS_TEXT, value: DEFAULT_STATUS_TEXT }]} />
+              </label>
+              <div className="dict-search-actions">
                 <Button type="primary" icon={<SearchOutlined />}>
                   搜索
                 </Button>
-                <Button icon={<ReloadOutlined />} onClick={() => setTypeKeyword('')}>
+                <Button icon={<ReloadOutlined />} onClick={() => {
+                  setTypeNameKeyword('');
+                  setTypeCodeKeyword('');
+                }}>
                   重置
                 </Button>
+              </div>
+            </div>
+            <div className="dict-list-toolbar">
+              <Space wrap>
+                <Button type="primary" ghost icon={<PlusOutlined />} onClick={() => handleOpenCreate()}>
+                  新增
+                </Button>
+                <Button icon={<EditOutlined />} disabled={!selectedTypeGroup} onClick={() => handleOpenTypeEdit()}>
+                  修改
+                </Button>
+                <Button danger icon={<DeleteOutlined />} disabled={!selectedTypeGroup} onClick={() => handleDeleteGroup()}>
+                  删除
+                </Button>
+                <Button icon={<DownloadOutlined />} onClick={handleExportTypes}>
+                  导出
+                </Button>
+                <Button danger ghost icon={<ReloadOutlined />} onClick={refresh}>
+                  刷新缓存
+                </Button>
               </Space>
-            </Form>
+              <Space>
+                <Button shape="circle" icon={<SearchOutlined />} aria-label="搜索字典" />
+                <Button shape="circle" icon={<ReloadOutlined />} aria-label="刷新字典" onClick={refresh} />
+              </Space>
+            </div>
             <Table<DictTypeGroup>
               rowKey="dictType"
-              className="dict-type-table"
+              className="dict-plain-table"
               columns={typeColumns}
               dataSource={filteredTypeGroups}
               loading={loading}
-              pagination={false}
+              pagination={{ pageSize: 10, showSizeChanger: false }}
               scroll={{ x: DICT_TYPE_TABLE_SCROLL_WIDTH }}
               rowSelection={{
-                type: 'radio',
-                selectedRowKeys: selectedGroup ? [selectedGroup.dictType] : [],
-                onChange: (keys) => setSelectedDictType(String(keys[0] ?? '')),
+                selectedRowKeys: selectedTypeKeys,
+                onChange: setSelectedTypeKeys,
               }}
               onRow={(record) => ({
-                onClick: () => setSelectedDictType(record.dictType),
+                onClick: () => setSelectedTypeKeys([record.dictType]),
               })}
             />
-          </div>
-        </Card>
-        <Card className="dict-panel dict-panel--data" bordered={false}>
-          <div className="dict-panel__header">
-            <div className="dict-panel__title-wrap">
-              <Typography.Title level={3} className="dict-panel__title">
-                字典数据
-              </Typography.Title>
-              <Typography.Text className="dict-panel__crumb">
-                {selectedGroup ? `${selectedGroup.dictName} / ${selectedGroup.dictType}` : '请选择字典'}
-              </Typography.Text>
+          </>
+        ) : (
+          <>
+            <div className="dict-search-grid dict-search-grid--data">
+              <label className="dict-search-item">
+                <span>字典名称</span>
+                <Select
+                  value={activeGroup?.dictType}
+                  onChange={(value) => setSearchParams({ view: DICT_DATA_VIEW, dictType: value })}
+                  options={dictTypeGroups.map((group) => ({ label: group.dictName, value: group.dictType }))}
+                />
+              </label>
+              <label className="dict-search-item">
+                <span>字典标签</span>
+                <Input
+                  allowClear
+                  value={dataKeyword}
+                  onChange={(event) => setDataKeyword(event.target.value)}
+                  placeholder="请输入字典标签"
+                />
+              </label>
+              <label className="dict-search-item">
+                <span>状态</span>
+                <Select allowClear placeholder="数据状态" options={[{ label: DEFAULT_STATUS_TEXT, value: DEFAULT_STATUS_TEXT }]} />
+              </label>
+              <div className="dict-search-actions">
+                <Button type="primary" icon={<SearchOutlined />}>
+                  搜索
+                </Button>
+                <Button icon={<ReloadOutlined />} onClick={() => setDataKeyword('')}>
+                  重置
+                </Button>
+              </div>
             </div>
-            <Space>
-              <Button shape="circle" icon={<SearchOutlined />} aria-label="搜索字典数据" />
-              <Button shape="circle" icon={<ReloadOutlined />} aria-label="刷新字典数据" onClick={refresh} />
-            </Space>
-          </div>
-          <div className="dict-panel__body">
-            <div className="dict-data-filter">
-              <Typography.Text className="dict-filter-label" strong>
-                字典标签
-              </Typography.Text>
-              <Input
-                allowClear
-                value={dataKeyword}
-                onChange={(event) => setDataKeyword(event.target.value)}
-                placeholder="请输入字典标签"
-                className="dict-data-filter__input"
-              />
-              <Button type="primary" icon={<SearchOutlined />}>
-                搜索
-              </Button>
-              <Button icon={<ReloadOutlined />} onClick={() => setDataKeyword('')}>
-                重置
-              </Button>
+            <div className="dict-list-toolbar">
+              <Space wrap>
+                <Button type="primary" ghost icon={<PlusOutlined />} onClick={() => handleOpenCreate(activeGroup)} disabled={!activeGroup}>
+                  新增
+                </Button>
+                <Button icon={<EditOutlined />} disabled={!selectedRecord} onClick={() => selectedRecord && handleOpenEdit(selectedRecord)}>
+                  修改
+                </Button>
+                <Button danger icon={<DeleteOutlined />} disabled={!selectedRecord} onClick={() => selectedRecord && handleDelete(selectedRecord)}>
+                  删除
+                </Button>
+                <Button icon={<DownloadOutlined />} onClick={handleExportData}>
+                  导出
+                </Button>
+                <Button icon={<CloseOutlined />} onClick={handleCloseDataList}>
+                  关闭
+                </Button>
+              </Space>
+              <Space>
+                <Button shape="circle" icon={<SearchOutlined />} aria-label="搜索字典数据" />
+                <Button shape="circle" icon={<ReloadOutlined />} aria-label="刷新字典数据" onClick={refresh} />
+              </Space>
             </div>
-            <Space wrap className="dict-toolbar">
-              <Button type="primary" ghost icon={<PlusOutlined />} onClick={handleOpenCreate} disabled={!selectedGroup}>
-                新增
-              </Button>
-              <Button icon={<EditOutlined />} disabled={!selectedRecord} onClick={() => selectedRecord && handleOpenEdit(selectedRecord)}>
-                修改
-              </Button>
-              <Button danger icon={<DeleteOutlined />} disabled={!selectedRecord} onClick={() => selectedRecord && handleDelete(selectedRecord)}>
-                删除
-              </Button>
-              <Button icon={<DownloadOutlined />} onClick={handleExport}>
-                导出
-              </Button>
-              <Tag color="blue">共 {selectedRecords.length} 条</Tag>
-            </Space>
             <Table<DictRecord>
               rowKey="id"
-              className="dict-data-table"
+              className="dict-plain-table"
               columns={dataColumns}
               dataSource={selectedRecords}
               loading={loading}
@@ -413,8 +547,8 @@ function DictsPage() {
                 onChange: setSelectedDataIds,
               }}
             />
-          </div>
-        </Card>
+          </>
+        )}
       </div>
       <Modal
         title={editingRecord ? '编辑字典项' : '新增字典项'}

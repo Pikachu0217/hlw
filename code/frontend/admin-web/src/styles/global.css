@@ -472,6 +472,96 @@ body {
   padding-block: 4px;
 }
 
+.dict-list-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.dict-view-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 4px;
+}
+
+.dict-view-tabs .ant-btn {
+  min-width: 108px;
+}
+
+.dict-search-grid {
+  display: grid;
+  gap: 18px;
+  align-items: end;
+  padding: 18px 0 4px;
+}
+
+.dict-search-grid--type,
+.dict-search-grid--data {
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) minmax(220px, 0.8fr) auto;
+}
+
+.dict-search-item {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  color: #4b5969;
+  font-weight: 600;
+}
+
+.dict-search-item .ant-input,
+.dict-search-item .ant-select {
+  min-width: 0;
+}
+
+.dict-search-actions {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.dict-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.dict-plain-table {
+  overflow: hidden;
+  border: 1px solid rgba(17, 38, 58, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.dict-plain-table .ant-table-thead > tr > th {
+  color: #334155;
+  font-weight: 700;
+  background: #f7f9fc;
+}
+
+.dict-plain-table .ant-table-tbody > tr > td {
+  border-bottom-color: rgba(17, 38, 58, 0.1);
+}
+
+.dict-plain-table .ant-table-tbody > tr.ant-table-row-selected > td,
+.dict-plain-table .ant-table-tbody > tr:hover > td {
+  background: #eef7ff !important;
+}
+
+.dict-plain-table .ant-table-cell {
+  white-space: nowrap;
+}
+
+.dict-status-tag {
+  min-width: 54px;
+  text-align: center;
+}
+
 .dict-workspace {
   display: grid;
   grid-template-columns: minmax(420px, 0.95fr) minmax(520px, 1.05fr);
@@ -879,6 +969,28 @@ body {
     width: 100%;
   }
 
+  .dict-search-grid--type,
+  .dict-search-grid--data {
+    grid-template-columns: 1fr;
+  }
+
+  .dict-search-actions {
+    width: 100%;
+  }
+
+  .dict-search-actions .ant-btn {
+    flex: 1;
+  }
+
+  .dict-list-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dict-list-toolbar > .ant-space {
+    width: 100%;
+  }
+
   .dict-workspace {
     grid-template-columns: 1fr;
   }
@@ -964,6 +1076,20 @@ body {
 
   .console-card__toolbar .ant-space {
     justify-content: flex-start;
+  }
+
+  .dict-search-grid {
+    gap: 12px;
+  }
+
+  .dict-search-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .dict-view-tabs .ant-btn,
+  .dict-list-toolbar .ant-btn {
+    flex: 1 1 112px;
   }
 
   .dict-panel__header {
