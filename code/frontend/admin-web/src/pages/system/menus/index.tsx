@@ -7,13 +7,14 @@ import { useModuleRecords } from '@/hooks/useModuleRecords';
 import {
   buildMenuTree,
   buildParentMenuTreeData,
+  flattenMenuTree,
   filterMenuTree,
   type MenuTreeRecord,
 } from '@/utils/menu-tree';
 
 export interface MenuRecord {
   id: number;
-  parentId?: number;
+  parentId?: number | string;
   menuName: string;
   menuType: string;
   perms?: string;
@@ -40,6 +41,7 @@ function MenusPage() {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<MenuRecord | null>(null);
+  const allMenuRecords = useMemo(() => flattenMenuTree(records), [records]);
   const menuTreeData = useMemo(() => buildMenuTree(records), [records]);
   const parentMenuTreeData = useMemo(
     () => buildParentMenuTreeData(records, editingRecord?.id),
@@ -138,9 +140,9 @@ function MenusPage() {
         title="菜单与按钮权限"
         description="维护路由节点、组件路径与按钮权限标识，权限控制统一读取菜单 perms。"
         metrics={[
-          { label: '菜单节点', value: String(records.length), hint: '来自后端菜单接口' },
-          { label: '启用菜单', value: String(records.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
-          { label: '按钮权限', value: String(records.filter((record) => record.menuType === 'F' || record.perms).length), hint: '覆盖当前返回菜单' },
+          { label: '菜单节点', value: String(allMenuRecords.length), hint: '来自后端菜单接口' },
+          { label: '启用菜单', value: String(allMenuRecords.filter((record) => record.status === '0').length), hint: '按状态实时统计' },
+          { label: '按钮权限', value: String(allMenuRecords.filter((record) => record.menuType === 'F' || record.perms).length), hint: '覆盖当前返回菜单' },
         ]}
         columns={columns}
         dataSource={menuTreeData}

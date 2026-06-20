@@ -8,7 +8,7 @@ export interface MenuTreeSource {
   /** 菜单编号。 */
   id: number;
   /** 父级菜单编号。 */
-  parentId?: number | null;
+  parentId?: number | string | null;
   /** 菜单名称。 */
   menuName: string;
   /** 权限标识。 */
@@ -70,6 +70,16 @@ export function buildMenuTree<T extends MenuTreeSource>(records: T[]): Array<Men
   });
 
   return roots;
+}
+
+/**
+ * 将菜单树或菜单列表展开为平铺列表。
+ *
+ * @param records 菜单记录列表
+ * @return 平铺菜单记录列表
+ */
+export function flattenMenuTree<T extends MenuTreeSource>(records: T[]): T[] {
+  return flattenMenuRecords(records);
 }
 
 /**
@@ -165,8 +175,12 @@ function compareMenuRecord<T extends MenuTreeSource>(current: T, next: T): numbe
  * @param parentId 原始父级菜单编号
  * @return 标准父级菜单编号
  */
-function normalizeParentId(parentId?: number | null): number {
-  return parentId ?? ROOT_MENU_PARENT_ID;
+function normalizeParentId(parentId?: number | string | null): number {
+  if (parentId == null) {
+    return ROOT_MENU_PARENT_ID;
+  }
+  const parsedParentId = Number(parentId);
+  return Number.isFinite(parsedParentId) ? parsedParentId : ROOT_MENU_PARENT_ID;
 }
 
 /**
