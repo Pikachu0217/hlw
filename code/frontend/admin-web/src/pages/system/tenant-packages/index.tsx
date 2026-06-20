@@ -1,9 +1,11 @@
-import { Button, Form, Input, Modal, Select, Space, Tag, message } from 'antd';
+import { Button, Form, Input, Modal, Select, Space, Tag, Tree, message } from 'antd';
+import type { Key } from 'react';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { createTenantPackage, deleteTenantPackage, fetchTenantPackages, updateTenantPackage } from '@/api/modules';
+import { createTenantPackage, deleteTenantPackage, fetchMenus, fetchTenantPackages, updateTenantPackage } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
+import { buildMenuCheckTreeData } from '@/utils/menu-tree';
 
 export interface TenantPackageRecord {
   id: number;
@@ -17,25 +19,37 @@ interface TenantPackageFormValues {
   packageName: string;
   remark?: string;
   status?: number;
-  menuIdsText?: string;
+  menuIds?: number[];
 }
 
-function parseMenuIds(menuIdsText?: string): number[] {
-  if (!menuIdsText) {
-    return [];
-  }
-  return menuIdsText
-    .split(',')
-    .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item) && item > 0);
+/** 租户套餐菜单绑定弹窗宽度。 */
+const TENANT_PACKAGE_MENU_MODAL_WIDTH = 720;
+
+/**
+ * 将菜单树勾选结果转换为菜单编号列表。
+ *
+ * @param checkedKeys 勾选菜单编号
+ * @return 菜单编号列表
+ */
+function toMenuIds(checkedKeys: Key[] | { checked: Key[]; halfChecked: Key[] }): number[] {
+  const keys = Array.isArray(checkedKeys) ? checkedKeys : checkedKeys.checked;
+  return keys.map(Number).filter(Number.isFinite);
 }
 
 function TenantPackagesPage() {
   const { records, loading, refresh } = useModuleRecords(fetchTenantPackages, '租户套餐');
+  const { records: menuOptions } = useModuleRecords(fetchMenus, '菜单');
   const [form] = Form.useForm<TenantPackageFormValues>();
+  const [menuForm] = Form.useForm<{ menuIds: number[] }>();
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [menuSubmitting, setMenuSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<TenantPackageRecord | null>(null);
+  const [bindingRecord, setBindingRecord] = useState<TenantPackageRecord | null>(null);
+  const packageMenuTreeData = useMemo(() => buildMenuCheckTreeData(menuOptions), [menuOptions]);
+  const checkedFormMenuIds = Form.useWatch('menuIds', form) ?? [];
+  const checkedBindMenuIds = Form.useWatch('menuIds', menuForm) ?? [];
 
   const handleOpenCreate = () => {
     setEditingRecord(null);
@@ -50,7 +64,7 @@ function TenantPackagesPage() {
       packageName: record.packageName,
       remark: record.remark,
       status: record.status,
-      menuIdsText: record.menuIds?.join(','),
+      menuIds: record.menuIds ?? [],
     });
     setOpen(true);
   };
@@ -61,7 +75,7 @@ function TenantPackagesPage() {
       packageName: values.packageName,
       remark: values.remark,
       status: values.status,
-      menuIds: parseMenuIds(values.menuIdsText),
+      menuIds: values.menuIds ?? [],
     };
     setSubmitting(true);
     try {
@@ -81,6 +95,63 @@ function TenantPackagesPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  /**
+   * 打开租户套餐菜单绑定弹窗。
+   *
+   * @param record 租户套餐记录
+   */
+  const handleOpenBindMenu = (record: TenantPackageRecord) => {
+    setBindingRecord(record);
+    menuForm.setFieldsValue({ menuIds: record.menuIds ?? [] });
+    setMenuOpen(true);
+  };
+
+  /**
+   * 保存租户套餐菜单绑定。
+   */
+  const handleBindMenu = async () => {
+    const values = await menuForm.validateFields();
+    if (!bindingRecord) {
+      return;
+    }
+    setMenuSubmitting(true);
+    try {
+      await updateTenantPackage(bindingRecord.id, {
+        packageName: bindingRecord.packageName,
+        remark: bindingRecord.remark,
+        status: bindingRecord.status,
+        menuIds: values.menuIds ?? [],
+      });
+      message.success('租户套餐菜单绑定成功');
+      setMenuOpen(false);
+      setBindingRecord(null);
+      menuForm.resetFields();
+      refresh();
+    } catch {
+      message.warning('租户套餐菜单绑定失败，请检查接口或稍后重试');
+    } finally {
+      setMenuSubmitting(false);
+    }
+  };
+
+  /**
+   * 同步新增编辑表单菜单勾选结果。
+   *
+   * @param checkedKeys 勾选菜单编号
+   */
+  const handleFormMenuTreeCheck = (checkedKeys: Key[] | { checked: Key[]; halfChecked: Key[] }) => {
+    form.setFieldsValue({ menuIds: toMenuIds(checkedKeys) });
+  };
+
+  /**
+   * 同步快捷绑定弹窗菜单勾选结果。
+   *
+   * @param checkedKeys 勾选菜单编号
+   */
+  const handleBindMenuTreeCheck = (checkedKeys: Key[] | { checked: Key[]; halfChecked: Key[] }) => {
+    menuForm.setFieldsValue({ menuIds: toMenuIds(checkedKeys) });
   };
 
   const handleDelete = (record: TenantPackageRecord) => {
@@ -119,6 +190,9 @@ function TenantPackagesPage() {
           <Space size="small">
             <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
               编辑
+            </Button>
+            <Button type="link" size="small" onClick={() => handleOpenBindMenu(record)}>
+              绑定菜单
             </Button>
             <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
               删除
@@ -162,8 +236,15 @@ function TenantPackagesPage() {
           <Form.Item name="packageName" label="套餐名称" rules={[{ required: true, message: '请输入套餐名称' }]}>
             <Input placeholder="请输入套餐名称" />
           </Form.Item>
-          <Form.Item name="menuIdsText" label="菜单编号">
-            <Input placeholder="例如：1,2,3" />
+          <Form.Item name="menuIds" label="绑定菜单">
+            <Tree
+              checkable
+              defaultExpandAll
+              checkedKeys={checkedFormMenuIds}
+              treeData={packageMenuTreeData}
+              onCheck={handleFormMenuTreeCheck}
+              className="module-menu-tree"
+            />
           </Form.Item>
           <Form.Item name="status" label="状态">
             <Select
@@ -175,6 +256,28 @@ function TenantPackagesPage() {
           </Form.Item>
           <Form.Item name="remark" label="备注">
             <Input.TextArea rows={3} placeholder="请输入备注" />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        title={bindingRecord ? `绑定菜单：${bindingRecord.packageName}` : '绑定菜单'}
+        open={menuOpen}
+        width={TENANT_PACKAGE_MENU_MODAL_WIDTH}
+        confirmLoading={menuSubmitting}
+        onOk={handleBindMenu}
+        onCancel={() => setMenuOpen(false)}
+        destroyOnClose
+      >
+        <Form form={menuForm} layout="vertical" className="module-form">
+          <Form.Item name="menuIds" label="菜单">
+            <Tree
+              checkable
+              defaultExpandAll
+              checkedKeys={checkedBindMenuIds}
+              treeData={packageMenuTreeData}
+              onCheck={handleBindMenuTreeCheck}
+              className="module-menu-tree"
+            />
           </Form.Item>
         </Form>
       </Modal>

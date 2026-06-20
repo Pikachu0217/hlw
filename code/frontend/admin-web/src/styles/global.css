@@ -519,7 +519,7 @@ body {
   width: 100%;
 }
 
-.role-menu-tree {
+.module-menu-tree {
   max-height: 420px;
   padding: 12px 14px;
   overflow: auto;
@@ -528,7 +528,7 @@ body {
   background: rgba(247, 251, 253, 0.72);
 }
 
-.role-menu-tree .ant-tree-treenode {
+.module-menu-tree .ant-tree-treenode {
   padding-block: 4px;
 }
 

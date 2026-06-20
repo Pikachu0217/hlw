@@ -578,7 +578,8 @@ run_all_cases() {
     tenant_package_id="$(extract_data_id "${last_body}")"
     if [ -n "${tenant_package_id}" ]; then
       run_case "查询租户套餐详情" "GET" "/system/tenant-package/${tenant_package_id}"
-      run_case "更新租户套餐" "PUT" "/system/tenant-package/${tenant_package_id}" "{\"packageName\":\"接口测试套餐更新\",\"menuIds\":[1],\"remark\":\"脚本自动更新\"}"
+      run_case "绑定租户套餐菜单" "PUT" "/system/tenant-package/${tenant_package_id}" "{\"packageName\":\"接口测试套餐更新\",\"menuIds\":[1,3],\"remark\":\"脚本自动绑定菜单\"}"
+      run_case "回查租户套餐菜单" "GET" "/system/tenant-package/${tenant_package_id}"
       run_case "删除租户套餐" "DELETE" "/system/tenant-package/${tenant_package_id}"
     else
       record_skip_case "租户套餐详情更新删除" "GET/PUT/DELETE" "/system/tenant-package/{id}" "-" "创建租户套餐未返回 data.id，跳过串联用例"

@@ -123,13 +123,23 @@ export function filterMenuTree<T extends MenuTreeSource>(
 }
 
 /**
+ * 构造菜单绑定使用的勾选树。
+ *
+ * @param records 菜单列表
+ * @return 勾选树节点
+ */
+export function buildMenuCheckTreeData<T extends MenuTreeSource>(records: T[]): DataNode[] {
+  return buildMenuTree(records).map(toMenuCheckTreeNode);
+}
+
+/**
  * 构造角色菜单绑定使用的勾选树。
  *
  * @param records 菜单列表
  * @return 勾选树节点
  */
 export function buildRoleMenuTreeData<T extends MenuTreeSource>(records: T[]): DataNode[] {
-  return buildMenuTree(records).map(toRoleMenuTreeNode);
+  return buildMenuCheckTreeData(records);
 }
 
 /**
@@ -206,16 +216,16 @@ function filterMenuTreeNode<T extends MenuTreeSource>(
 }
 
 /**
- * 转换为角色菜单绑定树节点。
+ * 转换为菜单绑定树节点。
  *
  * @param node 菜单树节点
- * @return 角色菜单绑定树节点
+ * @return 菜单绑定树节点
  */
-function toRoleMenuTreeNode<T extends MenuTreeSource>(node: MenuTreeRecord<T>): DataNode {
+function toMenuCheckTreeNode<T extends MenuTreeSource>(node: MenuTreeRecord<T>): DataNode {
   return {
     title: node.perms ? `${node.menuName}（${node.perms}）` : node.menuName,
     key: node.id,
-    children: node.children?.map(toRoleMenuTreeNode),
+    children: node.children?.map(toMenuCheckTreeNode),
   };
 }
 

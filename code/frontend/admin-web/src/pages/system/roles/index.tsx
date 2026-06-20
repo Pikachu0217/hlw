@@ -253,7 +253,7 @@ function RolesPage() {
               checkedKeys={checkedMenuIds}
               treeData={roleMenuTreeData}
               onCheck={handleMenuTreeCheck}
-              className="role-menu-tree"
+              className="module-menu-tree"
             />
           </Form.Item>
         </Form>
