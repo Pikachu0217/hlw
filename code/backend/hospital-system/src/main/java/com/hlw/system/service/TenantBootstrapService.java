@@ -129,15 +129,15 @@ public class TenantBootstrapService {
     }
 
     /**
-     * 清理租户旧套餐菜单和角色菜单绑定。
+     * 清理租户全部菜单和角色菜单绑定。
      *
      * @param tenantId 租户编号
      */
     private void clearTenantPackageBindings(String tenantId) {
         ignoreTenantLine(() -> {
-            int roleMenuCount = sysRoleMenuMapper.physicalDeleteByTenantCopiedMenus(tenantId);
-            int menuCount = sysMenuMapper.physicalDeleteCopiedByTenantId(tenantId);
-            log.info("清理租户旧套餐权限绑定，tenantId={}，roleMenuCount={}，menuCount={}", tenantId, roleMenuCount, menuCount);
+            int roleMenuCount = sysRoleMenuMapper.physicalDeleteByTenantId(tenantId);
+            int menuCount = sysMenuMapper.physicalDeleteByTenantId(tenantId);
+            log.info("清理租户菜单和角色菜单绑定，tenantId={}，roleMenuCount={}，menuCount={}", tenantId, roleMenuCount, menuCount);
             return null;
         });
     }

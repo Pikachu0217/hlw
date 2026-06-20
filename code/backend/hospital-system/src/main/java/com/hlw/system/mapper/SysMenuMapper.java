@@ -12,11 +12,11 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface SysMenuMapper extends BaseMapper<SysMenuEntity> {
     /**
-     * 按租户物理删除套餐复制菜单。
+     * 按租户物理删除全部菜单。
      *
      * @param tenantId 租户编号
      * @return 删除行数
      */
-    @Delete("DELETE FROM sys_menu WHERE tenant_id = #{tenantId} AND source_menu_id IS NOT NULL")
-    int physicalDeleteCopiedByTenantId(@Param("tenantId") String tenantId);
+    @Delete("DELETE FROM sys_menu WHERE tenant_id = #{tenantId}")
+    int physicalDeleteByTenantId(@Param("tenantId") String tenantId);
 }

@@ -22,19 +22,13 @@ public interface SysRoleMenuMapper extends BaseMapper<SysRoleMenuEntity> {
     int physicalDeleteByRoleId(@Param("tenantId") String tenantId, @Param("roleId") Long roleId);
 
     /**
-     * 按租户物理删除套餐复制菜单关联的角色菜单绑定。
+     * 按租户物理删除全部角色菜单绑定。
      *
      * @param tenantId 租户编号
      * @return 删除行数
      */
-    @Delete("""
-        DELETE rm
-        FROM sys_role_menu rm
-        INNER JOIN sys_menu menu ON rm.tenant_id = menu.tenant_id AND rm.menu_id = menu.id
-        WHERE rm.tenant_id = #{tenantId}
-          AND menu.source_menu_id IS NOT NULL
-        """)
-    int physicalDeleteByTenantCopiedMenus(@Param("tenantId") String tenantId);
+    @Delete("DELETE FROM sys_role_menu WHERE tenant_id = #{tenantId}")
+    int physicalDeleteByTenantId(@Param("tenantId") String tenantId);
 
     /**
      * 按主键物理删除角色菜单绑定关系。

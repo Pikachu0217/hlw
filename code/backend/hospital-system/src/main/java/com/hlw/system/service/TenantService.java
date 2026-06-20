@@ -6,6 +6,7 @@ import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.domain.req.CreateTenantReq;
 import com.hlw.system.domain.req.UpdateTenantReq;
 import com.hlw.system.domain.resp.TenantOptionResp;
@@ -156,9 +157,14 @@ public class TenantService {
         entity.setUpdateTime(LocalDateTime.now());
         sysTenantMapper.updateById(entity);
         if (!Objects.equals(oldPackageId, entity.getPackageId())) {
-            log.info("租户套餐发生变更，开始重建套餐权限绑定，tenantId={}，oldPackageId={}，newPackageId={}",
-                entity.getTenantId(), oldPackageId, entity.getPackageId());
-            tenantBootstrapService.rebuildTenantPackageBindings(entity);
+            if (SystemTenantConstants.PLATFORM_TENANT_ID.equals(entity.getTenantId())) {
+                log.info("平台租户套餐发生变更，跳过菜单权限重建，tenantId={}，oldPackageId={}，newPackageId={}",
+                    entity.getTenantId(), oldPackageId, entity.getPackageId());
+            } else {
+                log.info("租户套餐发生变更，开始重建套餐权限绑定，tenantId={}，oldPackageId={}，newPackageId={}",
+                    entity.getTenantId(), oldPackageId, entity.getPackageId());
+                tenantBootstrapService.rebuildTenantPackageBindings(entity);
+            }
         }
         return tenantConverter.toTenantVO(entity, packageEntity);
     }
