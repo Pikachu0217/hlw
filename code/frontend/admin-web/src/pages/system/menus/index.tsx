@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { createMenu, deleteMenu, fetchMenus, updateMenu } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
+import { ADMIN_NAVIGATION_REFRESH_EVENT } from '@/router/navigation';
 import {
   buildMenuTree,
   buildParentMenuTreeData,
@@ -34,6 +35,11 @@ const menuTypeMap: Record<string, string> = {
   C: '菜单',
   F: '按钮',
 };
+
+/** 通知后台布局重新拉取后端菜单路由树。 */
+function emitNavigationRefresh(): void {
+  window.dispatchEvent(new Event(ADMIN_NAVIGATION_REFRESH_EVENT));
+}
 
 function MenusPage() {
   const { records, loading, refresh } = useModuleRecords(fetchMenus, '菜单');
@@ -76,6 +82,7 @@ function MenusPage() {
       setEditingRecord(null);
       form.resetFields();
       refresh();
+      emitNavigationRefresh();
     } catch {
       message.warning(editingRecord ? '菜单更新失败，请检查接口或稍后重试' : '菜单创建失败，请检查接口或稍后重试');
     } finally {
@@ -95,6 +102,7 @@ function MenusPage() {
           await deleteMenu(record.id);
           message.success('菜单删除成功');
           refresh();
+          emitNavigationRefresh();
         } catch {
           message.warning('菜单删除失败，请稍后重试');
         }

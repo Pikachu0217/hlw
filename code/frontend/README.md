@@ -136,8 +136,9 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 
 ## 管理端接口接入
 
-`admin-web` 的系统管理列表接口集中在 `src/api/modules.ts`，当前已接入：
+`admin-web` 的系统管理列表接口集中在 `src/api/modules.ts`，侧边栏导航接口位于 `src/api/navigation.ts`，当前已接入：
 
+- `/system/getRouters`
 - `/system/user`
 - `/system/role`
 - `/system/menu`
@@ -154,6 +155,8 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 - `/doctor/departments`
 
 管理端登录页固定提供并默认选中平台租户 `0`，同时会在未登录状态调用 `GET /system/tenant/options` 获取业务租户编号、企业名称和状态等最小选项字段；提交 `POST /auth/login` 时会在请求体和请求头中携带所选租户编号，确保后台账号按租户隔离登录。
+
+管理端左侧侧边栏登录后调用 `GET /system/getRouters` 获取当前账号可访问路由树，并由后端菜单配置与角色授权决定展示项；前端静态路由配置仅保留页面匹配、图标和面包屑兜底，不再作为侧边栏菜单数据源。
 
 系统管理新增页面统一复用 `ModulePage`，样式继续收口在 `src/styles/global.css`。用户、角色、菜单、字典、参数配置、岗位、部门、租户套餐和通知公告页面均已接入新增、编辑、删除弹窗；菜单管理按 `parentId` 展示菜单树，菜单表单使用树形父级选择，角色绑定菜单弹窗使用可勾选菜单树；租户和租户套餐页面属于平台级全局配置，后端要求平台租户上下文；提交后调用对应 `POST /system/*`、`PUT /system/*/{id}` 和 `DELETE /system/*/{id}` 接口并刷新列表。按钮权限统一维护在菜单 `perms` 字段，不再保留独立权限码页面。
 

@@ -7,9 +7,18 @@ import {
 } from '@ant-design/icons';
 import { Avatar, Badge, Breadcrumb, Button, Drawer, Dropdown, Layout, Menu, Space, Tag, Typography } from 'antd';
 import type { MenuProps } from 'antd';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { getNavigationState, navigationTree } from '@/router/navigation';
+import { fetchCurrentRouters } from '@/api/navigation';
+import {
+  ADMIN_NAVIGATION_REFRESH_EVENT,
+  LOGIN_PATH,
+  buildNavigationFromRouters,
+  findNavigationTrail,
+  getNavigationState,
+  navigationTree,
+  type NavigationItem,
+} from '@/router/navigation';
 import { useAuthStore } from '@/store/auth-store';
 
 const { Header, Content, Sider } = Layout;
@@ -20,7 +29,7 @@ type MenuItem = Required<MenuProps>['items'][number];
 
 function buildMenuItems(items = navigationTree): MenuItem[] {
   return items
-    .filter((item) => item.path !== '/login')
+    .filter((item) => item.path !== LOGIN_PATH)
     .map((item) => {
       if (item.children?.length) {
         return {
@@ -57,13 +66,14 @@ function findPathByKey(key: string, items = navigationTree): string | undefined 
   return undefined;
 }
 
-function buildBreadcrumbItems(pathname: string): { title: string }[] {
-  const { selectedKeys, openKeys } = getNavigationState(pathname);
+function buildBreadcrumbItems(pathname: string, items: NavigationItem[]): { title: string }[] {
+  const breadcrumbItems = findNavigationTrail(pathname, items).length > 0 ? items : navigationTree;
+  const { selectedKeys, openKeys } = getNavigationState(pathname, breadcrumbItems);
   const keys = [...openKeys, ...selectedKeys];
   const titleMap = new Map<string, string>();
 
-  function collectTitles(items = navigationTree): void {
-    items.forEach((item) => {
+  function collectTitles(nodes: NavigationItem[] = breadcrumbItems): void {
+    nodes.forEach((item) => {
       titleMap.set(item.key, item.label);
 
       if (item.children) {
@@ -81,16 +91,67 @@ function AdminLayout() {
   const navigate = useNavigate();
   const { displayName, roleName, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const navigationState = getNavigationState(location.pathname);
-  const breadcrumbItems = buildBreadcrumbItems(location.pathname);
-  const menuItems = buildMenuItems();
+  const [navigationItems, setNavigationItems] = useState<NavigationItem[]>([]);
+  const [menuLoading, setMenuLoading] = useState(true);
+  const navigationState = getNavigationState(location.pathname, navigationItems);
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const navigationOpenKeySignature = navigationState.openKeys.join('|');
+  const breadcrumbItems = buildBreadcrumbItems(location.pathname, navigationItems);
+  const menuItems = useMemo(() => buildMenuItems(navigationItems), [navigationItems]);
   const accountInitial = displayName.trim().slice(0, 1).toUpperCase() || 'H';
+
+  useEffect(() => {
+    let active = true;
+
+    /** 加载当前登录用户可访问的后端菜单。 */
+    async function loadNavigationItems(): Promise<void> {
+      setMenuLoading(true);
+      try {
+        const routers = await fetchCurrentRouters();
+        const nextNavigationItems = buildNavigationFromRouters(routers);
+        if (active) {
+          setNavigationItems(nextNavigationItems);
+        }
+      } catch (error) {
+        console.warn('[admin-navigation] 后端菜单加载失败', error);
+        if (active) {
+          setNavigationItems([]);
+        }
+      } finally {
+        if (active) {
+          setMenuLoading(false);
+        }
+      }
+    }
+
+    /** 响应菜单配置变更事件，重新加载后端菜单。 */
+    function handleNavigationRefresh(): void {
+      void loadNavigationItems();
+    }
+
+    void loadNavigationItems();
+    window.addEventListener(ADMIN_NAVIGATION_REFRESH_EVENT, handleNavigationRefresh);
+
+    return () => {
+      active = false;
+      window.removeEventListener(ADMIN_NAVIGATION_REFRESH_EVENT, handleNavigationRefresh);
+    };
+  }, []);
+
+  useEffect(() => {
+    setOpenKeys(navigationState.openKeys);
+  }, [navigationOpenKeySignature]);
 
   /** 处理导航菜单点击，并在移动端收起抽屉。 */
   function handleMenuClick({ key }: { key: string }): void {
-    const path = findPathByKey(key);
+    const path = findPathByKey(key, navigationItems);
 
     if (path) {
+      if (path.startsWith('http')) {
+        window.open(path, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
       navigate(path);
       setMobileMenuOpen(false);
     }
@@ -140,9 +201,12 @@ function AdminLayout() {
           theme="dark"
           items={menuItems}
           selectedKeys={navigationState.selectedKeys}
-          defaultOpenKeys={navigationState.openKeys}
+          openKeys={openKeys}
+          onOpenChange={(keys) => setOpenKeys(keys.map(String))}
           onClick={handleMenuClick}
         />
+        {!menuLoading && menuItems.length === 0 ? <div className="admin-menu-status">暂无可访问菜单</div> : null}
+        {menuLoading ? <div className="admin-menu-status">菜单加载中</div> : null}
       </>
     );
   }
