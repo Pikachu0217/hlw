@@ -98,7 +98,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_config`;
 CREATE TABLE `sys_config` (
                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '参数主键',
-                              `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                              `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                               `config_name` varchar(100) NOT NULL DEFAULT '' COMMENT '参数名称',
                               `config_key` varchar(100) NOT NULL DEFAULT '' COMMENT '参数键名',
                               `config_value` varchar(500) NOT NULL DEFAULT '' COMMENT '参数键值',
@@ -127,7 +127,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_dept`;
 CREATE TABLE `sys_dept` (
                             `id` bigint NOT NULL AUTO_INCREMENT COMMENT '部门ID',
-                            `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                            `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                             `parent_id` bigint NOT NULL DEFAULT '0' COMMENT '父部门ID',
                             `ancestors` varchar(500) NOT NULL DEFAULT '' COMMENT '祖级列表',
                             `dept_name` varchar(30) NOT NULL DEFAULT '' COMMENT '部门名称',
@@ -161,7 +161,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_dict_data`;
 CREATE TABLE `sys_dict_data` (
                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '字典数据主键',
-                                 `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                                 `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                  `dict_sort` int NOT NULL DEFAULT '0' COMMENT '字典排序',
                                  `dict_label` varchar(100) NOT NULL DEFAULT '' COMMENT '字典标签',
                                  `dict_value` varchar(100) NOT NULL DEFAULT '' COMMENT '字典键值',
@@ -194,7 +194,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_dict_type`;
 CREATE TABLE `sys_dict_type` (
                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '字典主键',
-                                 `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                                 `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                  `dict_name` varchar(100) NOT NULL DEFAULT '' COMMENT '字典名称',
                                  `dict_type` varchar(100) NOT NULL DEFAULT '' COMMENT '字典类型',
                                  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
@@ -221,7 +221,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_login_info`;
 CREATE TABLE `sys_login_info` (
                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '访问ID',
-                                  `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                                  `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                   `user_name` varchar(50) NOT NULL DEFAULT '' COMMENT '用户账号',
                                   `client_key` varchar(32) NOT NULL DEFAULT '' COMMENT '客户端',
                                   `device_type` varchar(32) NOT NULL DEFAULT '' COMMENT '设备类型',
@@ -232,30 +232,17 @@ CREATE TABLE `sys_login_info` (
                                   `status` tinyint NOT NULL DEFAULT '0' COMMENT '登录状态（0成功 1失败）',
                                   `msg` varchar(255) DEFAULT '' COMMENT '提示消息',
                                   `login_time` datetime NOT NULL COMMENT '访问时间',
-                                  `create_by` varchar(34) DEFAULT NULL COMMENT '创建者用户ID',
                                   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-                                  `update_by` varchar(34) DEFAULT NULL COMMENT '更新者用户ID',
                                   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+                                  `create_by` varchar(34)          DEFAULT NULL COMMENT '创建者用户ID',
+                                  `update_by` varchar(34)          DEFAULT NULL COMMENT '更新者用户ID',
                                   `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
                                   PRIMARY KEY (`id`),
                                   KEY `idx_sys_login_info_time` (`tenant_id`,`login_time`),
                                   KEY `idx_sys_login_info_status` (`tenant_id`,`status`),
                                   KEY `idx_sys_login_info_user` (`tenant_id`,`user_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统访问记录';
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='系统访问记录';
 
--- ----------------------------
--- Records of sys_login_info
--- ----------------------------
-BEGIN;
-INSERT INTO `sys_login_info` (`id`, `tenant_id`, `user_name`, `client_key`, `device_type`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (1, '0', 'hlw_admin', 'admin-web', 'PC', '127.0.0.1', '', 'Chrome', 'macOS', 0, '登录成功', '2026-06-19 19:40:09');
-INSERT INTO `sys_login_info` (`id`, `tenant_id`, `user_name`, `client_key`, `device_type`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (2, '0', 'hlw_admin', 'admin-web', 'PC', '127.0.0.1', '', 'Chrome', 'macOS', 1, '用户名或密码错误', '2026-06-19 21:06:17');
-INSERT INTO `sys_login_info` (`id`, `tenant_id`, `user_name`, `client_key`, `device_type`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (3, '0', 'hlw_admin', 'admin-web', 'PC', '127.0.0.1', '', 'Chrome', 'macOS', 1, '用户名或密码错误', '2026-06-19 21:07:42');
-INSERT INTO `sys_login_info` (`id`, `tenant_id`, `user_name`, `client_key`, `device_type`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (4, '0', 'hlw_admin', 'admin-web', 'PC', '127.0.0.1', '', 'Chrome', 'macOS', 1, '用户名或密码错误', '2026-06-19 21:09:04');
-INSERT INTO `sys_login_info` (`id`, `tenant_id`, `user_name`, `client_key`, `device_type`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (5, '0', 'hlw_admin', 'admin-web', 'PC', '127.0.0.1', '', 'Chrome', 'macOS', 1, '用户名或密码错误', '2026-06-19 22:09:42');
-INSERT INTO `sys_login_info` (`id`, `tenant_id`, `user_name`, `client_key`, `device_type`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (6, '100', 'hlw_admin', 'admin-web', 'PC', '127.0.0.1', '', 'Chrome', 'macOS', 0, '登录成功', '2026-06-19 22:11:00');
-INSERT INTO `sys_login_info` (`id`, `tenant_id`, `user_name`, `client_key`, `device_type`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (7, '100', 'hlw_admin', 'admin-web', 'PC', '127.0.0.1', '', 'Chrome', 'macOS', 0, '登录成功', '2026-06-19 22:12:34');
-INSERT INTO `sys_login_info` (`id`, `tenant_id`, `user_name`, `client_key`, `device_type`, `ipaddr`, `login_location`, `browser`, `os`, `status`, `msg`, `login_time`) VALUES (8, '0', 'hlw_admin', 'admin-web', 'PC', '127.0.0.1', '', 'Chrome', 'macOS', 0, '登录成功', '2026-06-19 22:34:04');
-COMMIT;
 
 -- ----------------------------
 -- Table structure for sys_menu
@@ -285,20 +272,71 @@ CREATE TABLE `sys_menu` (
                             KEY `idx_sys_menu_parent` (`parent_id`),
                             KEY `idx_sys_menu_status` (`status`),
                             KEY `idx_sys_menu_perms` (`perms`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='菜单权限表';
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='菜单权限表';
 
 -- ----------------------------
 -- Records of sys_menu
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (1, '工作台', 0, 1, '/dashboard', 'dashboard/index', 1, 'C', '0', '0', 'dashboard:view', 'dashboard', '工作台菜单', NULL, NULL, NULL, NULL, 0);
-INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (2, '医生管理', 0, 2, '/doctor', 'doctor/index', 1, 'C', '0', '0', 'doctor:list', 'doctor', '医生管理菜单', NULL, NULL, NULL, NULL, 0);
-INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (3, '用户管理', 0, 3, '/system/user', 'system/user/index', 1, 'C', '0', '0', 'system:user:list', 'user', '用户管理菜单', NULL, NULL, NULL, NULL, 0);
-INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (4, '角色管理', 0, 4, '/system/role', 'system/role/index', 1, 'C', '0', '0', 'system:role:list', 'peoples', '角色管理菜单', NULL, NULL, NULL, NULL, 0);
-INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (5, '菜单管理', 0, 5, '/system/menu', 'system/menu/index', 1, 'C', '0', '0', 'system:menu:list', 'tree-table', '菜单管理菜单', NULL, NULL, NULL, NULL, 0);
-INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (6, '字典管理', 0, 6, '/system/dict', 'system/dict/index', 1, 'C', '0', '0', 'system:dict:list', 'dict', '字典管理菜单', NULL, NULL, NULL, NULL, 0);
-INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (7, '参数配置', 0, 7, '/system/config', 'system/config/index', 1, 'C', '0', '0', 'system:config:list', 'edit', '参数配置菜单', NULL, NULL, NULL, NULL, 0);
-INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`, `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (8, '岗位管理', 0, 8, '/system/post', 'system/post/index', 1, 'C', '0', '0', 'system:post:list', 'post', '岗位管理菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (1, '0', '工作台', 0, 1, '/dashboard', 'dashboard/index', 1, 'C', '0', '0', 'dashboard:view', 'dashboard',
+        '工作台菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (2, '0', '租户管理', 0, 2, '/tenant', 'tenant/index', 1, 'C', '0', '0', 'tenant:list', 'tenant', '租户管理菜单',
+        NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (3, '0', '系统管理', 0, 3, '', '', 1, 'C', '0', '0', '', 'system', '系统管理菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (10, '0', '用户管理', 3, 1, '/system/user', 'system/user/index', 1, 'C', '0', '0', 'system:user:index', 'doctor',
+        '用户管理菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (11, '0', '角色管理', 3, 2, '/system/role', 'system/role/index', 1, 'C', '0', '0', 'system:role:index', 'user',
+        '角色管理菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (12, '0', '字典管理', 3, 3, '/system/dict', 'system/dict/index', 1, 'C', '0', '0', 'system:dict:index',
+        'peoples', '字典管理菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (13, '0', '参数管理', 3, 4, '/system/config', 'system/config/index', 1, 'C', '0', '0', 'system:config:index',
+        'tree-table', '参数管理菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (14, '0', '岗位管理', 3, 5, '/system/post', 'system/post/index', 1, 'C', '0', '0', 'system:post:index', 'dict',
+        '岗位管理菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (15, '0', '部门配置', 3, 6, '/system/dept', 'system/dept/index', 1, 'C', '0', '0', 'system:dept:index', 'edit',
+        '部门配置菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (16, '0', '套餐管理', 3, 7, '/system/tenant-package', 'system/tenant-package/index', 1, 'C', '0', '0',
+        'system:tenant-package:index', 'post', '套餐菜单', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (17, '0', '通知公告', 3, 8, '/system/notice', 'system/notice/index', 1, 'C', '0', '0', 'system:notice:index',
+        'post', '通知公告', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `is_frame`,
+                        `menu_type`, `visible`, `status`, `perms`, `icon`, `remark`, `create_by`, `create_time`,
+                        `update_by`, `update_time`, `deleted`)
+VALUES (18, '0', '系统日志', 3, 9, '/system/logs', 'system/logs/index', 1, 'C', '0', '0', 'system:logs:index', 'post',
+        '日志管理菜单', NULL, NULL, NULL, NULL, 0);
 COMMIT;
 
 -- ----------------------------
@@ -307,7 +345,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_notice`;
 CREATE TABLE `sys_notice` (
                               `id` bigint NOT NULL AUTO_INCREMENT COMMENT '公告ID',
-                              `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                              `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                               `notice_title` varchar(50) NOT NULL COMMENT '公告标题',
                               `notice_type` char(1) NOT NULL COMMENT '公告类型（1通知 2公告）',
                               `notice_content` longtext COMMENT '公告内容',
@@ -335,7 +373,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_operator_log`;
 CREATE TABLE `sys_operator_log` (
                                     `id` bigint NOT NULL AUTO_INCREMENT COMMENT '日志主键',
-                                    `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                                    `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                     `title` varchar(50) NOT NULL DEFAULT '' COMMENT '模块标题',
                                     `business_type` int NOT NULL DEFAULT '0' COMMENT '业务类型（0其它 1新增 2修改 3删除）',
                                     `method` varchar(100) NOT NULL DEFAULT '' COMMENT '方法名称',
@@ -351,115 +389,19 @@ CREATE TABLE `sys_operator_log` (
                                     `error_msg` text COMMENT '错误消息',
                                     `operator_time` datetime NOT NULL COMMENT '操作时间',
                                     `cost_time` bigint NOT NULL DEFAULT '0' COMMENT '消耗时间',
-                                    `create_by` varchar(34) DEFAULT NULL COMMENT '创建者用户ID',
                                     `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-                                    `update_by` varchar(34) DEFAULT NULL COMMENT '更新者用户ID',
                                     `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+                                    `create_by` varchar(34)          DEFAULT NULL COMMENT '创建者用户ID',
+                                    `update_by` varchar(34)          DEFAULT NULL COMMENT '更新者用户ID',
                                     `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
                                     PRIMARY KEY (`id`),
                                     KEY `idx_sys_operator_log_business` (`tenant_id`,`business_type`),
                                     KEY `idx_sys_operator_log_time` (`tenant_id`,`operator_time`),
                                     KEY `idx_sys_operator_log_status` (`tenant_id`,`status`),
                                     KEY `idx_sys_operator_log_name` (`tenant_id`,`operator_name`)
-) ENGINE=InnoDB AUTO_INCREMENT=93 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志记录';
+) ENGINE=InnoDB AUTO_INCREMENT=790 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='操作日志记录';
 
 -- ----------------------------
--- Records of sys_operator_log
--- ----------------------------
-BEGIN;
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (1, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, 'anonymous', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 15:16:44', 85);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (2, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, 'anonymous', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 15:16:44', 43);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (3, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, '1', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 17:59:58', 437);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (4, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, '1', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 17:59:58', 19);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (5, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 19:40:04', 39);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (6, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 19:40:04', 22);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (7, '0', 'dept', 0, 'com.hlw.system.controller.DeptController.options', 'GET', 1, '1', '', '/system/dept/options', '127.0.0.1', '', '', 0, '', '2026-06-19 19:40:23', 24);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (8, '0', 'dept', 0, 'com.hlw.system.controller.DeptController.options', 'GET', 1, '1', '', '/system/dept/options', '127.0.0.1', '', '', 0, '', '2026-06-19 19:40:23', 20);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (9, '0', 'user', 0, 'com.hlw.system.controller.UserController.list', 'GET', 1, '1', '', '/system/user', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:23', 91);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (10, '0', 'user', 0, 'com.hlw.system.controller.UserController.list', 'GET', 1, '1', '', '/system/user', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:23', 73);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (11, '0', 'role', 0, 'com.hlw.system.controller.RoleController.list', 'GET', 1, '1', '', '/system/role', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:25', 40);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (12, '0', 'role', 0, 'com.hlw.system.controller.RoleController.list', 'GET', 1, '1', '', '/system/role', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:25', 41);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (13, '0', 'menu', 0, 'com.hlw.system.controller.MenuController.list', 'GET', 1, '1', '', '/system/menu', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:26', 47);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (14, '0', 'menu', 0, 'com.hlw.system.controller.MenuController.list', 'GET', 1, '1', '', '/system/menu', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:26', 33);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (15, '0', 'role', 0, 'com.hlw.system.controller.RoleController.list', 'GET', 1, '1', '', '/system/role', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:27', 53);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (16, '0', 'role', 0, 'com.hlw.system.controller.RoleController.list', 'GET', 1, '1', '', '/system/role', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:27', 42);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (17, '0', 'role', 2, 'com.hlw.system.controller.RoleController.updateRole', 'PUT', 1, '1', '', '/system/role/1', '127.0.0.1', '', '', 0, '', '2026-06-19 19:40:34', 70);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (18, '0', 'role', 0, 'com.hlw.system.controller.RoleController.list', 'GET', 1, '1', '', '/system/role', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:34', 44);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (19, '0', 'menu', 0, 'com.hlw.system.controller.MenuController.list', 'GET', 1, '1', '', '/system/menu', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:35', 25);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (20, '0', 'menu', 0, 'com.hlw.system.controller.MenuController.list', 'GET', 1, '1', '', '/system/menu', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:35', 26);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (21, '0', 'dict', 0, 'com.hlw.system.controller.DictController.list', 'GET', 1, '1', '', '/system/dict', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:48', 64);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (22, '0', 'dict', 0, 'com.hlw.system.controller.DictController.list', 'GET', 1, '1', '', '/system/dict', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:48', 37);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (23, '0', 'config', 0, 'com.hlw.system.controller.ConfigController.list', 'GET', 1, '1', '', '/system/config', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:50', 27);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (24, '0', 'config', 0, 'com.hlw.system.controller.ConfigController.list', 'GET', 1, '1', '', '/system/config', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:50', 24);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (25, '0', 'dict', 0, 'com.hlw.system.controller.DictController.list', 'GET', 1, '1', '', '/system/dict', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:51', 39);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (26, '0', 'dict', 0, 'com.hlw.system.controller.DictController.list', 'GET', 1, '1', '', '/system/dict', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:40:51', 39);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (27, '0', 'config', 0, 'com.hlw.system.controller.ConfigController.list', 'GET', 1, '1', '', '/system/config', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:41:14', 32);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (28, '0', 'config', 0, 'com.hlw.system.controller.ConfigController.list', 'GET', 1, '1', '', '/system/config', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:41:14', 25);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (29, '0', 'post', 0, 'com.hlw.system.controller.PostController.list', 'GET', 1, '1', '', '/system/post', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:41:15', 36);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (30, '0', 'post', 0, 'com.hlw.system.controller.PostController.list', 'GET', 1, '1', '', '/system/post', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:41:15', 26);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (31, '0', 'dept', 0, 'com.hlw.system.controller.DeptController.list', 'GET', 1, '1', '', '/system/dept', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:41:16', 40);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (32, '0', 'dept', 0, 'com.hlw.system.controller.DeptController.list', 'GET', 1, '1', '', '/system/dept', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:41:16', 28);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (33, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:41:28', 10);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (34, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 19:41:28', 3);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (35, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 20:43:15', 40);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (36, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 20:43:15', 3);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (37, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:05:30', 364);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (38, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:05:30', 20);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (39, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:09:07', 27);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (40, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:09:07', 19);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (41, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:39:37', 140);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (42, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:39:37', 21);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (43, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:39:38', 23);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (44, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:39:38', 20);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (45, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:39:48', 17);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (46, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:39:48', 17);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (47, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:48:23', 71);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (48, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:48:43', 53);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (49, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:49:15', 72);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (50, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:49:47', 48);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (51, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 21:50:44', 61);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (52, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:06:17', 1045);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (53, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:06:17', 258);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (54, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:06:17', 50);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (55, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:07:34', 39);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (56, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:07:34', 18);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (57, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:09:03', 36);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (58, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:09:32', 34);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (59, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:09:32', 31);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (60, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:10:17', 56);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (61, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:10:17', 20);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (62, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:10:22', 25);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (63, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:10:22', 17);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (64, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:10:23', 23);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (65, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:10:23', 19);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (66, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:11:13', 16);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (67, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:11:13', 7);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (68, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:12:21', 49);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (69, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:12:22', 23);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (70, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:13:41', 36);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (71, '-1', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:33:53', 40);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (72, '-1', 'tenant', 0, 'com.hlw.system.controller.TenantController.options', 'GET', 1, 'anonymous', '', '/system/tenant/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:33:53', 21);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (73, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:06', 105);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (74, '0', 'tenant', 0, 'com.hlw.system.controller.TenantController.list', 'GET', 1, '1', '', '/system/tenant', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:06', 43);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (75, '0', 'dept', 0, 'com.hlw.system.controller.DeptController.options', 'GET', 1, '1', '', '/system/dept/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:34:40', 49);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (76, '0', 'dept', 0, 'com.hlw.system.controller.DeptController.options', 'GET', 1, '1', '', '/system/dept/options', '127.0.0.1', '', '', 0, '', '2026-06-19 22:34:40', 19);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (77, '0', 'user', 0, 'com.hlw.system.controller.UserController.list', 'GET', 1, '1', '', '/system/user', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:40', 111);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (78, '0', 'user', 0, 'com.hlw.system.controller.UserController.list', 'GET', 1, '1', '', '/system/user', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:40', 67);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (79, '0', 'role', 0, 'com.hlw.system.controller.RoleController.list', 'GET', 1, '1', '', '/system/role', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:41', 55);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (80, '0', 'role', 0, 'com.hlw.system.controller.RoleController.list', 'GET', 1, '1', '', '/system/role', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:41', 38);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (81, '0', 'menu', 0, 'com.hlw.system.controller.MenuController.list', 'GET', 1, '1', '', '/system/menu', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:41', 114);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (82, '0', 'menu', 0, 'com.hlw.system.controller.MenuController.list', 'GET', 1, '1', '', '/system/menu', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:41', 41);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (83, '0', 'dict', 0, 'com.hlw.system.controller.DictController.list', 'GET', 1, '1', '', '/system/dict', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:43', 38);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (84, '0', 'dict', 0, 'com.hlw.system.controller.DictController.list', 'GET', 1, '1', '', '/system/dict', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:43', 35);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (85, '0', 'config', 0, 'com.hlw.system.controller.ConfigController.list', 'GET', 1, '1', '', '/system/config', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:43', 37);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (86, '0', 'config', 0, 'com.hlw.system.controller.ConfigController.list', 'GET', 1, '1', '', '/system/config', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:43', 24);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (87, '0', 'post', 0, 'com.hlw.system.controller.PostController.list', 'GET', 1, '1', '', '/system/post', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:44', 36);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (88, '0', 'post', 0, 'com.hlw.system.controller.PostController.list', 'GET', 1, '1', '', '/system/post', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:44', 25);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (89, '0', 'dept', 0, 'com.hlw.system.controller.DeptController.list', 'GET', 1, '1', '', '/system/dept', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:45', 29);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (90, '0', 'dept', 0, 'com.hlw.system.controller.DeptController.list', 'GET', 1, '1', '', '/system/dept', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:45', 28);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (91, '0', 'tenant-package', 0, 'com.hlw.system.controller.TenantPackageController.list', 'GET', 1, '1', '', '/system/tenant-package', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:45', 41);
-INSERT INTO `sys_operator_log` (`id`, `tenant_id`, `title`, `business_type`, `method`, `request_method`, `operator_type`, `operator_name`, `dept_name`, `operator_url`, `operator_ip`, `operator_param`, `json_result`, `status`, `error_msg`, `operator_time`, `cost_time`) VALUES (92, '0', 'tenant-package', 0, 'com.hlw.system.controller.TenantPackageController.list', 'GET', 1, '1', '', '/system/tenant-package', '127.0.0.1', 'pageNum=[1]&pageSize=[500]', '', 0, '', '2026-06-19 22:34:45', 32);
-COMMIT;
 
 -- ----------------------------
 -- Table structure for sys_post
@@ -467,7 +409,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_post`;
 CREATE TABLE `sys_post` (
                             `id` bigint NOT NULL AUTO_INCREMENT COMMENT '岗位ID',
-                            `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                            `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                             `post_code` varchar(64) NOT NULL COMMENT '岗位编码',
                             `post_name` varchar(50) NOT NULL COMMENT '岗位名称',
                             `order_num` int NOT NULL COMMENT '显示顺序',
@@ -498,7 +440,7 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_role`;
 CREATE TABLE `sys_role` (
                             `id` bigint NOT NULL AUTO_INCREMENT COMMENT '角色ID',
-                            `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                            `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                             `role_name` varchar(30) NOT NULL COMMENT '角色名称',
                             `role_code` varchar(100) NOT NULL COMMENT '角色权限字符串',
                             `order_num` int NOT NULL COMMENT '显示顺序',
@@ -520,7 +462,9 @@ CREATE TABLE `sys_role` (
 -- ----------------------------
 BEGIN;
 INSERT INTO `sys_role` (`id`, `tenant_id`, `role_name`, `role_code`, `order_num`, `data_scope`, `status`, `remark`, `deleted`, `create_by`, `create_time`, `update_by`, `update_time`) VALUES (1, '0', '系统管理员', 'SYSTEM_ADMIN', 1, 1, 0, '系统初始化管理员角色', 0, NULL, NULL, NULL, '2026-06-19 19:40:34');
-INSERT INTO `sys_role` (`id`, `tenant_id`, `role_name`, `role_code`, `order_num`, `data_scope`, `status`, `remark`, `deleted`, `create_by`, `create_time`, `update_by`, `update_time`) VALUES (2, '0', '运营管理员', 'OPERATOR_ADMIN', 2, 2, 0, '系统初始化运营角色', 0, NULL, NULL, NULL, NULL);
+INSERT INTO `sys_role` (`id`, `tenant_id`, `role_name`, `role_code`, `order_num`, `data_scope`, `status`, `remark`,
+                        `deleted`, `create_by`, `create_time`, `update_by`, `update_time`)
+VALUES (2, '0', '运营管理员', 'OPERATOR_ADMIN', 2, 2, 0, '系统初始化运营角色', 1, NULL, NULL, NULL, NULL);
 COMMIT;
 
 -- ----------------------------
@@ -529,13 +473,13 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_role_dept`;
 CREATE TABLE `sys_role_dept` (
                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                 `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                                 `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                  `role_id` bigint NOT NULL COMMENT '角色ID',
                                  `dept_id` bigint NOT NULL COMMENT '部门ID',
-                                 `create_by` varchar(34) DEFAULT NULL COMMENT '创建者用户ID',
                                  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(34) DEFAULT NULL COMMENT '更新者用户ID',
                                  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+                                 `create_by` varchar(34)          DEFAULT NULL COMMENT '创建者用户ID',
+                                 `update_by` varchar(34)          DEFAULT NULL COMMENT '更新者用户ID',
                                  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
                                  PRIMARY KEY (`id`),
                                  UNIQUE KEY `uk_sys_role_dept` (`tenant_id`,`role_id`,`dept_id`),
@@ -554,33 +498,50 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_role_menu`;
 CREATE TABLE `sys_role_menu` (
                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                 `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                                 `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                  `role_id` bigint NOT NULL COMMENT '角色ID',
                                  `menu_id` bigint NOT NULL COMMENT '菜单ID',
-                                 `create_by` varchar(34) DEFAULT NULL COMMENT '创建者用户ID',
                                  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(34) DEFAULT NULL COMMENT '更新者用户ID',
                                  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+                                 `create_by` varchar(34)          DEFAULT NULL COMMENT '创建者用户ID',
+                                 `update_by` varchar(34)          DEFAULT NULL COMMENT '更新者用户ID',
                                  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
                                  PRIMARY KEY (`id`),
                                  UNIQUE KEY `uk_sys_role_menu` (`tenant_id`,`role_id`,`menu_id`),
                                  KEY `idx_sys_role_menu_menu` (`tenant_id`,`menu_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色和菜单关联表';
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='角色和菜单关联表';
 
 -- ----------------------------
 -- Records of sys_role_menu
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (1, '0', 1, 1);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (2, '0', 1, 2);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (3, '0', 1, 3);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (4, '0', 1, 4);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (5, '0', 1, 5);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (6, '0', 1, 6);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (7, '0', 1, 7);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (8, '0', 1, 8);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (9, '0', 2, 1);
-INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`) VALUES (10, '0', 2, 3);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (1, '0', 1, 10, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (2, '0', 1, 11, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (3, '0', 1, 12, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (4, '0', 1, 13, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (5, '0', 1, 14, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (6, '0', 1, 15, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (7, '0', 1, 16, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (8, '0', 1, 17, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_role_menu` (`id`, `tenant_id`, `role_id`, `menu_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (13, '0', 1, 18, NULL, NULL, NULL, NULL, 0);
 COMMIT;
 
 -- ----------------------------
@@ -646,7 +607,9 @@ CREATE TABLE `sys_tenant_package` (
 -- Records of sys_tenant_package
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_tenant_package` (`id`, `package_name`, `remark`, `status`, `deleted`, `create_by`, `create_time`, `update_by`, `update_time`) VALUES (1, '默认套餐', '默认包含基础系统菜单', 0, 0, NULL, NULL, NULL, NULL);
+INSERT INTO `sys_tenant_package` (`id`, `tenant_id`, `package_name`, `remark`, `status`, `deleted`, `create_by`,
+                                  `create_time`, `update_by`, `update_time`)
+VALUES (1, '0', '默认套餐', '默认包含基础系统菜单', 0, 0, NULL, NULL, NULL, NULL);
 COMMIT;
 
 -- ----------------------------
@@ -658,10 +621,10 @@ CREATE TABLE `sys_tenant_package_menu` (
                                            `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                            `package_id` bigint NOT NULL COMMENT '租户套餐ID',
                                            `menu_id` bigint NOT NULL COMMENT '菜单ID',
-                                           `create_by` varchar(34) DEFAULT NULL COMMENT '创建者用户ID',
                                            `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-                                           `update_by` varchar(34) DEFAULT NULL COMMENT '更新者用户ID',
                                            `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+                                           `create_by` varchar(34) DEFAULT NULL COMMENT '创建者用户ID',
+                                           `update_by` varchar(34) DEFAULT NULL COMMENT '更新者用户ID',
                                            `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
                                            PRIMARY KEY (`id`),
                                            UNIQUE KEY `uk_sys_tenant_package_menu` (`tenant_id`,`package_id`,`menu_id`),
@@ -672,14 +635,30 @@ CREATE TABLE `sys_tenant_package_menu` (
 -- Records of sys_tenant_package_menu
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_tenant_package_menu` (`id`, `package_id`, `menu_id`) VALUES (1, 1, 1);
-INSERT INTO `sys_tenant_package_menu` (`id`, `package_id`, `menu_id`) VALUES (2, 1, 2);
-INSERT INTO `sys_tenant_package_menu` (`id`, `package_id`, `menu_id`) VALUES (3, 1, 3);
-INSERT INTO `sys_tenant_package_menu` (`id`, `package_id`, `menu_id`) VALUES (4, 1, 4);
-INSERT INTO `sys_tenant_package_menu` (`id`, `package_id`, `menu_id`) VALUES (5, 1, 5);
-INSERT INTO `sys_tenant_package_menu` (`id`, `package_id`, `menu_id`) VALUES (6, 1, 6);
-INSERT INTO `sys_tenant_package_menu` (`id`, `package_id`, `menu_id`) VALUES (7, 1, 7);
-INSERT INTO `sys_tenant_package_menu` (`id`, `package_id`, `menu_id`) VALUES (8, 1, 8);
+INSERT INTO `sys_tenant_package_menu` (`id`, `tenant_id`, `package_id`, `menu_id`, `create_time`, `update_time`,
+                                       `create_by`, `update_by`, `deleted`)
+VALUES (1, '0', 1, 1, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_tenant_package_menu` (`id`, `tenant_id`, `package_id`, `menu_id`, `create_time`, `update_time`,
+                                       `create_by`, `update_by`, `deleted`)
+VALUES (2, '0', 1, 2, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_tenant_package_menu` (`id`, `tenant_id`, `package_id`, `menu_id`, `create_time`, `update_time`,
+                                       `create_by`, `update_by`, `deleted`)
+VALUES (3, '0', 1, 3, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_tenant_package_menu` (`id`, `tenant_id`, `package_id`, `menu_id`, `create_time`, `update_time`,
+                                       `create_by`, `update_by`, `deleted`)
+VALUES (4, '0', 1, 4, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_tenant_package_menu` (`id`, `tenant_id`, `package_id`, `menu_id`, `create_time`, `update_time`,
+                                       `create_by`, `update_by`, `deleted`)
+VALUES (5, '0', 1, 5, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_tenant_package_menu` (`id`, `tenant_id`, `package_id`, `menu_id`, `create_time`, `update_time`,
+                                       `create_by`, `update_by`, `deleted`)
+VALUES (6, '0', 1, 6, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_tenant_package_menu` (`id`, `tenant_id`, `package_id`, `menu_id`, `create_time`, `update_time`,
+                                       `create_by`, `update_by`, `deleted`)
+VALUES (7, '0', 1, 7, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_tenant_package_menu` (`id`, `tenant_id`, `package_id`, `menu_id`, `create_time`, `update_time`,
+                                       `create_by`, `update_by`, `deleted`)
+VALUES (8, '0', 1, 8, NULL, NULL, NULL, NULL, 0);
 COMMIT;
 
 -- ----------------------------
@@ -689,7 +668,7 @@ DROP TABLE IF EXISTS `sys_user`;
 CREATE TABLE `sys_user` (
                             `id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户表ID',
                             `user_id` varchar(34) NOT NULL COMMENT '用户ID（格式 U_ + 32 位 UUID）',
-                            `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                            `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                             `dept_id` bigint DEFAULT NULL COMMENT '部门ID',
                             `user_name` varchar(30) NOT NULL COMMENT '用户账号',
                             `nick_name` varchar(30) NOT NULL COMMENT '用户昵称',
@@ -729,13 +708,13 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_user_post`;
 CREATE TABLE `sys_user_post` (
                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                 `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                                 `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                  `user_id` varchar(34) NOT NULL COMMENT '用户ID（格式 U_ + 32 位 UUID）',
                                  `post_id` bigint NOT NULL COMMENT '岗位ID',
-                                 `create_by` varchar(34) DEFAULT NULL COMMENT '创建者用户ID',
                                  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(34) DEFAULT NULL COMMENT '更新者用户ID',
                                  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+                                 `create_by` varchar(34)          DEFAULT NULL COMMENT '创建者用户ID',
+                                 `update_by` varchar(34)          DEFAULT NULL COMMENT '更新者用户ID',
                                  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
                                  PRIMARY KEY (`id`),
                                  UNIQUE KEY `uk_sys_user_post` (`tenant_id`,`user_id`,`post_id`),
@@ -746,8 +725,12 @@ CREATE TABLE `sys_user_post` (
 -- Records of sys_user_post
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_user_post` (`id`, `tenant_id`, `user_id`, `post_id`) VALUES (1, '0', 'U_550e8400e29b41d4a716446655440001', 1);
-INSERT INTO `sys_user_post` (`id`, `tenant_id`, `user_id`, `post_id`) VALUES (2, '0', 'U_550e8400e29b41d4a716446655440002', 2);
+INSERT INTO `sys_user_post` (`id`, `tenant_id`, `user_id`, `post_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (1, '0', 'U_550e8400e29b41d4a716446655440001', 1, NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_user_post` (`id`, `tenant_id`, `user_id`, `post_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (2, '0', 'U_550e8400e29b41d4a716446655440002', 2, NULL, NULL, NULL, NULL, 0);
 COMMIT;
 
 -- ----------------------------
@@ -756,13 +739,13 @@ COMMIT;
 DROP TABLE IF EXISTS `sys_user_role`;
 CREATE TABLE `sys_user_role` (
                                  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-                                 `tenant_id` varchar(32) NOT NULL DEFAULT '000000' COMMENT '租户编号',
+                                 `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                                  `user_id` varchar(34) NOT NULL COMMENT '用户ID（格式 U_ + 32 位 UUID）',
                                  `role_id` bigint NOT NULL COMMENT '角色ID',
-                                 `create_by` varchar(34) DEFAULT NULL COMMENT '创建者用户ID',
                                  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-                                 `update_by` varchar(34) DEFAULT NULL COMMENT '更新者用户ID',
                                  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+                                 `create_by` varchar(34)          DEFAULT NULL COMMENT '创建者用户ID',
+                                 `update_by` varchar(34)          DEFAULT NULL COMMENT '更新者用户ID',
                                  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
                                  PRIMARY KEY (`id`),
                                  UNIQUE KEY `uk_sys_user_role` (`tenant_id`,`user_id`,`role_id`),
@@ -773,11 +756,14 @@ CREATE TABLE `sys_user_role` (
 -- Records of sys_user_role
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_user_role` (`id`, `tenant_id`, `user_id`, `role_id`) VALUES (1, '0', 'U_550e8400e29b41d4a716446655440001', 1);
-INSERT INTO `sys_user_role` (`id`, `tenant_id`, `user_id`, `role_id`) VALUES (2, '0', 'U_550e8400e29b41d4a716446655440002', 2);
+INSERT INTO `sys_user_role` (`id`, `tenant_id`, `user_id`, `role_id`, `create_time`, `update_time`, `create_by`,
+                             `update_by`, `deleted`)
+VALUES (1, '0', 'U_550e8400e29b41d4a716446655440001', 1, NULL, NULL, NULL, NULL, 0);
 COMMIT;
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+
 
 USE hospital_patient;
 
