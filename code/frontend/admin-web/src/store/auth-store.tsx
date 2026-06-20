@@ -47,7 +47,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       token: '',
       displayName: '医疗运营专员',
       roleName: '系统管理员',
-      tenantId: 0,
+      tenantId: '0',
     });
   }
 

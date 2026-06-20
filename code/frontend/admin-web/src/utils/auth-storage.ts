@@ -2,7 +2,7 @@ export interface AuthSnapshot {
   token: string;
   displayName: string;
   roleName: string;
-  tenantId: number;
+  tenantId: string;
 }
 
 const TOKEN_KEY = 'hlw-admin-auth-token';
@@ -17,7 +17,7 @@ const TENANT_ID_KEY = 'hlw-admin-tenant-id';
 export function readAuthSnapshot(): AuthSnapshot {
   const token = window.localStorage.getItem(TOKEN_KEY) ?? '';
   const profileText = window.localStorage.getItem(PROFILE_KEY);
-  const tenantId = Number(window.localStorage.getItem(TENANT_ID_KEY) ?? '0');
+  const tenantId = window.localStorage.getItem(TENANT_ID_KEY) ?? '0';
 
   if (!profileText) {
     return { token, displayName: '医疗运营专员', roleName: '系统管理员', tenantId };
@@ -76,8 +76,8 @@ export function readAuthToken(): string {
  *
  * @return 租户编号
  */
-export function readTenantId(): number {
-  return Number(window.localStorage.getItem(TENANT_ID_KEY) ?? '0');
+export function readTenantId(): string {
+  return window.localStorage.getItem(TENANT_ID_KEY) ?? '0';
 }
 
 /**

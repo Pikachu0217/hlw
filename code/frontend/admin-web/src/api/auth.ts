@@ -8,12 +8,12 @@ interface ApiResult<T> {
 
 interface LoginResponse {
   token: string;
-  tenantId: number;
+  tenantId: string | number;
   userType: string;
 }
 
 export interface LoginPayload {
-  tenantId: number;
+  tenantId: string;
   username: string;
   password: string;
 }
@@ -22,7 +22,7 @@ export interface AdminLoginSnapshot {
   token: string;
   displayName: string;
   roleName: string;
-  tenantId: number;
+  tenantId: string;
 }
 
 const roleNameMap: Record<string, string> = {
@@ -41,7 +41,7 @@ const roleNameMap: Record<string, string> = {
 export async function loginAdmin(payload: LoginPayload): Promise<AdminLoginSnapshot> {
   console.info('[auth] 请求后端登录接口', payload.username, payload.tenantId);
   const response = await apiClient.post<ApiResult<LoginResponse>>('/auth/login', payload, {
-    headers: { 'X-Tenant-Id': String(payload.tenantId) },
+    headers: { 'X-Tenant-Id': payload.tenantId },
   });
   const result = response.data.data;
 
@@ -49,6 +49,6 @@ export async function loginAdmin(payload: LoginPayload): Promise<AdminLoginSnaps
     token: result.token,
     displayName: payload.username,
     roleName: roleNameMap[result.userType] ?? result.userType,
-    tenantId: result.tenantId,
+    tenantId: payload.tenantId || String(result.tenantId),
   };
 }

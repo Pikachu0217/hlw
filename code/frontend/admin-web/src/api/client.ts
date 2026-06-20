@@ -25,10 +25,10 @@ apiClient.interceptors.request.use((config) => {
     config.headers.set(AUTHORIZATION_HEADER, `${AUTHORIZATION_TOKEN_PREFIX} ${token}`);
   }
 
-  if (tenantId > 0) {
+  if (tenantId && tenantId !== '0') {
     config.headers = AxiosHeaders.from(config.headers);
     if (!config.headers.has('X-Tenant-Id')) {
-      config.headers.set('X-Tenant-Id', String(tenantId));
+      config.headers.set('X-Tenant-Id', tenantId);
     }
   }
 

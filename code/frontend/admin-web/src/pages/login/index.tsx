@@ -7,7 +7,7 @@ import { fetchTenantOptions, type TenantOptionRecord } from '@/api/modules';
 import { useAuthStore } from '@/store/auth-store';
 
 interface LoginFormValues {
-  tenantId: number;
+  tenantId: string;
   username: string;
   password: string;
   remember: boolean;
@@ -34,7 +34,7 @@ function LoginPage() {
         }
         setTenants(tenantRecords);
         if (tenantRecords.length > 0) {
-          form.setFieldValue('tenantId', Number(tenantRecords[0].tenantId));
+          form.setFieldValue('tenantId', tenantRecords[0].tenantId);
         }
       } catch {
         if (!ignore) {
@@ -91,7 +91,7 @@ function LoginPage() {
         <Form<LoginFormValues>
           form={form}
           layout="vertical"
-          initialValues={{ tenantId: 0, username: '', password: '', remember: true }}
+          initialValues={{ tenantId: '0', username: '', password: '', remember: true }}
           onFinish={handleFinish}
         >
           <Form.Item
@@ -109,7 +109,7 @@ function LoginPage() {
               placeholder="请选择登录租户"
               options={tenants.map((tenant) => ({
                 label: tenant.companyName,
-                value: Number(tenant.tenantId),
+                value: tenant.tenantId,
               }))}
               showSearch
               optionFilterProp="label"
