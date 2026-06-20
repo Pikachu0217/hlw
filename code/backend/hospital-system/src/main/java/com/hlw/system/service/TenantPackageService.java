@@ -2,11 +2,11 @@ package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.domain.req.CreateTenantPackageReq;
 import com.hlw.system.domain.resp.TenantPackageResp;
 import com.hlw.system.entity.SysMenuEntity;
@@ -23,8 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 租户套餐聚合服务。
@@ -72,7 +77,7 @@ public class TenantPackageService {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以创建租户套餐");
         log.info("创建租户套餐，packageName={}，menuCount={}", request.getPackageName(), countMenuIds(request.getMenuIds()));
         SysTenantPackageEntity entity = new SysTenantPackageEntity();
-        entity.setTenantId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID));
+        entity.setTenantId(SystemTenantConstants.PLATFORM_TENANT_ID);
         fillPackage(entity, request);
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -124,7 +129,7 @@ public class TenantPackageService {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以删除租户套餐");
         log.info("删除租户套餐，id={}", id);
         requirePackage(id);
-        sysTenantPackageMenuMapper.physicalDeleteByPackageId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID), id);
+        sysTenantPackageMenuMapper.physicalDeleteByPackageId(SystemTenantConstants.PLATFORM_TENANT_ID, id);
         sysTenantPackageMapper.deleteById(id);
     }
 
@@ -138,13 +143,13 @@ public class TenantPackageService {
         List<Long> distinctMenuIds = normalizeMenuIds(menuIds);
         log.info("替换租户套餐菜单绑定，packageId={}，menuIds={}", packageId, distinctMenuIds);
         distinctMenuIds.forEach(this::requireMenu);
-        sysTenantPackageMenuMapper.physicalDeleteByPackageId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID), packageId);
+        sysTenantPackageMenuMapper.physicalDeleteByPackageId(SystemTenantConstants.PLATFORM_TENANT_ID, packageId);
         if (distinctMenuIds.isEmpty()) {
             return;
         }
         for (Long menuId : distinctMenuIds) {
             SysTenantPackageMenuEntity relation = new SysTenantPackageMenuEntity();
-            relation.setTenantId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID));
+            relation.setTenantId(SystemTenantConstants.PLATFORM_TENANT_ID);
             relation.setPackageId(packageId);
             relation.setMenuId(menuId);
             sysTenantPackageMenuMapper.insert(relation);
@@ -164,6 +169,7 @@ public class TenantPackageService {
         resp.setRemark(entity.getRemark());
         resp.setStatus(entity.getStatus());
         resp.setMenuIds(sysTenantPackageMenuMapper.selectList(new LambdaQueryWrapper<SysTenantPackageMenuEntity>()
+                .eq(SysTenantPackageMenuEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
                 .eq(SysTenantPackageMenuEntity::getPackageId, entity.getId())
                 .orderByAsc(SysTenantPackageMenuEntity::getMenuId))
             .stream()
@@ -192,10 +198,11 @@ public class TenantPackageService {
         if (menuIds == null) {
             return List.of();
         }
-        return menuIds.stream()
+        List<Long> distinctMenuIds = menuIds.stream()
             .filter(Objects::nonNull)
             .distinct()
             .toList();
+        return appendParentMenuIds(distinctMenuIds);
     }
 
     /**
@@ -205,10 +212,54 @@ public class TenantPackageService {
      */
     private void requireMenu(Long menuId) {
         Long count = sysMenuMapper.selectCount(new LambdaQueryWrapper<SysMenuEntity>()
+            .eq(SysMenuEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
             .eq(SysMenuEntity::getId, menuId));
         if (count == null || count == 0) {
             log.warn("租户套餐菜单绑定失败，菜单不存在，menuId={}", menuId);
             throw new BizException(404, "菜单不存在");
+        }
+    }
+
+    /**
+     * 为套餐菜单补齐平台模板父菜单编号，保证后续租户复制时父子层级完整。
+     *
+     * @param menuIds 菜单编号列表
+     * @return 补齐父级后的菜单编号列表
+     */
+    private List<Long> appendParentMenuIds(List<Long> menuIds) {
+        if (menuIds.isEmpty()) {
+            return List.of();
+        }
+        List<SysMenuEntity> allPlatformMenus = sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
+            .eq(SysMenuEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID));
+        Map<Long, SysMenuEntity> menuMap = allPlatformMenus.stream()
+            .collect(Collectors.toMap(SysMenuEntity::getId, Function.identity(), (left, right) -> left));
+        Set<Long> result = new LinkedHashSet<>(menuIds);
+        for (Long menuId : menuIds) {
+            appendParentMenuId(menuId, menuMap, result, new LinkedHashSet<>());
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * 递归补齐单个菜单的平台模板父菜单编号。
+     *
+     * @param menuId 菜单编号
+     * @param menuMap 平台菜单映射
+     * @param result 补齐结果集合
+     * @param visited 已访问菜单编号集合
+     */
+    private void appendParentMenuId(Long menuId, Map<Long, SysMenuEntity> menuMap, Set<Long> result, Set<Long> visited) {
+        if (!visited.add(menuId)) {
+            log.warn("租户套餐菜单父级存在循环引用，menuId={}", menuId);
+            return;
+        }
+        SysMenuEntity menu = menuMap.get(menuId);
+        if (menu == null || menu.getParentId() == null || SystemTenantConstants.ROOT_MENU_PARENT_ID.equals(menu.getParentId())) {
+            return;
+        }
+        if (result.add(menu.getParentId())) {
+            appendParentMenuId(menu.getParentId(), menuMap, result, visited);
         }
     }
 
@@ -221,7 +272,7 @@ public class TenantPackageService {
     private void fillPackage(SysTenantPackageEntity entity, CreateTenantPackageReq request) {
         entity.setPackageName(request.getPackageName());
         entity.setRemark(request.getRemark());
-        entity.setStatus(DefaultValueUtils.defaultIfNull(request.getStatus(), 0));
+        entity.setStatus(DefaultValueUtils.defaultIfNull(request.getStatus(), SystemTenantConstants.STATUS_NORMAL_VALUE));
     }
 
     /**

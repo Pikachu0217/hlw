@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
+import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.domain.req.CreateTenantReq;
 import com.hlw.system.domain.req.UpdateTenantReq;
@@ -43,6 +44,8 @@ public class TenantService {
     private final SysTenantPackageMapper sysTenantPackageMapper;
     /** 租户展示对象转换器。 */
     private final TenantConverter tenantConverter;
+    /** 租户初始化服务。 */
+    private final TenantBootstrapService tenantBootstrapService;
 
     /**
      * 分页查询租户列表。
@@ -101,10 +104,12 @@ public class TenantService {
         SysTenantEntity entity = new SysTenantEntity();
         entity.setTenantId(nextTenantId());
         fillTenant(entity, request);
+        SysTenantPackageEntity packageEntity = requirePackage(entity.getPackageId());
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysTenantMapper.insert(entity);
-        return tenantConverter.toTenantVO(entity, loadPackage(entity.getPackageId()));
+        tenantBootstrapService.initializeTenant(entity);
+        return tenantConverter.toTenantVO(entity, packageEntity);
     }
 
     /**
@@ -248,6 +253,22 @@ public class TenantService {
             return null;
         }
         return sysTenantPackageMapper.selectById(packageId);
+    }
+
+    /**
+     * 校验租户套餐存在。
+     *
+     * @param packageId 租户套餐编号
+     * @return 租户套餐实体
+     */
+    private SysTenantPackageEntity requirePackage(Long packageId) {
+        if (packageId == null) {
+            throw new BizException(400, "租户套餐不能为空");
+        }
+        return MybatisTenantHelpers.requireEntity(sysTenantPackageMapper.selectOne(
+            new LambdaQueryWrapper<SysTenantPackageEntity>()
+                .eq(SysTenantPackageEntity::getId, packageId)
+                .last("limit 1")), "租户套餐不存在");
     }
 
     /**

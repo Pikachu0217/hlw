@@ -66,9 +66,11 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public PageResult<UserResp> listUsers(PageQuery query) {
-        log.info("查询系统用户列表，pageNum={}，pageSize={}，keyword={}",
-            query.getPageNum(), query.getPageSize(), query.getKeyword());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询系统用户列表，tenantId={}，pageNum={}，pageSize={}，keyword={}",
+            tenantId, query.getPageNum(), query.getPageSize(), query.getKeyword());
         LambdaQueryWrapper<SysUserEntity> wrapper = new LambdaQueryWrapper<SysUserEntity>();
+        wrapper.eq(SysUserEntity::getTenantId, tenantId);
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysUserEntity::getUserName, query.getKeyword())
                 .or()
@@ -78,9 +80,9 @@ public class UserService {
         }
         wrapper.orderByAsc(SysUserEntity::getId);
         Page<SysUserEntity> page = sysUserMapper.selectPage(query.toPage(), wrapper);
-        Map<Long, String> deptNameMap = resolveDeptNameMap(page.getRecords());
-        Map<String, String> postNameMap = resolvePostNameMap(page.getRecords());
-        Map<String, String> roleNameMap = resolveRoleNameMap(page.getRecords());
+        Map<Long, String> deptNameMap = resolveDeptNameMap(tenantId, page.getRecords());
+        Map<String, String> postNameMap = resolvePostNameMap(tenantId, page.getRecords());
+        Map<String, String> roleNameMap = resolveRoleNameMap(tenantId, page.getRecords());
         List<UserResp> records = page.getRecords().stream()
             .map(user -> enrichUser(userConverter.toUserVO(user, postNameMap.getOrDefault(user.getUserId(), "-")),
                 deptNameMap.getOrDefault(user.getDeptId(), "-"),
@@ -97,15 +99,17 @@ public class UserService {
      */
     @Transactional(rollbackFor = Exception.class)
     public UserResp createUser(CreateUserReq request) {
-        log.info("创建系统用户，userName={}，deptId={}", request.getUserName(), request.getDeptId());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("创建系统用户，tenantId={}，userName={}，deptId={}", tenantId, request.getUserName(), request.getDeptId());
         SysUserEntity entity = new SysUserEntity();
+        entity.setTenantId(tenantId);
         entity.setUserId(UserIdGenerator.nextUserId());
         fillUser(entity, request, true);
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysUserMapper.insert(entity);
         UserResp resp = userConverter.toUserVO(entity, "-");
-        return enrichUser(resp, resolveDeptName(entity.getDeptId()), "-");
+        return enrichUser(resp, resolveDeptName(tenantId, entity.getDeptId()), "-");
     }
 
     /**
@@ -116,10 +120,11 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public UserResp getUser(Long id) {
-        log.info("查询系统用户详情，id={}", id);
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询系统用户详情，tenantId={}，id={}", tenantId, id);
         SysUserEntity entity = requireUser(id);
-        UserResp resp = userConverter.toUserVO(entity, resolvePostName(entity.getUserId()));
-        return enrichUser(resp, resolveDeptName(entity.getDeptId()), resolveRoleName(entity.getUserId()));
+        UserResp resp = userConverter.toUserVO(entity, resolvePostName(tenantId, entity.getUserId()));
+        return enrichUser(resp, resolveDeptName(tenantId, entity.getDeptId()), resolveRoleName(tenantId, entity.getUserId()));
     }
 
     /**
@@ -131,13 +136,14 @@ public class UserService {
      */
     @Transactional(rollbackFor = Exception.class)
     public UserResp updateUser(Long id, CreateUserReq request) {
-        log.info("更新系统用户，id={}，userName={}", id, request.getUserName());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("更新系统用户，tenantId={}，id={}，userName={}", tenantId, id, request.getUserName());
         SysUserEntity entity = requireUser(id);
         fillUser(entity, request, false);
         entity.setUpdateTime(LocalDateTime.now());
         sysUserMapper.updateById(entity);
-        UserResp resp = userConverter.toUserVO(entity, resolvePostName(entity.getUserId()));
-        return enrichUser(resp, resolveDeptName(entity.getDeptId()), resolveRoleName(entity.getUserId()));
+        UserResp resp = userConverter.toUserVO(entity, resolvePostName(tenantId, entity.getUserId()));
+        return enrichUser(resp, resolveDeptName(tenantId, entity.getDeptId()), resolveRoleName(tenantId, entity.getUserId()));
     }
 
     /**
@@ -147,7 +153,7 @@ public class UserService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteUser(Long id) {
-        log.info("删除系统用户，id={}", id);
+        log.info("删除系统用户，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         requireUser(id);
         sysUserMapper.deleteById(id);
     }
@@ -160,8 +166,10 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public SysUserEntity requireUser(Long id) {
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(
             new LambdaQueryWrapper<SysUserEntity>()
+                .eq(SysUserEntity::getTenantId, tenantId)
                 .eq(SysUserEntity::getId, id)
                 .last("limit 1")), "用户不存在");
     }
@@ -174,8 +182,10 @@ public class UserService {
      */
     @Transactional(readOnly = true)
     public SysUserEntity requireUserByUserId(String userId) {
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(
             new LambdaQueryWrapper<SysUserEntity>()
+                .eq(SysUserEntity::getTenantId, tenantId)
                 .eq(SysUserEntity::getUserId, userId)
                 .last("limit 1")), "用户不存在");
     }
@@ -219,15 +229,17 @@ public class UserService {
     /**
      * 构建部门名称映射。
      *
+     * @param tenantId 租户编号
      * @param users 用户列表
      * @return 部门名称映射
      */
-    private Map<Long, String> resolveDeptNameMap(List<SysUserEntity> users) {
+    private Map<Long, String> resolveDeptNameMap(String tenantId, List<SysUserEntity> users) {
         Set<Long> deptIds = users.stream().map(SysUserEntity::getDeptId).filter(Objects::nonNull).collect(Collectors.toSet());
         if (deptIds.isEmpty()) {
             return Map.of();
         }
         return sysDeptMapper.selectList(new LambdaQueryWrapper<SysDeptEntity>()
+                .eq(SysDeptEntity::getTenantId, tenantId)
                 .in(SysDeptEntity::getId, deptIds)).stream()
             .collect(Collectors.toMap(SysDeptEntity::getId, SysDeptEntity::getDeptName, (left, right) -> left));
     }
@@ -235,34 +247,42 @@ public class UserService {
     /**
      * 解析部门名称。
      *
+     * @param tenantId 租户编号
      * @param deptId 部门编号
      * @return 部门名称
      */
-    private String resolveDeptName(Long deptId) {
+    private String resolveDeptName(String tenantId, Long deptId) {
         if (deptId == null) {
             return "-";
         }
-        SysDeptEntity dept = sysDeptMapper.selectById(deptId);
+        SysDeptEntity dept = sysDeptMapper.selectOne(new LambdaQueryWrapper<SysDeptEntity>()
+            .eq(SysDeptEntity::getTenantId, tenantId)
+            .eq(SysDeptEntity::getId, deptId)
+            .last("limit 1"));
         return dept == null ? "-" : dept.getDeptName();
     }
 
     /**
      * 构建岗位名称映射。
      *
+     * @param tenantId 租户编号
      * @param users 用户列表
      * @return 岗位名称映射
      */
-    private Map<String, String> resolvePostNameMap(List<SysUserEntity> users) {
+    private Map<String, String> resolvePostNameMap(String tenantId, List<SysUserEntity> users) {
         List<String> userIds = users.stream().map(SysUserEntity::getUserId).toList();
         if (userIds.isEmpty()) {
             return Map.of();
         }
-        List<SysUserPostEntity> relations = sysUserPostMapper.selectList(new LambdaQueryWrapper<SysUserPostEntity>().in(SysUserPostEntity::getUserId, userIds));
+        List<SysUserPostEntity> relations = sysUserPostMapper.selectList(new LambdaQueryWrapper<SysUserPostEntity>()
+            .eq(SysUserPostEntity::getTenantId, tenantId)
+            .in(SysUserPostEntity::getUserId, userIds));
         if (relations.isEmpty()) {
             return Map.of();
         }
         Set<Long> postIds = relations.stream().map(SysUserPostEntity::getPostId).collect(Collectors.toSet());
         Map<Long, String> postMap = sysPostMapper.selectList(new LambdaQueryWrapper<SysPostEntity>()
+                .eq(SysPostEntity::getTenantId, tenantId)
                 .in(SysPostEntity::getId, postIds)).stream()
             .collect(Collectors.toMap(SysPostEntity::getId, SysPostEntity::getPostName, (left, right) -> left));
         return relations.stream().collect(Collectors.groupingBy(SysUserPostEntity::getUserId,
@@ -272,30 +292,35 @@ public class UserService {
     /**
      * 解析岗位名称。
      *
+     * @param tenantId 租户编号
      * @param userId 用户业务编号
      * @return 岗位名称
      */
-    private String resolvePostName(String userId) {
-        return resolvePostNameMap(List.of(requireUserByUserId(userId))).getOrDefault(userId, "-");
+    private String resolvePostName(String tenantId, String userId) {
+        return resolvePostNameMap(tenantId, List.of(requireUserByUserId(userId))).getOrDefault(userId, "-");
     }
 
     /**
      * 构建角色名称映射。
      *
+     * @param tenantId 租户编号
      * @param users 用户列表
      * @return 角色名称映射
      */
-    private Map<String, String> resolveRoleNameMap(List<SysUserEntity> users) {
+    private Map<String, String> resolveRoleNameMap(String tenantId, List<SysUserEntity> users) {
         List<String> userIds = users.stream().map(SysUserEntity::getUserId).toList();
         if (userIds.isEmpty()) {
             return Map.of();
         }
-        List<SysUserRoleEntity> relations = sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>().in(SysUserRoleEntity::getUserId, userIds));
+        List<SysUserRoleEntity> relations = sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>()
+            .eq(SysUserRoleEntity::getTenantId, tenantId)
+            .in(SysUserRoleEntity::getUserId, userIds));
         if (relations.isEmpty()) {
             return Map.of();
         }
         Set<Long> roleIds = relations.stream().map(SysUserRoleEntity::getRoleId).collect(Collectors.toSet());
         Map<Long, String> roleMap = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
+                .eq(SysRoleEntity::getTenantId, tenantId)
                 .in(SysRoleEntity::getId, roleIds)).stream()
             .collect(Collectors.toMap(SysRoleEntity::getId, SysRoleEntity::getRoleName, (left, right) -> left));
         return relations.stream().collect(Collectors.groupingBy(SysUserRoleEntity::getUserId,
@@ -305,10 +330,11 @@ public class UserService {
     /**
      * 解析角色名称。
      *
+     * @param tenantId 租户编号
      * @param userId 用户业务编号
      * @return 角色名称
      */
-    private String resolveRoleName(String userId) {
-        return resolveRoleNameMap(List.of(requireUserByUserId(userId))).getOrDefault(userId, "-");
+    private String resolveRoleName(String tenantId, String userId) {
+        return resolveRoleNameMap(tenantId, List.of(requireUserByUserId(userId))).getOrDefault(userId, "-");
     }
 }

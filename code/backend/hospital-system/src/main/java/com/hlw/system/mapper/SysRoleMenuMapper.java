@@ -27,6 +27,6 @@ public interface SysRoleMenuMapper extends BaseMapper<SysRoleMenuEntity> {
      * @param id 关系编号
      * @return 删除行数
      */
-    @Delete("DELETE FROM sys_role_menu WHERE id = #{id}")
-    int physicalDeleteById(@Param("id") Long id);
+    @Delete("DELETE FROM sys_role_menu WHERE tenant_id = #{tenantId} AND id = #{id}")
+    int physicalDeleteById(@Param("tenantId") String tenantId, @Param("id") Long id);
 }

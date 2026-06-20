@@ -2,6 +2,7 @@ package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
+import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.domain.resp.RouterResp;
 import com.hlw.system.domain.resp.UserInfoResp;
 import com.hlw.system.domain.resp.UserResp;
@@ -56,10 +57,11 @@ public class SystemProfileService {
     @Transactional(readOnly = true)
     public UserInfoResp getInfo() {
         Long loginUserId = TokenPrincipalContext.get().getUserId();
-        log.info("查询当前登录用户信息，loginUserId={}", loginUserId);
-        SysUserEntity user = requireLoginUser(loginUserId);
-        List<SysRoleEntity> roles = loadRoles(user.getUserId());
-        List<SysMenuEntity> menus = loadMenus(roles);
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询当前登录用户信息，tenantId={}，loginUserId={}", tenantId, loginUserId);
+        SysUserEntity user = requireLoginUser(tenantId, loginUserId);
+        List<SysRoleEntity> roles = loadRoles(tenantId, user.getUserId());
+        List<SysMenuEntity> menus = loadMenus(tenantId, roles);
         UserResp userResp = userConverter.toUserVO(user, "-");
         UserInfoResp resp = new UserInfoResp();
         resp.setUser(userResp);
@@ -76,20 +78,23 @@ public class SystemProfileService {
     @Transactional(readOnly = true)
     public List<RouterResp> getRouters() {
         Long loginUserId = TokenPrincipalContext.get().getUserId();
-        log.info("查询当前登录用户路由，loginUserId={}", loginUserId);
-        SysUserEntity user = requireLoginUser(loginUserId);
-        return menuService.buildRouters(loadMenus(loadRoles(user.getUserId())));
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询当前登录用户路由，tenantId={}，loginUserId={}", tenantId, loginUserId);
+        SysUserEntity user = requireLoginUser(tenantId, loginUserId);
+        return menuService.buildRouters(loadMenus(tenantId, loadRoles(tenantId, user.getUserId())));
     }
 
     /**
      * 查询当前登录用户实体。
      *
+     * @param tenantId 租户编号
      * @param loginUserId 登录用户表主键
      * @return 用户实体
      */
-    private SysUserEntity requireLoginUser(Long loginUserId) {
+    private SysUserEntity requireLoginUser(String tenantId, Long loginUserId) {
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(
             new LambdaQueryWrapper<SysUserEntity>()
+                .eq(SysUserEntity::getTenantId, tenantId)
                 .eq(SysUserEntity::getId, loginUserId)
                 .last("limit 1")), "登录用户不存在");
     }
@@ -97,11 +102,13 @@ public class SystemProfileService {
     /**
      * 加载用户角色。
      *
+     * @param tenantId 租户编号
      * @param userId 用户业务编号
      * @return 角色列表
      */
-    private List<SysRoleEntity> loadRoles(String userId) {
+    private List<SysRoleEntity> loadRoles(String tenantId, String userId) {
         List<Long> roleIds = sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>()
+                .eq(SysUserRoleEntity::getTenantId, tenantId)
                 .eq(SysUserRoleEntity::getUserId, userId)).stream()
             .map(SysUserRoleEntity::getRoleId)
             .distinct()
@@ -110,22 +117,25 @@ public class SystemProfileService {
             return List.of();
         }
         return sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
-            .eq(SysRoleEntity::getStatus, 0)
+            .eq(SysRoleEntity::getTenantId, tenantId)
+            .eq(SysRoleEntity::getStatus, SystemTenantConstants.STATUS_NORMAL_VALUE)
             .in(SysRoleEntity::getId, roleIds));
     }
 
     /**
      * 加载角色菜单。
      *
+     * @param tenantId 租户编号
      * @param roles 角色列表
      * @return 菜单列表
      */
-    private List<SysMenuEntity> loadMenus(List<SysRoleEntity> roles) {
+    private List<SysMenuEntity> loadMenus(String tenantId, List<SysRoleEntity> roles) {
         Set<Long> roleIds = roles.stream().map(SysRoleEntity::getId).collect(Collectors.toSet());
         if (roleIds.isEmpty()) {
             return List.of();
         }
         List<Long> menuIds = sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenuEntity>()
+                .eq(SysRoleMenuEntity::getTenantId, tenantId)
                 .in(SysRoleMenuEntity::getRoleId, roleIds)).stream()
             .map(SysRoleMenuEntity::getMenuId)
             .distinct()
@@ -134,7 +144,8 @@ public class SystemProfileService {
             return List.of();
         }
         return sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
-            .eq(SysMenuEntity::getStatus, "0")
+            .eq(SysMenuEntity::getTenantId, tenantId)
+            .eq(SysMenuEntity::getStatus, SystemTenantConstants.STATUS_NORMAL)
             .in(SysMenuEntity::getId, menuIds));
     }
 }

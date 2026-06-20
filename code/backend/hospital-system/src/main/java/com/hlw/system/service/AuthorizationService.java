@@ -55,14 +55,18 @@ public class AuthorizationService {
      */
     @Transactional(readOnly = true)
     public java.util.List<UserRoleResp> listUserRoles() {
-        log.info("查询用户角色授权列表");
-        Map<String, SysUserEntity> userMap = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserEntity>())
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询用户角色授权列表，tenantId={}", tenantId);
+        Map<String, SysUserEntity> userMap = sysUserMapper.selectList(new LambdaQueryWrapper<SysUserEntity>()
+                .eq(SysUserEntity::getTenantId, tenantId))
             .stream()
             .collect(Collectors.toMap(SysUserEntity::getUserId, user -> user, (left, right) -> left));
-        Map<Long, String> roleMap = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>())
+        Map<Long, String> roleMap = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
+                .eq(SysRoleEntity::getTenantId, tenantId))
             .stream()
             .collect(Collectors.toMap(SysRoleEntity::getId, SysRoleEntity::getRoleName, (left, right) -> left));
-        return sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>())
+        return sysUserRoleMapper.selectList(new LambdaQueryWrapper<SysUserRoleEntity>()
+                .eq(SysUserRoleEntity::getTenantId, tenantId))
             .stream()
             .sorted(Comparator.comparing(SysUserRoleEntity::getId))
             .map(relation -> {
@@ -86,10 +90,11 @@ public class AuthorizationService {
      */
     @Transactional(readOnly = true)
     public UserRoleResp getUserRole(Long relationId) {
-        log.info("查询用户角色授权详情，relationId={}", relationId);
-        SysUserRoleEntity relation = requireUserRole(relationId);
-        SysUserEntity user = requireUser(relation.getUserId());
-        SysRoleEntity role = requireRole(relation.getRoleId());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询用户角色授权详情，tenantId={}，relationId={}", tenantId, relationId);
+        SysUserRoleEntity relation = requireUserRole(tenantId, relationId);
+        SysUserEntity user = requireUser(tenantId, relation.getUserId());
+        SysRoleEntity role = requireRole(tenantId, relation.getRoleId());
         UserRoleResp resp = new UserRoleResp();
         resp.setId(relation.getId());
         resp.setUserId(relation.getUserId());
@@ -107,10 +112,11 @@ public class AuthorizationService {
      */
     @Transactional(rollbackFor = Exception.class)
     public List<RelationBindingResp> bindUserRole(BindUserRoleReq request) {
-        log.info("绑定用户角色，userId={}，roleIds={}", request.getUserId(), request.getRoleIds());
-        SysUserEntity user = requireUser(request.getUserId());
-        request.getRoleIds().forEach(this::requireRole);
-        sysUserRoleMapper.physicalDeleteByUserId(user.getTenantId(), request.getUserId());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("绑定用户角色，tenantId={}，userId={}，roleIds={}", tenantId, request.getUserId(), request.getRoleIds());
+        SysUserEntity user = requireUser(tenantId, request.getUserId());
+        request.getRoleIds().forEach(roleId -> requireRole(tenantId, roleId));
+        sysUserRoleMapper.physicalDeleteByUserId(tenantId, request.getUserId());
         return request.getRoleIds().stream()
             .distinct()
             .map(roleId -> {
@@ -131,9 +137,10 @@ public class AuthorizationService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteUserRole(Long relationId) {
-        log.info("删除用户角色授权，relationId={}", relationId);
-        requireUserRole(relationId);
-        sysUserRoleMapper.physicalDeleteById(relationId);
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("删除用户角色授权，tenantId={}，relationId={}", tenantId, relationId);
+        requireUserRole(tenantId, relationId);
+        sysUserRoleMapper.physicalDeleteById(tenantId, relationId);
     }
 
     /**
@@ -143,14 +150,18 @@ public class AuthorizationService {
      */
     @Transactional(readOnly = true)
     public java.util.List<RoleMenuResp> listRoleMenus() {
-        log.info("查询角色菜单授权列表");
-        Map<Long, String> roleMap = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>())
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询角色菜单授权列表，tenantId={}", tenantId);
+        Map<Long, String> roleMap = sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
+                .eq(SysRoleEntity::getTenantId, tenantId))
             .stream()
             .collect(Collectors.toMap(SysRoleEntity::getId, SysRoleEntity::getRoleName, (left, right) -> left));
-        Map<Long, SysMenuEntity> menuMap = sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>())
+        Map<Long, SysMenuEntity> menuMap = sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
+                .eq(SysMenuEntity::getTenantId, tenantId))
             .stream()
             .collect(Collectors.toMap(SysMenuEntity::getId, menu -> menu, (left, right) -> left));
-        return sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenuEntity>())
+        return sysRoleMenuMapper.selectList(new LambdaQueryWrapper<SysRoleMenuEntity>()
+                .eq(SysRoleMenuEntity::getTenantId, tenantId))
             .stream()
             .sorted(Comparator.comparing(SysRoleMenuEntity::getId))
             .map(relation -> {
@@ -175,10 +186,11 @@ public class AuthorizationService {
      */
     @Transactional(readOnly = true)
     public RoleMenuResp getRoleMenu(Long relationId) {
-        log.info("查询角色菜单授权详情，relationId={}", relationId);
-        SysRoleMenuEntity relation = requireRoleMenu(relationId);
-        SysRoleEntity role = requireRole(relation.getRoleId());
-        SysMenuEntity menu = requireMenu(relation.getMenuId());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询角色菜单授权详情，tenantId={}，relationId={}", tenantId, relationId);
+        SysRoleMenuEntity relation = requireRoleMenu(tenantId, relationId);
+        SysRoleEntity role = requireRole(tenantId, relation.getRoleId());
+        SysMenuEntity menu = requireMenu(tenantId, relation.getMenuId());
         RoleMenuResp resp = new RoleMenuResp();
         resp.setId(relation.getId());
         resp.setRoleId(relation.getRoleId());
@@ -197,9 +209,10 @@ public class AuthorizationService {
      */
     @Transactional(rollbackFor = Exception.class)
     public List<RelationBindingResp> bindRoleMenu(BindRoleMenuReq request) {
-        log.info("绑定角色菜单，roleId={}，menuIds={}", request.getRoleId(), request.getMenuIds());
-        SysRoleEntity role = requireRole(request.getRoleId());
-        request.getMenuIds().forEach(this::requireMenu);
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("绑定角色菜单，tenantId={}，roleId={}，menuIds={}", tenantId, request.getRoleId(), request.getMenuIds());
+        SysRoleEntity role = requireRole(tenantId, request.getRoleId());
+        request.getMenuIds().forEach(menuId -> requireMenu(tenantId, menuId));
         sysRoleMenuMapper.physicalDeleteByRoleId(role.getTenantId(), request.getRoleId());
         return request.getMenuIds().stream()
             .distinct()
@@ -221,20 +234,23 @@ public class AuthorizationService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteRoleMenu(Long relationId) {
-        log.info("删除角色菜单授权，relationId={}", relationId);
-        requireRoleMenu(relationId);
-        sysRoleMenuMapper.physicalDeleteById(relationId);
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("删除角色菜单授权，tenantId={}，relationId={}", tenantId, relationId);
+        requireRoleMenu(tenantId, relationId);
+        sysRoleMenuMapper.physicalDeleteById(tenantId, relationId);
     }
 
     /**
      * 校验用户存在。
      *
+     * @param tenantId 租户编号
      * @param userId 用户业务编号
      * @return 用户实体
      */
-    private SysUserEntity requireUser(String userId) {
+    private SysUserEntity requireUser(String tenantId, String userId) {
         return MybatisTenantHelpers.requireEntity(sysUserMapper.selectOne(
             new LambdaQueryWrapper<SysUserEntity>()
+                .eq(SysUserEntity::getTenantId, tenantId)
                 .eq(SysUserEntity::getUserId, userId)
                 .last("limit 1")), "用户不存在");
     }
@@ -242,12 +258,14 @@ public class AuthorizationService {
     /**
      * 校验角色存在。
      *
+     * @param tenantId 租户编号
      * @param roleId 角色编号
      * @return 角色实体
      */
-    private SysRoleEntity requireRole(Long roleId) {
+    private SysRoleEntity requireRole(String tenantId, Long roleId) {
         return MybatisTenantHelpers.requireEntity(sysRoleMapper.selectOne(
             new LambdaQueryWrapper<SysRoleEntity>()
+                .eq(SysRoleEntity::getTenantId, tenantId)
                 .eq(SysRoleEntity::getId, roleId)
                 .last("limit 1")), "角色不存在");
     }
@@ -255,12 +273,14 @@ public class AuthorizationService {
     /**
      * 校验菜单存在。
      *
+     * @param tenantId 租户编号
      * @param menuId 菜单编号
      * @return 菜单实体
      */
-    private SysMenuEntity requireMenu(Long menuId) {
+    private SysMenuEntity requireMenu(String tenantId, Long menuId) {
         return MybatisTenantHelpers.requireEntity(sysMenuMapper.selectOne(
             new LambdaQueryWrapper<SysMenuEntity>()
+                .eq(SysMenuEntity::getTenantId, tenantId)
                 .eq(SysMenuEntity::getId, menuId)
                 .last("limit 1")), "菜单不存在");
     }
@@ -268,20 +288,30 @@ public class AuthorizationService {
     /**
      * 校验用户角色关系存在。
      *
+     * @param tenantId 租户编号
      * @param relationId 关系编号
      * @return 用户角色关系实体
      */
-    private SysUserRoleEntity requireUserRole(Long relationId) {
-        return MybatisTenantHelpers.requireEntity(sysUserRoleMapper.selectById(relationId), "用户角色关系不存在");
+    private SysUserRoleEntity requireUserRole(String tenantId, Long relationId) {
+        return MybatisTenantHelpers.requireEntity(sysUserRoleMapper.selectOne(
+            new LambdaQueryWrapper<SysUserRoleEntity>()
+                .eq(SysUserRoleEntity::getTenantId, tenantId)
+                .eq(SysUserRoleEntity::getId, relationId)
+                .last("limit 1")), "用户角色关系不存在");
     }
 
     /**
      * 校验角色菜单关系存在。
      *
+     * @param tenantId 租户编号
      * @param relationId 关系编号
      * @return 角色菜单关系实体
      */
-    private SysRoleMenuEntity requireRoleMenu(Long relationId) {
-        return MybatisTenantHelpers.requireEntity(sysRoleMenuMapper.selectById(relationId), "角色菜单关系不存在");
+    private SysRoleMenuEntity requireRoleMenu(String tenantId, Long relationId) {
+        return MybatisTenantHelpers.requireEntity(sysRoleMenuMapper.selectOne(
+            new LambdaQueryWrapper<SysRoleMenuEntity>()
+                .eq(SysRoleMenuEntity::getTenantId, tenantId)
+                .eq(SysRoleMenuEntity::getId, relationId)
+                .last("limit 1")), "角色菜单关系不存在");
     }
 }

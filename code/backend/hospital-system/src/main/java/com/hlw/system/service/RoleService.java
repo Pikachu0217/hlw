@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.domain.req.CreateRoleReq;
 import com.hlw.system.domain.resp.RoleResp;
 import com.hlw.system.entity.SysRoleEntity;
@@ -44,9 +45,11 @@ public class RoleService {
      */
     @Transactional(readOnly = true)
     public PageResult<RoleResp> listRoles(PageQuery query) {
-        log.info("查询角色列表，pageNum={}，pageSize={}，keyword={}",
-            query.getPageNum(), query.getPageSize(), query.getKeyword());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询角色列表，tenantId={}，pageNum={}，pageSize={}，keyword={}",
+            tenantId, query.getPageNum(), query.getPageSize(), query.getKeyword());
         LambdaQueryWrapper<SysRoleEntity> wrapper = new LambdaQueryWrapper<SysRoleEntity>();
+        wrapper.eq(SysRoleEntity::getTenantId, tenantId);
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysRoleEntity::getRoleName, query.getKeyword())
                 .or()
@@ -55,7 +58,7 @@ public class RoleService {
         wrapper.orderByAsc(SysRoleEntity::getOrderNum).orderByAsc(SysRoleEntity::getId);
         Page<SysRoleEntity> page = sysRoleMapper.selectPage(query.toPage(), wrapper);
         List<RoleResp> records = page.getRecords().stream()
-            .map(role -> roleConverter.toRoleVO(role, countMembers(role.getId())))
+            .map(role -> roleConverter.toRoleVO(role, countMembers(tenantId, role.getId())))
             .toList();
         return new PageResult<>(records, page.getTotal(), page.getCurrent(), page.getSize());
     }
@@ -68,8 +71,10 @@ public class RoleService {
      */
     @Transactional(rollbackFor = Exception.class)
     public RoleResp createRole(CreateRoleReq request) {
-        log.info("创建角色，roleCode={}，roleName={}", request.getRoleCode(), request.getRoleName());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("创建角色，tenantId={}，roleCode={}，roleName={}", tenantId, request.getRoleCode(), request.getRoleName());
         SysRoleEntity entity = new SysRoleEntity();
+        entity.setTenantId(tenantId);
         fillRole(entity, request);
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -85,9 +90,10 @@ public class RoleService {
      */
     @Transactional(readOnly = true)
     public RoleResp getRole(Long id) {
-        log.info("查询角色详情，id={}", id);
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询角色详情，tenantId={}，id={}", tenantId, id);
         SysRoleEntity role = requireRole(id);
-        return roleConverter.toRoleVO(role, countMembers(id));
+        return roleConverter.toRoleVO(role, countMembers(tenantId, id));
     }
 
     /**
@@ -99,12 +105,13 @@ public class RoleService {
      */
     @Transactional(rollbackFor = Exception.class)
     public RoleResp updateRole(Long id, CreateRoleReq request) {
-        log.info("更新角色，id={}，roleName={}", id, request.getRoleName());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("更新角色，tenantId={}，id={}，roleName={}", tenantId, id, request.getRoleName());
         SysRoleEntity entity = requireRole(id);
         fillRole(entity, request);
         entity.setUpdateTime(LocalDateTime.now());
         sysRoleMapper.updateById(entity);
-        return roleConverter.toRoleVO(entity, countMembers(id));
+        return roleConverter.toRoleVO(entity, countMembers(tenantId, id));
     }
 
     /**
@@ -114,7 +121,7 @@ public class RoleService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteRole(Long id) {
-        log.info("删除角色，id={}", id);
+        log.info("删除角色，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         requireRole(id);
         sysRoleMapper.deleteById(id);
     }
@@ -127,8 +134,10 @@ public class RoleService {
      */
     @Transactional(readOnly = true)
     public SysRoleEntity requireRole(Long id) {
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
         return MybatisTenantHelpers.requireEntity(sysRoleMapper.selectOne(
             new LambdaQueryWrapper<SysRoleEntity>()
+                .eq(SysRoleEntity::getTenantId, tenantId)
                 .eq(SysRoleEntity::getId, id)
                 .last("limit 1")), "角色不存在");
     }
@@ -142,20 +151,22 @@ public class RoleService {
     private void fillRole(SysRoleEntity entity, CreateRoleReq request) {
         entity.setRoleName(request.getRoleName());
         entity.setRoleCode(request.getRoleCode());
-        entity.setOrderNum(DefaultValueUtils.defaultIfNull(request.getOrderNum(), 0));
-        entity.setDataScope(DefaultValueUtils.defaultIfNull(request.getDataScope(), 1));
-        entity.setStatus(DefaultValueUtils.defaultIfNull(request.getStatus(), 0));
+        entity.setOrderNum(DefaultValueUtils.defaultIfNull(request.getOrderNum(), SystemTenantConstants.DEFAULT_ROLE_ORDER));
+        entity.setDataScope(DefaultValueUtils.defaultIfNull(request.getDataScope(), SystemTenantConstants.DEFAULT_DATA_SCOPE));
+        entity.setStatus(DefaultValueUtils.defaultIfNull(request.getStatus(), SystemTenantConstants.STATUS_NORMAL_VALUE));
         entity.setRemark(request.getRemark());
     }
 
     /**
      * 统计角色成员数。
      *
+     * @param tenantId 租户编号
      * @param roleId 角色编号
      * @return 成员数
      */
-    private Integer countMembers(Long roleId) {
+    private Integer countMembers(String tenantId, Long roleId) {
         return Math.toIntExact(sysUserRoleMapper.selectCount(new LambdaQueryWrapper<SysUserRoleEntity>()
+            .eq(SysUserRoleEntity::getTenantId, tenantId)
             .eq(SysUserRoleEntity::getRoleId, roleId)));
     }
 }

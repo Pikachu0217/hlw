@@ -1,10 +1,10 @@
 package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.domain.req.CreateMenuReq;
 import com.hlw.system.domain.resp.MenuResp;
 import com.hlw.system.domain.resp.RouterResp;
@@ -50,9 +50,11 @@ public class MenuService {
      */
     @Transactional(readOnly = true)
     public PageResult<MenuResp> listMenus(PageQuery query) {
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
         log.info("查询菜单列表，pageNum={}，pageSize={}，keyword={}",
             query.getPageNum(), query.getPageSize(), query.getKeyword());
         LambdaQueryWrapper<SysMenuEntity> wrapper = buildListWrapper(query);
+        wrapper.eq(SysMenuEntity::getTenantId, tenantId);
         List<SysMenuEntity> menus = sysMenuMapper.selectList(wrapper);
         List<MenuResp> records = buildMenuTree(menus);
         log.info("菜单树构建完成，rootCount={}，totalCount={}", records.size(), menus.size());
@@ -66,9 +68,11 @@ public class MenuService {
      */
     @Transactional(readOnly = true)
     public List<SysMenuEntity> listEnabledMenus() {
-        log.info("查询可用菜单列表");
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("查询可用菜单列表，tenantId={}", tenantId);
         return sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
-            .eq(SysMenuEntity::getStatus, "0")
+            .eq(SysMenuEntity::getTenantId, tenantId)
+            .eq(SysMenuEntity::getStatus, SystemTenantConstants.STATUS_NORMAL)
             .orderByAsc(SysMenuEntity::getParentId)
             .orderByAsc(SysMenuEntity::getOrderNum)
             .orderByAsc(SysMenuEntity::getId));
@@ -83,7 +87,7 @@ public class MenuService {
     public List<RouterResp> buildRouters(List<SysMenuEntity> menus) {
         log.info("构建前端路由树，menuCount={}", menus.size());
         Map<Long, List<SysMenuEntity>> childrenMap = menus.stream()
-            .filter(menu -> !"F".equals(menu.getMenuType()))
+            .filter(menu -> !SystemTenantConstants.MENU_TYPE_BUTTON.equals(menu.getMenuType()))
             .collect(Collectors.groupingBy(SysMenuEntity::getParentId));
         return childrenMap.getOrDefault(ROOT_MENU_PARENT_ID, List.of()).stream()
             .sorted(Comparator.comparing(SysMenuEntity::getOrderNum).thenComparing(SysMenuEntity::getId))
@@ -99,9 +103,10 @@ public class MenuService {
      */
     @Transactional(rollbackFor = Exception.class)
     public MenuResp createMenu(CreateMenuReq request) {
-        log.info("创建菜单，menuName={}，perms={}", request.getMenuName(), request.getPerms());
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
+        log.info("创建菜单，tenantId={}，menuName={}，perms={}", tenantId, request.getMenuName(), request.getPerms());
         SysMenuEntity entity = new SysMenuEntity();
-        entity.setTenantId(String.valueOf(CommonConstants.PLATFORM_TENANT_ID));
+        entity.setTenantId(tenantId);
         fillMenu(entity, request);
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -117,7 +122,7 @@ public class MenuService {
      */
     @Transactional(readOnly = true)
     public MenuResp getMenu(Long id) {
-        log.info("查询菜单详情，id={}", id);
+        log.info("查询菜单详情，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         return menuConverter.toMenuVO(requireMenu(id));
     }
 
@@ -130,7 +135,8 @@ public class MenuService {
      */
     @Transactional(rollbackFor = Exception.class)
     public MenuResp updateMenu(Long id, CreateMenuReq request) {
-        log.info("更新菜单，id={}，menuName={}，perms={}", id, request.getMenuName(), request.getPerms());
+        log.info("更新菜单，tenantId={}，id={}，menuName={}，perms={}",
+            MybatisTenantHelpers.currentTenantIdString(), id, request.getMenuName(), request.getPerms());
         SysMenuEntity entity = requireMenu(id);
         fillMenu(entity, request);
         entity.setUpdateTime(LocalDateTime.now());
@@ -145,7 +151,7 @@ public class MenuService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void deleteMenu(Long id) {
-        log.info("删除菜单，id={}", id);
+        log.info("删除菜单，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         requireMenu(id);
         sysMenuMapper.deleteById(id);
     }
@@ -158,8 +164,10 @@ public class MenuService {
      */
     @Transactional(readOnly = true)
     public SysMenuEntity requireMenu(Long id) {
+        String tenantId = MybatisTenantHelpers.currentTenantIdString();
         return MybatisTenantHelpers.requireEntity(sysMenuMapper.selectOne(
             new LambdaQueryWrapper<SysMenuEntity>()
+                .eq(SysMenuEntity::getTenantId, tenantId)
                 .eq(SysMenuEntity::getId, id)
                 .last("limit 1")), "菜单不存在");
     }
@@ -251,12 +259,12 @@ public class MenuService {
         entity.setOrderNum(DefaultValueUtils.defaultIfNull(request.getOrderNum(), DEFAULT_MENU_ORDER));
         entity.setPath(DefaultValueUtils.defaultIfBlank(request.getPath(), ""));
         entity.setComponent(request.getComponent());
-        entity.setIsFrame(DefaultValueUtils.defaultIfNull(request.getIsFrame(), 1));
-        entity.setMenuType(DefaultValueUtils.defaultIfBlank(request.getMenuType(), "C"));
-        entity.setVisible(DefaultValueUtils.defaultIfBlank(request.getVisible(), "0"));
-        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), "0"));
+        entity.setIsFrame(DefaultValueUtils.defaultIfNull(request.getIsFrame(), SystemTenantConstants.DEFAULT_MENU_FRAME));
+        entity.setMenuType(DefaultValueUtils.defaultIfBlank(request.getMenuType(), SystemTenantConstants.DEFAULT_MENU_TYPE));
+        entity.setVisible(DefaultValueUtils.defaultIfBlank(request.getVisible(), SystemTenantConstants.STATUS_NORMAL));
+        entity.setStatus(DefaultValueUtils.defaultIfBlank(request.getStatus(), SystemTenantConstants.STATUS_NORMAL));
         entity.setPerms(request.getPerms());
-        entity.setIcon(DefaultValueUtils.defaultIfBlank(request.getIcon(), "#"));
+        entity.setIcon(DefaultValueUtils.defaultIfBlank(request.getIcon(), SystemTenantConstants.DEFAULT_MENU_ICON));
         entity.setRemark(request.getRemark());
     }
 

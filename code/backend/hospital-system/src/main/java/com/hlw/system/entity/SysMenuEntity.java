@@ -10,7 +10,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-@TableName("sys_menu")
+@TableName("menu")
 public class SysMenuEntity extends BaseEntity {
     /** 菜单名称。 */
     private String menuName;
@@ -34,6 +34,8 @@ public class SysMenuEntity extends BaseEntity {
     private String perms;
     /** 菜单图标。 */
     private String icon;
+    /** 平台模板菜单编号。 */
+    private Long sourceMenuId;
     /** 备注。 */
     private String remark;
 }

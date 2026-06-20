@@ -33,7 +33,6 @@ public class HlwTenantLineHandler implements TenantLineHandler {
     public boolean ignoreTable(String tableName) {
         return "local_message".equalsIgnoreCase(tableName)
                 || "sys_tenant".equalsIgnoreCase(tableName)
-                || "sys_menu".equalsIgnoreCase(tableName)
                 || "sys_tenant_package".equalsIgnoreCase(tableName)
                 || "sys_tenant_package_menu".equalsIgnoreCase(tableName);
     }

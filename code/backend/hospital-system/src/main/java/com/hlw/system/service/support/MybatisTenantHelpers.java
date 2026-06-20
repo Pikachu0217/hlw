@@ -53,4 +53,28 @@ public final class MybatisTenantHelpers {
             throw new BizException(403, message);
         }
     }
+
+    /**
+     * 获取当前请求租户编号。
+     *
+     * @return 当前请求租户编号
+     */
+    public static Long currentTenantId() {
+        TokenPrincipal principal = TokenPrincipalContext.get();
+        Long tenantId = principal == null ? null : principal.getTenantId();
+        if (tenantId == null || CommonConstants.ISOLATED_TENANT_ID == tenantId) {
+            log.warn("当前租户上下文无效，tenantId={}", tenantId);
+            throw new BizException(403, "租户上下文无效");
+        }
+        return tenantId;
+    }
+
+    /**
+     * 获取当前请求租户编号字符串。
+     *
+     * @return 当前请求租户编号字符串
+     */
+    public static String currentTenantIdString() {
+        return String.valueOf(currentTenantId());
+    }
 }

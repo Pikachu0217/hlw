@@ -3,6 +3,7 @@ package com.hlw.system.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
+import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.entity.SysMenuEntity;
 import com.hlw.system.entity.SysRoleEntity;
 import com.hlw.system.entity.SysRoleMenuEntity;
@@ -120,7 +121,7 @@ public class InternalUserService {
         }
         return ignoreTenantLine(() -> sysRoleMapper.selectList(new LambdaQueryWrapper<SysRoleEntity>()
             .eq(SysRoleEntity::getTenantId, tenantId)
-            .eq(SysRoleEntity::getStatus, 0)
+            .eq(SysRoleEntity::getStatus, SystemTenantConstants.STATUS_NORMAL_VALUE)
             .in(SysRoleEntity::getId, roleIds)));
     }
 
@@ -145,7 +146,8 @@ public class InternalUserService {
             return List.of();
         }
         return ignoreTenantLine(() -> sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
-                .eq(SysMenuEntity::getStatus, "0")
+                .eq(SysMenuEntity::getTenantId, tenantId)
+                .eq(SysMenuEntity::getStatus, SystemTenantConstants.STATUS_NORMAL)
                 .in(SysMenuEntity::getId, menuIds))).stream()
             .map(SysMenuEntity::getPerms)
             .filter(value -> value != null && !value.isBlank())
