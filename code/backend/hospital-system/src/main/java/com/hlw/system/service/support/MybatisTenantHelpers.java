@@ -2,6 +2,7 @@ package com.hlw.system.service.support;
 
 import com.baomidou.mybatisplus.core.plugins.IgnoreStrategy;
 import com.hlw.common.core.constants.CommonConstants;
+import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.security.TokenPrincipal;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
@@ -35,7 +36,7 @@ public final class MybatisTenantHelpers {
      */
     public static <T> T requireEntity(T entity, String message) {
         if (entity == null) {
-            throw new BizException(404, message);
+            throw new BizException(HttpStatusEnum.SYSTEM_ENTITY_NOT_FOUND, message);
         }
         return entity;
     }
@@ -50,7 +51,7 @@ public final class MybatisTenantHelpers {
         Long tenantId = principal == null ? null : principal.getTenantId();
         if (!CommonConstants.isPlatformTenant(tenantId)) {
             log.warn("平台租户上下文校验失败，tenantId={}，message={}", tenantId, message);
-            throw new BizException(403, message);
+            throw new BizException(HttpStatusEnum.PLATFORM_TENANT_CONTEXT_FORBIDDEN, message);
         }
     }
 
@@ -64,7 +65,7 @@ public final class MybatisTenantHelpers {
         Long tenantId = principal == null ? null : principal.getTenantId();
         if (tenantId == null || CommonConstants.ISOLATED_TENANT_ID == tenantId) {
             log.warn("当前租户上下文无效，tenantId={}", tenantId);
-            throw new BizException(403, "租户上下文无效");
+            throw new BizException(HttpStatusEnum.TENANT_CONTEXT_INVALID);
         }
         return tenantId;
     }

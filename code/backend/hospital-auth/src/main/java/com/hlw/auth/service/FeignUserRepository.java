@@ -5,6 +5,7 @@ import com.hlw.auth.domain.resp.LoginUserResp;
 import com.hlw.auth.domain.resp.UserDetailResp;
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
+import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,11 +85,11 @@ public class FeignUserRepository implements UserRepository {
     private InternalUserResp requireOk(R<InternalUserResp> response, String message) {
         if (response == null) {
             log.warn("Feign 调用返回空响应");
-            throw new BizException(502, message);
+            throw new BizException(HttpStatusEnum.REMOTE_SYSTEM_RESPONSE_NULL, message);
         }
         if (response.code() != 200) {
             log.warn("Feign 调用返回错误，code={}，message={}", response.code(), response.message());
-            throw new BizException(response.code(), response.message() == null ? message : response.message());
+            throw new BizException(HttpStatusEnum.REMOTE_SYSTEM_RESPONSE_ERROR, response.message() == null ? message : response.message());
         }
         return response.data();
     }

@@ -1,5 +1,6 @@
 package com.hlw.system.service.support;
 
+import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.system.constants.SystemTenantConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +60,7 @@ public final class SystemDefaultDataGuard {
         if (isSystemDefault(isDefault)) {
             log.warn("系统默认数据操作被拦截，resourceName={}，actionName={}，isDefault={}",
                 resourceName, actionName, isDefault);
-            throw new BizException(403, "禁止" + actionName + "系统默认" + resourceName);
+            throw new BizException(HttpStatusEnum.SYSTEM_DEFAULT_DATA_OPERATION_FORBIDDEN, actionName, resourceName);
         }
     }
 }

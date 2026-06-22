@@ -8,6 +8,7 @@ import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.enums.CommonStatusEnum;
+import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.gateway.domain.req.CreateRouteConfigReq;
@@ -149,7 +150,7 @@ public class RouteConfigService {
             .eq(GwRouteConfigEntity::getId, routeId)
             .last("limit 1")));
         if (entity == null) {
-            throw new BizException(404, "网关路由配置不存在");
+            throw new BizException(HttpStatusEnum.GATEWAY_ROUTE_CONFIG_NOT_FOUND);
         }
         return entity;
     }

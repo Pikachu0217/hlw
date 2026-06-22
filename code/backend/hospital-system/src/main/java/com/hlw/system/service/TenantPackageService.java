@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
+import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.constants.SystemTenantConstants;
@@ -220,7 +221,7 @@ public class TenantPackageService {
             .eq(SysMenuEntity::getId, menuId));
         if (count == null || count == 0) {
             log.warn("租户套餐菜单绑定失败，菜单不存在，menuId={}", menuId);
-            throw new BizException(404, "菜单不存在");
+            throw new BizException(HttpStatusEnum.MENU_NOT_FOUND);
         }
     }
 

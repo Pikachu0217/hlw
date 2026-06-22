@@ -2,6 +2,7 @@ package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
+import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.security.PasswordEncoder;
@@ -102,7 +103,7 @@ public class TenantBootstrapService {
     private void initializeTenantData(SysTenantEntity tenant, boolean resetAdminUserRoles, String actionName) {
         if (tenant.getPackageId() == null) {
             log.warn("租户初始化失败，租户未绑定套餐，tenantId={}", tenant.getTenantId());
-            throw new BizException(400, "租户套餐不能为空");
+            throw new BizException(HttpStatusEnum.TENANT_PACKAGE_REQUIRED);
         }
         log.info("开始{}租户权限数据，tenantId={}，packageId={}", actionName, tenant.getTenantId(), tenant.getPackageId());
         SysUserEntity adminUser = upsertTenantAdminUser(tenant);

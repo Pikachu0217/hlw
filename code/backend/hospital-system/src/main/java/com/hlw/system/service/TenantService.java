@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
+import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.system.constants.SystemTenantConstants;
@@ -280,7 +281,7 @@ public class TenantService {
      */
     private SysTenantPackageEntity requirePackage(Long packageId) {
         if (packageId == null) {
-            throw new BizException(400, "租户套餐不能为空");
+            throw new BizException(HttpStatusEnum.TENANT_PACKAGE_REQUIRED);
         }
         return MybatisTenantHelpers.requireEntity(sysTenantPackageMapper.selectOne(
             new LambdaQueryWrapper<SysTenantPackageEntity>()
