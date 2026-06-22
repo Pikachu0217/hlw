@@ -57,6 +57,7 @@ export interface TenantOptionRecord {
 
 export interface CreateUserPayload {
   userName: string;
+  realName: string;
   nickName?: string;
   phone?: string;
   email?: string;

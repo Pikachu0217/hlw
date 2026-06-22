@@ -605,14 +605,14 @@ run_all_cases() {
     record_skip_case "平台级租户套餐管理" "GET/POST/PUT/DELETE" "/system/tenant-package" "-" "默认不执行全局套餐管理写操作，设置 HLW_API_RUN_PLATFORM_CASES=1 后执行"
   fi
   run_case "查询后台用户列表" "GET" "/system/user"
-  run_case "创建后台用户" "POST" "/system/user" "{\"userName\":\"api_user\",\"nickName\":\"接口测试用户\",\"deptId\":1,\"userType\":\"ADMIN\",\"phone\":\"13800006666\",\"email\":\"api_user@example.com\",\"sex\":\"0\",\"password\":\"123456\",\"status\":0,\"remark\":\"脚本自动创建\"}"
+  run_case "创建后台用户" "POST" "/system/user" "{\"userName\":\"api_user\",\"realName\":\"接口测试用户\",\"nickName\":\"接口测试用户\",\"deptId\":1,\"userType\":\"sys_user\",\"phone\":\"13800006666\",\"email\":\"api_user@example.com\",\"sex\":\"0\",\"password\":\"123456\",\"status\":0,\"remark\":\"脚本自动创建\"}"
   local user_id
   user_id="$(extract_data_id "${last_body}")"
   local business_user_id
   business_user_id="$(extract_data_value "${last_body}" "userId")"
   if [ -n "${user_id}" ]; then
     run_case "查询后台用户详情" "GET" "/system/user/${user_id}"
-    run_case "更新后台用户" "PUT" "/system/user/${user_id}" "{\"userName\":\"api_user\",\"nickName\":\"接口测试用户更新\",\"deptId\":1,\"userType\":\"ADMIN\",\"phone\":\"13800006667\",\"email\":\"api_user@example.com\",\"sex\":\"0\",\"password\":\"123456\",\"status\":0,\"remark\":\"脚本自动更新\"}"
+    run_case "更新后台用户" "PUT" "/system/user/${user_id}" "{\"userName\":\"api_user\",\"realName\":\"接口测试用户更新\",\"nickName\":\"接口测试用户更新\",\"deptId\":1,\"userType\":\"sys_user\",\"phone\":\"13800006667\",\"email\":\"api_user@example.com\",\"sex\":\"0\",\"password\":\"123456\",\"status\":0,\"remark\":\"脚本自动更新\"}"
   else
     record_skip_case "后台用户详情更新删除" "GET/PUT/DELETE" "/system/user/{id}" "-" "创建后台用户未返回 data.id，跳过串联用例"
   fi

@@ -21,6 +21,8 @@ public class InternalUserResp {
     private String tenantCode;
     /** 登录账号。 */
     private String username;
+    /** 真实姓名。 */
+    private String realName;
     /** 登录密码哈希。 */
     private String password;
     /** 联系电话。 */

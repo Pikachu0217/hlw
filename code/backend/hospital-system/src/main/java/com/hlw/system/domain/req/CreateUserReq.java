@@ -13,6 +13,9 @@ public class CreateUserReq {
     /** 登录账号。 */
     @NotBlank(message = "用户账号不能为空")
     private String userName;
+    /** 真实姓名。 */
+    @NotBlank(message = "真实姓名不能为空")
+    private String realName;
     /** 用户昵称。 */
     private String nickName;
     /** 部门编号。 */

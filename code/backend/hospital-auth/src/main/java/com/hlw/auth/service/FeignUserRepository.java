@@ -41,6 +41,7 @@ public class FeignUserRepository implements UserRepository {
             data.getUserId(),
             data.getTenantId(),
             data.getUsername(),
+            data.getRealName(),
             data.getPassword(),
             data.getUserType()
         );
@@ -67,6 +68,7 @@ public class FeignUserRepository implements UserRepository {
         resp.setBusinessUserId(data.getUserId());
         resp.setTenantId(data.getTenantId());
         resp.setUsername(data.getUsername());
+        resp.setRealName(data.getRealName());
         resp.setPhone(data.getPhone());
         resp.setUserType(data.getUserType());
         resp.setRoleCode(data.getRoleCode());

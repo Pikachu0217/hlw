@@ -6,6 +6,7 @@ import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.security.PasswordEncoder;
+import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.domain.req.CreateUserReq;
 import com.hlw.system.domain.resp.UserResp;
 import com.hlw.system.entity.SysDeptEntity;
@@ -75,6 +76,8 @@ public class UserService {
         if (StringUtils.hasText(query.getKeyword())) {
             wrapper.and(item -> item.like(SysUserEntity::getUserName, query.getKeyword())
                 .or()
+                .like(SysUserEntity::getRealName, query.getKeyword())
+                .or()
                 .like(SysUserEntity::getNickName, query.getKeyword())
                 .or()
                 .like(SysUserEntity::getPhone, query.getKeyword()));
@@ -101,7 +104,8 @@ public class UserService {
     @Transactional(rollbackFor = Exception.class)
     public UserResp createUser(CreateUserReq request) {
         String tenantId = MybatisTenantHelpers.currentTenantIdString();
-        log.info("创建系统用户，tenantId={}，userName={}，deptId={}", tenantId, request.getUserName(), request.getDeptId());
+        log.info("创建系统用户，tenantId={}，userName={}，realName={}，deptId={}",
+            tenantId, request.getUserName(), request.getRealName(), request.getDeptId());
         SysUserEntity entity = new SysUserEntity();
         entity.setTenantId(tenantId);
         entity.setUserId(UserIdGenerator.nextUserId());
@@ -138,7 +142,8 @@ public class UserService {
     @Transactional(rollbackFor = Exception.class)
     public UserResp updateUser(Long id, CreateUserReq request) {
         String tenantId = MybatisTenantHelpers.currentTenantIdString();
-        log.info("更新系统用户，tenantId={}，id={}，userName={}", tenantId, id, request.getUserName());
+        log.info("更新系统用户，tenantId={}，id={}，userName={}，realName={}",
+            tenantId, id, request.getUserName(), request.getRealName());
         SysUserEntity entity = requireUser(id);
         SystemDefaultDataGuard.ensureCanUpdate(entity.getIsDefault(), "用户");
         fillUser(entity, request, false);
@@ -202,16 +207,18 @@ public class UserService {
      */
     private void fillUser(SysUserEntity entity, CreateUserReq request, boolean create) {
         entity.setUserName(request.getUserName());
+        entity.setRealName(DefaultValueUtils.defaultIfBlank(request.getRealName(), request.getUserName()));
         entity.setNickName(DefaultValueUtils.defaultIfBlank(request.getNickName(), request.getUserName()));
         entity.setDeptId(request.getDeptId());
-        entity.setUserType(DefaultValueUtils.defaultIfBlank(request.getUserType(), "sys_user"));
+        entity.setUserType(DefaultValueUtils.defaultIfBlank(request.getUserType(), SystemTenantConstants.DEFAULT_USER_TYPE));
         entity.setEmail(DefaultValueUtils.defaultIfBlank(request.getEmail(), ""));
         entity.setPhone(DefaultValueUtils.defaultIfBlank(request.getPhone(), ""));
         entity.setSex(DefaultValueUtils.defaultIfBlank(request.getSex(), "2"));
         entity.setStatus(DefaultValueUtils.defaultIfNull(request.getStatus(), 0));
         entity.setRemark(request.getRemark());
         if (create || StringUtils.hasText(request.getPassword())) {
-            entity.setPassword(PasswordEncoder.encode(DefaultValueUtils.defaultIfBlank(request.getPassword(), "123456")));
+            entity.setPassword(PasswordEncoder.encode(DefaultValueUtils.defaultIfBlank(
+                request.getPassword(), SystemTenantConstants.DEFAULT_TENANT_ADMIN_PASSWORD)));
         }
     }
 

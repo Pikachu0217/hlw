@@ -9,6 +9,7 @@ import { Avatar, Badge, Breadcrumb, Button, Drawer, Dropdown, Layout, Menu, Spac
 import type { MenuProps } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { fetchDicts } from '@/api/modules';
 import { fetchCurrentRouters } from '@/api/navigation';
 import {
   ADMIN_NAVIGATION_REFRESH_EVENT,
@@ -24,6 +25,7 @@ import { useAuthStore } from '@/store/auth-store';
 const { Header, Content, Sider } = Layout;
 const ADMIN_SIDER_WIDTH = 264;
 const MOBILE_MENU_DRAWER_WIDTH = 292;
+const USER_TYPE_DICT_TYPE = 'user_type';
 
 type MenuItem = Required<MenuProps>['items'][number];
 
@@ -89,16 +91,18 @@ function buildBreadcrumbItems(pathname: string, items: NavigationItem[]): { titl
 function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { displayName, roleName, logout } = useAuthStore();
+  const { displayName, username, userType, roleName, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [navigationItems, setNavigationItems] = useState<NavigationItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
+  const [userTypeName, setUserTypeName] = useState(roleName);
   const navigationState = getNavigationState(location.pathname, navigationItems);
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const navigationOpenKeySignature = navigationState.openKeys.join('|');
   const breadcrumbItems = buildBreadcrumbItems(location.pathname, navigationItems);
   const menuItems = useMemo(() => buildMenuItems(navigationItems), [navigationItems]);
   const accountInitial = displayName.trim().slice(0, 1).toUpperCase() || 'H';
+  const resolvedUserTypeName = userTypeName || roleName || userType;
 
   useEffect(() => {
     let active = true;
@@ -137,6 +141,31 @@ function AdminLayout() {
       window.removeEventListener(ADMIN_NAVIGATION_REFRESH_EVENT, handleNavigationRefresh);
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    /** 加载用户类型字典，用于右上角展示中文用户类型。 */
+    async function loadUserTypeName(): Promise<void> {
+      try {
+        const dicts = await fetchDicts();
+        const matchedDict = dicts.find((dict) => dict.dictType === USER_TYPE_DICT_TYPE && dict.dictValue === userType);
+        if (active) {
+          setUserTypeName(matchedDict?.dictLabel ?? roleName ?? userType);
+        }
+      } catch (error) {
+        console.warn('[admin-layout] 用户类型字典加载失败', error);
+        if (active) {
+          setUserTypeName(roleName ?? userType);
+        }
+      }
+    }
+
+    void loadUserTypeName();
+    return () => {
+      active = false;
+    };
+  }, [roleName, userType]);
 
   useEffect(() => {
     setOpenKeys(navigationState.openKeys);
@@ -251,7 +280,10 @@ function AdminLayout() {
                   <Typography.Text className="header-user__name" strong>
                     {displayName}
                   </Typography.Text>
-                  <span className="header-user__role">{roleName}</span>
+                  <span className="header-user__details">
+                    <span className="header-user__username">{username}</span>
+                    <span className="header-user__type">{resolvedUserTypeName}</span>
+                  </span>
                 </div>
                 <DownOutlined className="header-user__arrow" />
               </button>

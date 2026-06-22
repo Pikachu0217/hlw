@@ -93,6 +93,7 @@ public class InternalUserService {
         resp.setTenantId(parseTenantId(entity.getTenantId()));
         resp.setTenantCode(entity.getTenantId());
         resp.setUsername(entity.getUserName());
+        resp.setRealName(entity.getRealName());
         resp.setPassword(entity.getPassword());
         resp.setPhone(entity.getPhone());
         resp.setUserType(entity.getUserType());

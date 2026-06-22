@@ -175,7 +175,7 @@ CREATE TABLE `sys_dict_data` (
                                  PRIMARY KEY (`id`),
                                  UNIQUE KEY `uk_sys_dict_data` (`tenant_id`,`dict_type`,`dict_value`),
                                  KEY `idx_sys_dict_data_type` (`tenant_id`,`dict_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
 
 -- ----------------------------
 -- Records of sys_dict_data
@@ -186,6 +186,9 @@ INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict
 INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (3, '0', 1, '目录', 'M', 'menu_type', '菜单目录节点', NULL, NULL, NULL, NULL, 0);
 INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (4, '0', 2, '菜单', 'C', 'menu_type', '可访问页面菜单', NULL, NULL, NULL, NULL, 0);
 INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (5, '0', 3, '按钮', 'F', 'menu_type', '页面按钮权限', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (6, '0', 1, '系统用户', 'sys_user', 'user_type', '后台系统用户', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (7, '0', 2, '医生', 'doctor', 'user_type', '医生工作台用户', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (8, '0', 3, '药师', 'pharmacist', 'user_type', '药师工作台用户', NULL, NULL, NULL, NULL, 0);
 COMMIT;
 
 -- ----------------------------
@@ -205,7 +208,7 @@ CREATE TABLE `sys_dict_type` (
                                  `deleted` tinyint NOT NULL DEFAULT '0' COMMENT '删除标志（0代表存在 1代表删除）',
                                  PRIMARY KEY (`id`),
                                  UNIQUE KEY `uk_sys_dict_type` (`tenant_id`,`dict_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典类型表';
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典类型表';
 
 -- ----------------------------
 -- Records of sys_dict_type
@@ -213,6 +216,7 @@ CREATE TABLE `sys_dict_type` (
 BEGIN;
 INSERT INTO `sys_dict_type` (`id`, `tenant_id`, `dict_name`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (1, '0', '账号状态', 'account_status', '后台账号状态', NULL, NULL, NULL, NULL, 0);
 INSERT INTO `sys_dict_type` (`id`, `tenant_id`, `dict_name`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (2, '0', '菜单类型', 'menu_type', '系统菜单类型', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_dict_type` (`id`, `tenant_id`, `dict_name`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (3, '0', '用户类型', 'user_type', '后台账号用户类型', NULL, NULL, NULL, NULL, 0);
 COMMIT;
 
 -- ----------------------------
@@ -671,8 +675,9 @@ CREATE TABLE `sys_user` (
                             `tenant_id` varchar(32) NOT NULL DEFAULT '0' COMMENT '租户编号',
                             `dept_id` bigint DEFAULT NULL COMMENT '部门ID',
                             `user_name` varchar(30) NOT NULL COMMENT '用户账号',
+                            `real_name` varchar(30) NOT NULL DEFAULT '' COMMENT '真实姓名',
                             `nick_name` varchar(30) NOT NULL COMMENT '用户昵称',
-                            `user_type` varchar(10) NOT NULL DEFAULT 'sys_user' COMMENT '用户类型（sys_user系统用户）',
+                            `user_type` varchar(10) NOT NULL DEFAULT 'sys_user' COMMENT '用户类型',
                             `email` varchar(50) DEFAULT '' COMMENT '用户邮箱',
                             `phone` varchar(11) DEFAULT '' COMMENT '手机号码',
                             `sex` char(1) NOT NULL DEFAULT '0' COMMENT '用户性别（0男 1女 2未知）',
@@ -699,7 +704,7 @@ CREATE TABLE `sys_user` (
 -- Records of sys_user
 -- ----------------------------
 BEGIN;
-INSERT INTO `sys_user` (`id`, `user_id`, `tenant_id`, `dept_id`, `user_name`, `nick_name`, `user_type`, `email`, `phone`, `sex`, `avatar`, `password`, `status`, `deleted`, `login_ip`, `login_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, 'U_550e8400e29b41d4a716446655440001', '0', 1, 'hlw_admin', '平台超级管理员', 'sys_user', 'ops@hlw.local', '13800001111', '2', NULL, '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', 0, 0, '127.0.0.1', '2026-06-19 09:21:52', NULL, NULL, NULL, NULL, '默认平台超管账号');
+INSERT INTO `sys_user` (`id`, `user_id`, `tenant_id`, `dept_id`, `user_name`, `real_name`, `nick_name`, `user_type`, `email`, `phone`, `sex`, `avatar`, `password`, `status`, `deleted`, `login_ip`, `login_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, 'U_550e8400e29b41d4a716446655440001', '0', 1, 'hlw_admin', '平台超级管理员', '平台超级管理员', 'sys_user', 'ops@hlw.local', '13800001111', '2', NULL, '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', 0, 0, '127.0.0.1', '2026-06-19 09:21:52', NULL, NULL, NULL, NULL, '默认平台超管账号');
 COMMIT;
 
 -- ----------------------------

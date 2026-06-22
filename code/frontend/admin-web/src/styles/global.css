@@ -205,7 +205,7 @@ body {
   gap: 10px;
   min-width: 204px;
   max-width: 270px;
-  height: 54px;
+  min-height: 54px;
   padding: 7px 10px 7px 8px;
   border: 1px solid rgba(15, 143, 168, 0.2);
   border-radius: 18px;
@@ -254,13 +254,13 @@ body {
   flex: 1;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 3px;
 }
 
 .header-user__name {
   max-width: 150px;
   color: #12324b !important;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
 .header-user__role {
@@ -273,8 +273,36 @@ body {
   line-height: 1.25;
 }
 
+.header-user__details {
+  display: flex;
+  max-width: 164px;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-user__username {
+  max-width: 78px;
+  min-width: 0;
+  color: #557086;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.header-user__type {
+  max-width: 82px;
+  flex-shrink: 0;
+  color: #0d6378;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 143, 168, 0.11);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
 .header-user__name,
-.header-user__role {
+.header-user__role,
+.header-user__username,
+.header-user__type {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -517,6 +545,20 @@ body {
 
 .module-form__select {
   width: 100%;
+}
+
+.module-form__password-row {
+  display: flex;
+  gap: 8px;
+}
+
+.module-form__password-row .ant-input-password {
+  min-width: 0;
+  flex: 1;
+}
+
+.module-form__password-row .ant-btn {
+  flex-shrink: 0;
 }
 
 .module-form__tree-select {
@@ -1184,13 +1226,9 @@ body {
   }
 
   .header-user {
-    height: 48px;
+    min-height: 48px;
     max-width: calc(100vw - 72px);
     border-radius: 16px;
-  }
-
-  .header-user__role {
-    display: none;
   }
 
   .page-shell {

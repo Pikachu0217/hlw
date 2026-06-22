@@ -2,9 +2,9 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import {
   clearAuthSnapshot,
+  readAuthSnapshot,
   type AuthSnapshot,
   persistAuthSnapshot,
-  readAuthSnapshot,
 } from '@/utils/auth-storage';
 
 interface AuthContextValue extends AuthSnapshot {
@@ -43,12 +43,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   function logout(reason = '用户主动退出'): void {
     console.info('[auth] 管理端退出登录', reason);
     clearAuthSnapshot();
-    setSnapshot({
-      token: '',
-      displayName: '医疗运营专员',
-      roleName: '系统管理员',
-      tenantId: '0',
-    });
+    setSnapshot(readAuthSnapshot());
   }
 
   useEffect(() => {

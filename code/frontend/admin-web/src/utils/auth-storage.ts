@@ -1,6 +1,8 @@
 export interface AuthSnapshot {
   token: string;
   displayName: string;
+  username: string;
+  userType: string;
   roleName: string;
   tenantId: string;
 }
@@ -8,6 +10,29 @@ export interface AuthSnapshot {
 const TOKEN_KEY = 'hlw-admin-auth-token';
 const PROFILE_KEY = 'hlw-admin-profile';
 const TENANT_ID_KEY = 'hlw-admin-tenant-id';
+const DEFAULT_DISPLAY_NAME = '医疗运营专员';
+const DEFAULT_USERNAME = 'hlw_admin';
+const DEFAULT_USER_TYPE = 'sys_user';
+const DEFAULT_USER_TYPE_NAME = '系统用户';
+const DEFAULT_TENANT_ID = '0';
+
+/**
+ * 生成默认登录快照。
+ *
+ * @param token 登录令牌
+ * @param tenantId 租户编号
+ * @return 默认登录快照
+ */
+function defaultAuthSnapshot(token = '', tenantId = DEFAULT_TENANT_ID): AuthSnapshot {
+  return {
+    token,
+    displayName: DEFAULT_DISPLAY_NAME,
+    username: DEFAULT_USERNAME,
+    userType: DEFAULT_USER_TYPE,
+    roleName: DEFAULT_USER_TYPE_NAME,
+    tenantId,
+  };
+}
 
 /**
  * 读取当前登录快照。
@@ -17,22 +42,24 @@ const TENANT_ID_KEY = 'hlw-admin-tenant-id';
 export function readAuthSnapshot(): AuthSnapshot {
   const token = window.localStorage.getItem(TOKEN_KEY) ?? '';
   const profileText = window.localStorage.getItem(PROFILE_KEY);
-  const tenantId = window.localStorage.getItem(TENANT_ID_KEY) ?? '0';
+  const tenantId = window.localStorage.getItem(TENANT_ID_KEY) ?? DEFAULT_TENANT_ID;
 
   if (!profileText) {
-    return { token, displayName: '医疗运营专员', roleName: '系统管理员', tenantId };
+    return defaultAuthSnapshot(token, tenantId);
   }
 
   try {
     const profile = JSON.parse(profileText) as Omit<AuthSnapshot, 'token'>;
     return {
       token,
-      displayName: profile.displayName || '医疗运营专员',
-      roleName: profile.roleName || '系统管理员',
+      displayName: profile.displayName || DEFAULT_DISPLAY_NAME,
+      username: profile.username || DEFAULT_USERNAME,
+      userType: profile.userType || DEFAULT_USER_TYPE,
+      roleName: profile.roleName || DEFAULT_USER_TYPE_NAME,
       tenantId,
     };
   } catch {
-    return { token, displayName: '医疗运营专员', roleName: '系统管理员', tenantId };
+    return defaultAuthSnapshot(token, tenantId);
   }
 }
 
@@ -48,6 +75,8 @@ export function persistAuthSnapshot(snapshot: AuthSnapshot): void {
     PROFILE_KEY,
     JSON.stringify({
       displayName: snapshot.displayName,
+      username: snapshot.username,
+      userType: snapshot.userType,
       roleName: snapshot.roleName,
     }),
   );
@@ -77,7 +106,7 @@ export function readAuthToken(): string {
  * @return 租户编号
  */
 export function readTenantId(): string {
-  return window.localStorage.getItem(TENANT_ID_KEY) ?? '0';
+  return window.localStorage.getItem(TENANT_ID_KEY) ?? DEFAULT_TENANT_ID;
 }
 
 /**

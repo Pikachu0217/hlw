@@ -9,6 +9,8 @@ interface ApiResult<T> {
 interface LoginResponse {
   token: string;
   tenantId: string | number;
+  username: string;
+  realName?: string;
   userType: string;
 }
 
@@ -21,16 +23,11 @@ export interface LoginPayload {
 export interface AdminLoginSnapshot {
   token: string;
   displayName: string;
+  username: string;
+  userType: string;
   roleName: string;
   tenantId: string;
 }
-
-const roleNameMap: Record<string, string> = {
-  ADMIN: '系统管理员',
-  DOCTOR: '医生',
-  PHARMACIST: '药师',
-  PATIENT: '患者',
-};
 
 /**
  * 调用后台登录接口并转换管理端登录快照。
@@ -47,8 +44,10 @@ export async function loginAdmin(payload: LoginPayload): Promise<AdminLoginSnaps
 
   return {
     token: result.token,
-    displayName: payload.username,
-    roleName: roleNameMap[result.userType] ?? result.userType,
+    displayName: result.realName || result.username || payload.username,
+    username: result.username || payload.username,
+    userType: result.userType,
+    roleName: result.userType,
     tenantId: payload.tenantId || String(result.tenantId),
   };
 }

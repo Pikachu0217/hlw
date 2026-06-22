@@ -20,6 +20,8 @@ public class SysUserEntity extends BaseEntity {
     private Long deptId;
     /** 登录账号。 */
     private String userName;
+    /** 真实姓名。 */
+    private String realName;
     /** 用户昵称。 */
     private String nickName;
     /** 用户类型。 */

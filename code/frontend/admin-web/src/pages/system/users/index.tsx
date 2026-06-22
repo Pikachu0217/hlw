@@ -1,14 +1,20 @@
 import { Button, Form, Input, Modal, Select, Space, Tag, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { useMemo, useState } from 'react';
-import { bindUserRoles, createUser, deleteUser, fetchRoles, fetchSystemDeptOptions, fetchUserRoles, fetchUsers, updateUser } from '@/api/modules';
+import { bindUserRoles, createUser, deleteUser, fetchDicts, fetchRoles, fetchSystemDeptOptions, fetchUserRoles, fetchUsers, updateUser } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
+
+const USER_TYPE_DICT_TYPE = 'user_type';
+const DEFAULT_USER_TYPE = 'sys_user';
+const RANDOM_PASSWORD_LENGTH = 12;
+const RANDOM_PASSWORD_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
 
 export interface UserRecord {
   id: number;
   userId: string;
   userName: string;
+  realName?: string;
   nickName?: string;
   deptId?: number;
   deptName?: string;
@@ -27,6 +33,7 @@ function UsersPage() {
   const { records, loading, refresh } = useModuleRecords(fetchUsers, '用户');
   const { records: deptOptions } = useModuleRecords(fetchSystemDeptOptions, '系统部门');
   const { records: roleOptions } = useModuleRecords(fetchRoles, '角色');
+  const { records: dictOptions } = useModuleRecords(fetchDicts, '字典');
   const { records: userRoleRecords, refresh: refreshUserRoles } = useModuleRecords(fetchUserRoles, '用户角色绑定');
   const [form] = Form.useForm();
   const [roleForm] = Form.useForm<{ roleIds: number[] }>();
@@ -36,27 +43,57 @@ function UsersPage() {
   const [roleSubmitting, setRoleSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<UserRecord | null>(null);
   const [bindingRecord, setBindingRecord] = useState<UserRecord | null>(null);
+  const userTypeOptions = useMemo(
+    () => dictOptions
+      .filter((dict) => dict.dictType === USER_TYPE_DICT_TYPE)
+      .map((dict) => ({ label: dict.dictLabel, value: dict.dictValue })),
+    [dictOptions],
+  );
 
   const handleOpenCreate = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ userType: 'ADMIN', status: 0 });
+    form.setFieldsValue({ userType: userTypeOptions[0]?.value ?? DEFAULT_USER_TYPE, status: 0 });
     setOpen(true);
   };
 
   const handleOpenEdit = (record: UserRecord) => {
     setEditingRecord(record);
+    form.resetFields();
     form.setFieldsValue({
       userName: record.userName,
+      realName: record.realName,
       nickName: record.nickName,
       phone: record.phone,
       email: record.email,
       deptId: record.deptId,
-      userType: record.userType ?? 'ADMIN',
+      userType: record.userType ?? userTypeOptions[0]?.value ?? DEFAULT_USER_TYPE,
       status: record.status,
+      password: undefined,
       remark: record.remark,
     });
     setOpen(true);
+  };
+
+  /**
+   * 生成随机登录密码。
+   *
+   * @return 随机密码
+   */
+  const generateRandomPassword = (): string => {
+    const randomValues = new Uint32Array(RANDOM_PASSWORD_LENGTH);
+    window.crypto.getRandomValues(randomValues);
+    return Array.from(randomValues)
+      .map((value) => RANDOM_PASSWORD_CHARS[value % RANDOM_PASSWORD_CHARS.length])
+      .join('');
+  };
+
+  /**
+   * 生成随机密码并写入用户表单。
+   */
+  const handleGeneratePassword = (): void => {
+    form.setFieldValue('password', generateRandomPassword());
+    message.success('已生成随机密码');
   };
 
   const handleSubmit = async () => {
@@ -132,21 +169,24 @@ function UsersPage() {
 
   const columns = useMemo<ColumnsType<UserRecord>>(
     () => [
-      { title: '账号', dataIndex: 'userName' },
-      { title: '昵称', dataIndex: 'nickName' },
-      { title: '部门', dataIndex: 'deptName' },
-      { title: '角色', dataIndex: 'roleName' },
-      { title: '联系电话', dataIndex: 'phone' },
-      { title: '邮箱', dataIndex: 'email' },
-      { title: '最近登录', dataIndex: 'lastLogin' },
+      { title: '账号', dataIndex: 'userName', width: 88 },
+      { title: '真实姓名', dataIndex: 'realName', width: 88 },
+      { title: '昵称', dataIndex: 'nickName', width: 80 },
+      { title: '部门', dataIndex: 'deptName', width: 90 },
+      { title: '角色', dataIndex: 'roleName', width: 90 },
+      { title: '联系电话', dataIndex: 'phone', width: 106 },
+      { title: '邮箱', dataIndex: 'email', width: 130 },
+      { title: '最近登录', dataIndex: 'lastLogin', width: 110 },
       {
         title: '状态',
         dataIndex: 'status',
+        width: 64,
         render: (value: number) => <Tag color={value === 0 ? 'green' : 'default'}>{value === 0 ? '启用' : '禁用'}</Tag>,
       },
       {
         title: '操作',
         key: 'actions',
+        width: 124,
         render: (_: unknown, record: UserRecord) => {
           const isDefaultUser = record.isDefault === 0;
           return (
@@ -183,8 +223,8 @@ function UsersPage() {
         dataSource={records}
         loading={loading}
         tableTitle="用户列表"
-        searchPlaceholder="搜索账号、昵称、部门、角色"
-        getSearchText={(record) => `${record.userName} ${record.nickName ?? ''} ${record.deptName ?? ''} ${record.roleName ?? ''} ${record.phone ?? ''}`}
+        searchPlaceholder="搜索账号、姓名、昵称、部门、角色"
+        getSearchText={(record) => `${record.userName} ${record.realName ?? ''} ${record.nickName ?? ''} ${record.deptName ?? ''} ${record.roleName ?? ''} ${record.phone ?? ''}`}
         tableClassName="system-compact-table"
         onCreate={handleOpenCreate}
       />
@@ -200,6 +240,9 @@ function UsersPage() {
           <Form.Item name="userName" label="账号" rules={[{ required: true, message: '请输入账号' }]}>
             <Input placeholder="请输入账号" />
           </Form.Item>
+          <Form.Item name="realName" label="真实姓名" rules={[{ required: true, message: '请输入真实姓名' }]}>
+            <Input placeholder="请输入真实姓名" />
+          </Form.Item>
           <Form.Item name="nickName" label="昵称">
             <Input placeholder="请输入昵称" />
           </Form.Item>
@@ -209,8 +252,13 @@ function UsersPage() {
           <Form.Item name="email" label="邮箱">
             <Input placeholder="请输入邮箱" />
           </Form.Item>
-          <Form.Item name="password" label="登录密码">
-            <Input.Password placeholder={editingRecord ? '留空则不修改密码' : '默认 123456'} />
+          <Form.Item label="登录密码">
+            <div className="module-form__password-row">
+              <Form.Item name="password" noStyle>
+                <Input.Password placeholder={editingRecord ? '留空则不修改密码' : '不填则使用默认密码'} />
+              </Form.Item>
+              <Button onClick={handleGeneratePassword}>生成随机密码</Button>
+            </div>
           </Form.Item>
           <Form.Item name="deptId" label="部门">
             <Select
@@ -221,13 +269,10 @@ function UsersPage() {
               options={deptOptions.map((dept) => ({ label: dept.deptName, value: dept.id }))}
             />
           </Form.Item>
-          <Form.Item name="userType" label="用户类型">
+          <Form.Item name="userType" label="用户类型" rules={[{ required: true, message: '请选择用户类型' }]}>
             <Select
-              options={[
-                { label: '管理员', value: 'ADMIN' },
-                { label: '医生', value: 'DOCTOR' },
-                { label: '药师', value: 'PHARMACIST' },
-              ]}
+              placeholder="请选择用户类型"
+              options={userTypeOptions}
             />
           </Form.Item>
           <Form.Item name="status" label="状态">

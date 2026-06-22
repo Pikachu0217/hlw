@@ -95,7 +95,7 @@ public class AuthService {
         String token = tokenIssuer.issue(user);
         loginAuditService.recordLoginSuccess(user, token, clientIp, userAgent);
         log.info("用户登录认证成功，userId={}，tenantId={}", user.id(), user.tenantId());
-        return new LoginResultResp(token, user.tenantId(), user.userType());
+        return new LoginResultResp(token, user.tenantId(), user.username(), user.realName(), user.userType());
     }
 
     /**

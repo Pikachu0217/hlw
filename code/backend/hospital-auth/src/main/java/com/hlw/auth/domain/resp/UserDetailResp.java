@@ -21,6 +21,8 @@ public class UserDetailResp {
     private Long tenantId;
     /** 登录账号。 */
     private String username;
+    /** 真实姓名。 */
+    private String realName;
     /** 联系电话。 */
     private String phone;
     /** 用户类型。 */

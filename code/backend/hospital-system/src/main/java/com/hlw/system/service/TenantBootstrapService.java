@@ -156,6 +156,7 @@ public class TenantBootstrapService {
                 .eq(SysUserEntity::getUserName, SystemTenantConstants.DEFAULT_TENANT_ADMIN_USER_NAME)
                 .last("limit 1"));
             if (existing != null) {
+                existing.setRealName(resolveAdminNickName(tenant));
                 existing.setNickName(resolveAdminNickName(tenant));
                 existing.setPhone(DefaultValueUtils.defaultIfBlank(tenant.getContactPhone(), ""));
                 existing.setStatus(SystemTenantConstants.STATUS_NORMAL_VALUE);
@@ -168,6 +169,7 @@ public class TenantBootstrapService {
             user.setTenantId(tenant.getTenantId());
             user.setUserId(UserIdGenerator.nextUserId());
             user.setUserName(SystemTenantConstants.DEFAULT_TENANT_ADMIN_USER_NAME);
+            user.setRealName(resolveAdminNickName(tenant));
             user.setNickName(resolveAdminNickName(tenant));
             user.setUserType(SystemTenantConstants.DEFAULT_USER_TYPE);
             user.setEmail("");

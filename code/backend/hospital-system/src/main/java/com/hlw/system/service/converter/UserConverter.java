@@ -24,6 +24,7 @@ public class UserConverter {
         vo.setId(entity.getId());
         vo.setUserId(entity.getUserId());
         vo.setUserName(entity.getUserName());
+        vo.setRealName(entity.getRealName());
         vo.setNickName(entity.getNickName());
         vo.setDeptId(entity.getDeptId());
         vo.setDeptName("-");

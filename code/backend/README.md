@@ -115,7 +115,7 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 `hospital_system` 当前已补齐基础管理表：
 
 - `sys_tenant`：租户主数据表，基线脚本默认写入租户 `100 / 明亮互联网医院`，供管理端登录前选择。
-- `sys_user`：后台用户展示与管理基础表，业务用户编号统一为 `U_` 加 32 位 UUID 字符串。
+- `sys_user`：后台用户展示与管理基础表，业务用户编号统一为 `U_` 加 32 位 UUID 字符串，`real_name` 保存真实姓名。
 - `sys_role`：角色与数据范围基础表。
 - `sys_menu`：菜单、路由和权限标识基础表，`tenant_id=0` 的记录作为平台模板菜单，业务租户记录通过 `source_menu_id` 关联来源模板。
 - `sys_dict_type`：字典类型表。
@@ -151,7 +151,8 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 当前认证链路约定如下：
 
 - 登录页可在未登录状态通过 `GET /system/tenant/options` 读取所有启用租户的最小选项信息，用于选择管理端登录租户。
-- 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 通过 Feign 查询 `hospital-system` 的 `sys_user.password` 中的 BCrypt 哈希，默认初始化平台账号为 `hlw_admin / 123456`，租户编号为 `0`。
+- 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 通过 Feign 查询 `hospital-system` 的 `sys_user.password` 中的 BCrypt 哈希，成功后返回 `username`、`realName` 和 `userType`，默认初始化平台账号为 `hlw_admin / 123456`，租户编号为 `0`。
+- 后台用户新增接口未传 `password` 时，后端使用 `SystemTenantConstants.DEFAULT_TENANT_ADMIN_PASSWORD` 作为初始密码并写入 BCrypt 哈希。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
 - 网关只信任 `hlw.auth.token-name` 请求头中的登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `hlw.auth.tenant-header-name` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
 - 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenant/options`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。

@@ -127,6 +127,7 @@ CREATE TABLE IF NOT EXISTS sys_user (
     id BIGSERIAL PRIMARY KEY,
     tenant_id BIGINT NOT NULL,
     username VARCHAR(64) NOT NULL,
+    real_name VARCHAR(64) NOT NULL DEFAULT '',
     password VARCHAR(128) NOT NULL,
     phone VARCHAR(32),
     user_type VARCHAR(32) NOT NULL,
@@ -308,6 +309,7 @@ CREATE TABLE IF NOT EXISTS local_message (
 );
 
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS dept_id BIGINT;
+ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS real_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS dept_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS role_name VARCHAR(64) NOT NULL DEFAULT '';
 ALTER TABLE sys_user ADD COLUMN IF NOT EXISTS last_login VARCHAR(64) NOT NULL DEFAULT '';
@@ -357,6 +359,7 @@ COMMENT ON TABLE sys_user IS '系统管理用户表';
 COMMENT ON COLUMN sys_user.id IS '主键编号';
 COMMENT ON COLUMN sys_user.tenant_id IS '租户编号';
 COMMENT ON COLUMN sys_user.username IS '登录账号';
+COMMENT ON COLUMN sys_user.real_name IS '真实姓名';
 COMMENT ON COLUMN sys_user.password IS '登录密码';
 COMMENT ON COLUMN sys_user.phone IS '联系电话';
 COMMENT ON COLUMN sys_user.user_type IS '用户类型';
@@ -516,11 +519,12 @@ ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
 DELETE FROM sys_user
 WHERE id <> 1;
 
-INSERT INTO sys_user (id, tenant_id, username, password, phone, user_type, dept_id, dept_name, role_name, last_login, status)
+INSERT INTO sys_user (id, tenant_id, username, real_name, password, phone, user_type, dept_id, dept_name, role_name, last_login, status)
 VALUES
-    (1, 0, 'hlw_admin', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'sys_user', 1, '平台运营中心', '系统管理员', '2026-06-19 09:21:52', '0')
+    (1, 0, 'hlw_admin', '平台超级管理员', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'sys_user', 1, '平台运营中心', '系统管理员', '2026-06-19 09:21:52', '0')
 ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id,
                                username = EXCLUDED.username,
+                               real_name = EXCLUDED.real_name,
                                password = EXCLUDED.password,
                                phone = EXCLUDED.phone,
                                user_type = EXCLUDED.user_type,
@@ -571,7 +575,10 @@ VALUES
     (2, 0, 'account_status', '停用', '1', 2, '0', '后台账号禁止登录'),
     (3, 0, 'menu_type', '目录', '目录', 1, '0', '菜单目录节点'),
     (4, 0, 'menu_type', '菜单', '菜单', 2, '0', '可访问页面菜单'),
-    (5, 0, 'menu_type', '按钮', '按钮', 3, '0', '页面按钮权限')
+    (5, 0, 'menu_type', '按钮', '按钮', 3, '0', '页面按钮权限'),
+    (6, 0, 'user_type', '系统用户', 'sys_user', 1, '0', '后台系统用户'),
+    (7, 0, 'user_type', '医生', 'doctor', 2, '0', '医生工作台用户'),
+    (8, 0, 'user_type', '药师', 'pharmacist', 3, '0', '药师工作台用户')
 ON CONFLICT (id) DO UPDATE SET dict_type = EXCLUDED.dict_type,
                                dict_label = EXCLUDED.dict_label,
                                dict_value = EXCLUDED.dict_value,
