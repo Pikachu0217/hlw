@@ -14,6 +14,7 @@ import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
 import com.hlw.system.service.converter.RoleConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
+import com.hlw.system.service.support.SystemDefaultDataGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -108,9 +109,7 @@ public class RoleService {
         String tenantId = MybatisTenantHelpers.currentTenantIdString();
         log.info("更新角色，tenantId={}，id={}，roleName={}", tenantId, id, request.getRoleName());
         SysRoleEntity entity = requireRole(id);
-        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
-            throw new com.hlw.common.core.exception.BizException(403, "禁止修改系统默认角色");
-        }
+        SystemDefaultDataGuard.ensureCanUpdate(entity.getIsDefault(), "角色");
         fillRole(entity, request);
         entity.setUpdateTime(LocalDateTime.now());
         sysRoleMapper.updateById(entity);
@@ -126,9 +125,7 @@ public class RoleService {
     public void deleteRole(Long id) {
         log.info("删除角色，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         SysRoleEntity entity = requireRole(id);
-        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
-            throw new com.hlw.common.core.exception.BizException(403, "禁止删除系统默认角色");
-        }
+        SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "角色");
         sysRoleMapper.deleteById(id);
     }
 

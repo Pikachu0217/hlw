@@ -22,6 +22,7 @@ import com.hlw.system.mapper.SysUserPostMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
 import com.hlw.system.service.converter.UserConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
+import com.hlw.system.service.support.SystemDefaultDataGuard;
 import com.hlw.system.service.support.UserIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -139,9 +140,7 @@ public class UserService {
         String tenantId = MybatisTenantHelpers.currentTenantIdString();
         log.info("更新系统用户，tenantId={}，id={}，userName={}", tenantId, id, request.getUserName());
         SysUserEntity entity = requireUser(id);
-        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
-            throw new com.hlw.common.core.exception.BizException(403, "禁止修改系统默认用户");
-        }
+        SystemDefaultDataGuard.ensureCanUpdate(entity.getIsDefault(), "用户");
         fillUser(entity, request, false);
         entity.setUpdateTime(LocalDateTime.now());
         sysUserMapper.updateById(entity);
@@ -158,9 +157,7 @@ public class UserService {
     public void deleteUser(Long id) {
         log.info("删除系统用户，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         SysUserEntity entity = requireUser(id);
-        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
-            throw new com.hlw.common.core.exception.BizException(403, "禁止删除系统默认用户");
-        }
+        SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "用户");
         sysUserMapper.deleteById(id);
     }
 

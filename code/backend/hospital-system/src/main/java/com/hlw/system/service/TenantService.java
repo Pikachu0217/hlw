@@ -17,6 +17,7 @@ import com.hlw.system.mapper.SysTenantMapper;
 import com.hlw.system.mapper.SysTenantPackageMapper;
 import com.hlw.system.service.converter.TenantConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
+import com.hlw.system.service.support.SystemDefaultDataGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -140,9 +141,7 @@ public class TenantService {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以更新租户");
         log.info("更新租户，id={}，companyName={}，packageId={}", id, request.getCompanyName(), request.getPackageId());
         SysTenantEntity entity = requireTenant(id);
-        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
-            throw new BizException(403, "禁止修改系统默认租户");
-        }
+        SystemDefaultDataGuard.ensureCanUpdate(entity.getIsDefault(), "租户");
         Long oldPackageId = entity.getPackageId();
         SysTenantPackageEntity packageEntity = requirePackage(request.getPackageId());
         entity.setContactUserName(request.getContactUserName());
@@ -182,9 +181,7 @@ public class TenantService {
         MybatisTenantHelpers.ensurePlatformContext("只有平台租户可以删除租户");
         log.info("删除租户，id={}", id);
         SysTenantEntity entity = requireTenant(id);
-        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
-            throw new BizException(403, "禁止删除系统默认租户");
-        }
+        SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "租户");
         sysTenantMapper.deleteById(id);
     }
 

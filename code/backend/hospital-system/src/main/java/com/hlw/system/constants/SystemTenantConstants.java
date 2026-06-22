@@ -16,6 +16,10 @@ public final class SystemTenantConstants {
     public static final String STATUS_NORMAL = "0";
     /** 正常状态数值。 */
     public static final Integer STATUS_NORMAL_VALUE = 0;
+    /** 系统默认数据标识。 */
+    public static final Integer SYSTEM_DEFAULT_DATA_FLAG = 0;
+    /** 普通业务数据标识。 */
+    public static final Integer NORMAL_DATA_FLAG = 1;
     /** 默认角色排序。 */
     public static final Integer DEFAULT_ROLE_ORDER = 0;
     /** 默认数据权限范围。 */

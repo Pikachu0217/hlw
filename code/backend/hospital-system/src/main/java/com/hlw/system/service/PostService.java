@@ -11,6 +11,7 @@ import com.hlw.system.entity.SysPostEntity;
 import com.hlw.system.mapper.SysPostMapper;
 import com.hlw.system.service.converter.PostConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
+import com.hlw.system.service.support.SystemDefaultDataGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -94,9 +95,7 @@ public class PostService {
     public PostResp updatePost(Long id, CreatePostReq request) {
         log.info("更新岗位，id={}，postName={}", id, request.getPostName());
         SysPostEntity entity = requirePost(id);
-        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
-            throw new com.hlw.common.core.exception.BizException(403, "禁止修改系统默认岗位");
-        }
+        SystemDefaultDataGuard.ensureCanUpdate(entity.getIsDefault(), "岗位");
         fillPost(entity, request);
         entity.setUpdateTime(LocalDateTime.now());
         sysPostMapper.updateById(entity);
@@ -112,9 +111,7 @@ public class PostService {
     public void deletePost(Long id) {
         log.info("删除岗位，id={}", id);
         SysPostEntity entity = requirePost(id);
-        if (entity.getIsDefault() != null && entity.getIsDefault() == 0) {
-            throw new com.hlw.common.core.exception.BizException(403, "禁止删除系统默认岗位");
-        }
+        SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "岗位");
         sysPostMapper.deleteById(id);
     }
 
