@@ -11,24 +11,23 @@ spring:
     url: ${hlw.datasource.url}
     username: ${hlw.datasource.username}
     password: ${hlw.datasource.password}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
       host: ${hlw.redis.host}
       port: ${hlw.redis.port}
-      password: ${hlw.redis.password}
       database: ${hlw.redis.database}
   cloud:
     nacos:
-      server-addr: ${HLW_NACOS_SERVER_ADDR:127.0.0.1:8848}
+      server-addr: ${HLW_NACOS_SERVER_ADDR:192.168.124.238:8848}
       config:
-        server-addr: ${HLW_NACOS_SERVER_ADDR:127.0.0.1:8848}
+        server-addr: ${HLW_NACOS_SERVER_ADDR:192.168.124.238:8848}
         namespace: ${HLW_NACOS_NAMESPACE:public}
         group: ${HLW_NACOS_GROUP:DEFAULT_GROUP}
         username: ${HLW_NACOS_USERNAME:nacos}
         password: ${HLW_NACOS_PASSWORD}
       discovery:
-        server-addr: ${HLW_NACOS_SERVER_ADDR:127.0.0.1:8848}
+        server-addr: ${HLW_NACOS_SERVER_ADDR:192.168.124.238:8848}
         namespace: ${HLW_NACOS_NAMESPACE:public}
         group: ${HLW_NACOS_GROUP:DEFAULT_GROUP}
         username: ${HLW_NACOS_USERNAME:nacos}

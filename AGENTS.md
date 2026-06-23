@@ -23,29 +23,18 @@ Java 17 / Spring Boot / Maven 多模块后端 + React 18 / TypeScript / Vite / A
 - 所有 CSS 样式必须写在 `.css` 文件（如 `src/styles/global.css`）中，禁止内联 `style={}` 和 CSS-in-JS。
 - 组件通过 `className` 引用样式文件中定义的类名。
 
-### 5. 以后新增接口后需要更新接口测试脚本
-- 新增任何后端 Controller 接口后，必须在 `resources/scripts/api-test.sh` 的 `run_all_cases()` 中增加对应的测试用例。
-- 测试用例应包括正常场景和关键参数。
-
-### 6. 新增功能需要更新 README.md 文档
-- 新增模块、接口、页面、数据库表或环境变量后，必须同步更新对应的 README：
-  - 后端：`code/backend/README.md`（模块列表、接口清单、端口、数据库、构建命令）
-  - 前端：`code/frontend/README.md`（应用列表、页面范围、启动命令）
-- 文档更新和代码改动放在同一个提交中。
-
-### 7. 系统模块表格禁止滑动操作栏
+### 5. 系统模块表格非必须不要使用滑动操作栏
+- **非必须的判断标准**：若表格列数 ≤ 6 列（含操作列）且字段均为短文本（如名称、编码、状态、时间），则必须不使用滑动操作栏，操作按钮直接展示。仅在字段较多（≥7 列）或存在长文本字段导致表格总宽超 1400px 时，才允许操作列设为 `fixed: 'right'` 滑动查看。
 - `code/frontend/admin-web/src/pages/system/` 下所有表格必须保证操作列在当前可视区域内，不使用横向滚动来查看操作按钮。
-- 系统模块表格优先使用紧凑列宽、`table-layout: fixed`、文本省略和操作按钮换行来适配宽度。
-- 禁止在系统模块表格操作列使用 `fixed: 'right'`；如需表格滚动，必须保证操作列无需滑动即可点击。
-- 表格样式必须继续收口到 `src/styles/global.css`，页面只通过 `className` 引用。
+- 系统模块表格优先使用紧凑列宽、`table-layout: fixed`、文本省略（`ellipsis`）和操作按钮换行（`white-space: normal`）来适配宽度。操作按钮不超过 3 个时平铺显示，超过 3 个时收起为"更多"下拉菜单。
+- 禁止在系统模块表格操作列使用 `fixed: 'right'`；极少数允许使用 `fixed: 'right'` 的场景（见第一条），必须在表格外层包裹容器并设置 `min-width` 保证操作列始终可见，且容器禁止横向溢出。
+- 表格样式必须继续收口到 `src/styles/global.css`，页面只通过 `className` 引用。全局样式中统一定义 `.table-action-cell` 类：`white-space: nowrap; text-align: center;`，各页面直接复用。
 
 ## 项目结构
 
 - `code/backend/` — Maven 多模块，10 个业务模块 + 公共模块
 - `code/frontend/` — pnpm monorepo，`admin-web`（管理端）+ `patient-h5`（患者端）
 - `resources/sql/001-mysql8-baseline.sql` — MySQL 8 基线建库建表脚本
-- `resources/scripts/api-test.sh` — 接口测试脚本
-- `resources/scripts/service.sh` — 一键启停脚本
 
 ## 关键命令
 

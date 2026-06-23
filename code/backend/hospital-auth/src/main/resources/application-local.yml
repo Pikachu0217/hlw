@@ -1,7 +1,12 @@
 hlw:
   nacos:
-    server-addr: 127.0.0.1:8848
+    server-addr: 192.168.124.238:8848
     namespace: public
     group: DEFAULT_GROUP
     username: nacos
     password: nacos
+  redis:
+    host: 192.168.124.238
+    port: 6379
+    password: ""
+    database: 0
