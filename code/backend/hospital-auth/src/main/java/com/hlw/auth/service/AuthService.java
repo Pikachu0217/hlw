@@ -1,10 +1,18 @@
 package com.hlw.auth.service;
 
+import com.hlw.auth.client.CreatePatientFeignReq;
+import com.hlw.auth.client.PatientFeignClient;
 import com.hlw.auth.domain.dto.TokenIssuer;
+import com.hlw.auth.domain.req.CreatePatientUserFeignReq;
 import com.hlw.auth.domain.req.LoginReq;
+import com.hlw.auth.domain.req.PhoneCodeReq;
+import com.hlw.auth.domain.req.PhoneLoginReq;
 import com.hlw.auth.domain.resp.LoginResultResp;
 import com.hlw.auth.domain.resp.LoginUserResp;
 import com.hlw.auth.domain.resp.UserDetailResp;
+import com.hlw.auth.client.UserFeignClient;
+import com.hlw.common.core.domain.R;
+import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.common.core.config.AuthTokenProperties;
 import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.common.core.enums.HttpStatusEnum;
@@ -32,6 +40,8 @@ import java.util.Date;
 @Slf4j
 public class AuthService {
     private final UserRepository userRepository;
+    private final UserFeignClient userFeignClient;
+    private final PatientFeignClient patientFeignClient;
     private final TokenIssuer tokenIssuer;
     private final String jwtSecret;
     private final AuthTokenProperties authTokenProperties;
@@ -48,12 +58,15 @@ public class AuthService {
      * @param redisService Redis 操作服务，用于维护退出登录令牌黑名单
      * @param loginAuditService 登录审计服务
      */
-    public AuthService(UserRepository userRepository, TokenIssuer tokenIssuer,
+    public AuthService(UserRepository userRepository, UserFeignClient userFeignClient,
+                       PatientFeignClient patientFeignClient, TokenIssuer tokenIssuer,
                        @Value("${hlw.jwt.secret}") String jwtSecret,
                        AuthTokenProperties authTokenProperties,
                        RedisService redisService,
                        LoginAuditService loginAuditService) {
         this.userRepository = userRepository;
+        this.userFeignClient = userFeignClient;
+        this.patientFeignClient = patientFeignClient;
         this.tokenIssuer = tokenIssuer;
         this.jwtSecret = jwtSecret;
         this.authTokenProperties = authTokenProperties;
@@ -159,6 +172,82 @@ public class AuthService {
             log.warn("退出登录解析令牌失败，{}", exception.getMessage());
             return null;
         }
+    }
+
+    /**
+     * 发送手机验证码到患者端。
+     * <p>验证码固定为 1234，以手机号为 key 存入 Redis，TTL 300 秒。</p>
+     *
+     * @param phoneCodeReq 手机号请求
+     */
+    public void sendPhoneCode(PhoneCodeReq phoneCodeReq) {
+        String phone = phoneCodeReq.phone();
+        log.info("发送手机验证码，phone={}", phone);
+        String code = "1234";
+        String key = RedisKeyEnum.getKey(RedisKeyEnum.AUTH_PHONE_CODE, phone);
+        redisService.set(key, code, Duration.ofMillis(RedisKeyEnum.AUTH_PHONE_CODE.getTimeoutMillis()));
+        log.info("手机验证码已存入 Redis，phone={}，code={}", phone, code);
+    }
+
+    /**
+     * 执行手机号+验证码登录。
+     *
+     * @param phoneLoginReq 手机号登录请求
+     * @param clientIp      客户端 IP
+     * @param userAgent     客户端标识
+     * @return 登录结果
+     */
+    public LoginResultResp phoneLogin(PhoneLoginReq phoneLoginReq, String clientIp, String userAgent) {
+        if (phoneLoginReq == null) {
+            log.warn("手机号登录失败，参数为空");
+            throw new BizException(HttpStatusEnum.LOGIN_PARAMETERS_CANNOT_BE_NULL);
+        }
+        String phone = phoneLoginReq.phone();
+        String smsCode = phoneLoginReq.smsCode();
+        log.info("手机号登录开始，phone={}", phone);
+
+        // 从 Redis 获取验证码
+        String key = RedisKeyEnum.getKey(RedisKeyEnum.AUTH_PHONE_CODE, phone);
+        String cachedCode = redisService.get(key);
+        if (cachedCode == null) {
+            log.warn("手机号登录失败，验证码已过期，phone={}", phone);
+            throw new BizException(HttpStatusEnum.SMS_CODE_EXPIRED);
+        }
+        if (!"1234".equals(smsCode)) {
+            log.warn("手机号登录失败，验证码不匹配，phone={}", phone);
+            throw new BizException(HttpStatusEnum.SMS_CODE_NOT_MATCH);
+        }
+        // 验证码匹配后删除 key，防止重复使用
+        redisService.delete(key);
+
+        Long tenantId = 100L;
+        LoginUserResp user = userRepository.findByTenantIdAndPhone(tenantId, phone);
+        if (user == null) {
+            log.info("手机号未注册，自动注册 phone={}", phone);
+            // 1. 在 system 创建用户
+            String userName = "p_" + phone;
+            R<InternalUserResp> createResp = userFeignClient.createPatientUser(new CreatePatientUserFeignReq(tenantId, userName, phone));
+            if (createResp == null || createResp.code() != 200 || createResp.data() == null) {
+                log.warn("自动注册用户失败，phone={}", phone);
+                loginAuditService.recordLoginFailure(tenantId, phone, "自动注册失败", clientIp, userAgent);
+                throw new BizException(HttpStatusEnum.LOGIN_PARAMETERS_CANNOT_BE_NULL);
+            }
+            InternalUserResp created = createResp.data();
+            // 2. 在 patient 创建患者档案（使用 sys_user.user_id 字符串）
+            patientFeignClient.createOrGetByUser(new CreatePatientFeignReq(tenantId, created.getUserId(), phone));
+            // 3. 重新查询用户
+            user = userRepository.findByTenantIdAndPhone(tenantId, phone);
+            if (user == null) {
+                log.warn("自动注册后查询用户仍为空，phone={}", phone);
+                loginAuditService.recordLoginFailure(tenantId, phone, "自动注册后查询失败", clientIp, userAgent);
+                throw new BizException(HttpStatusEnum.LOGIN_USER_DOES_NOT_EXIST);
+            }
+            log.info("自动注册成功，userId={}，phone={}", user.id(), phone);
+        }
+        String token = tokenIssuer.issue(user);
+        loginAuditService.recordLoginSuccess(user, token, clientIp, userAgent);
+        log.info("手机号登录成功，userId={}，tenantId={}，phone={}", user.id(), user.tenantId(), phone);
+        return new LoginResultResp(token, user.tenantId(), user.username(), user.realName(), user.userType());
     }
 
     /**

@@ -1,6 +1,8 @@
 package com.hlw.auth.controller;
 
 import com.hlw.auth.domain.req.LoginReq;
+import com.hlw.auth.domain.req.PhoneCodeReq;
+import com.hlw.auth.domain.req.PhoneLoginReq;
 import com.hlw.auth.domain.resp.LoginResultResp;
 import com.hlw.auth.domain.resp.UserDetailResp;
 import com.hlw.auth.service.AuthService;
@@ -55,6 +57,35 @@ public class AuthController {
         Long tenantId = AuthTokenResolver.resolveLoginTenantId(tenantHeader, loginReq.tenantId());
         log.info("用户登录请求进入认证控制器，tenantId={}，username={}", tenantId, loginReq.username());
         return R.ok(authService.login(loginReq.withTenantId(tenantId), resolveClientIp(request), request.getHeader("User-Agent")));
+    }
+
+    /**
+     * 发送手机验证码。
+     *
+     * @param phoneCodeReq 手机号请求体
+     * @return 空响应
+     */
+    @PostMapping("/phone-code")
+    public R<Void> sendPhoneCode(@Valid @RequestBody PhoneCodeReq phoneCodeReq) {
+        log.info("发送手机验证码请求进入认证控制器，phone={}", phoneCodeReq.phone());
+        authService.sendPhoneCode(phoneCodeReq);
+        return R.ok(null);
+    }
+
+    /**
+     * 手机号+验证码登录。
+     *
+     * @param request      HTTP 请求对象
+     * @param phoneLoginReq 手机号登录请求体
+     * @return 登录结果
+     */
+    @PostMapping("/phone-login")
+    public R<LoginResultResp> phoneLogin(
+            HttpServletRequest request,
+            @Valid @RequestBody PhoneLoginReq phoneLoginReq
+    ) {
+        log.info("手机号登录请求进入认证控制器，phone={}", phoneLoginReq.phone());
+        return R.ok(authService.phoneLogin(phoneLoginReq, resolveClientIp(request), request.getHeader("User-Agent")));
     }
 
     /**

@@ -14,7 +14,12 @@ public enum RedisKeyEnum {
     /**
      * 退出登录后的 Token 黑名单 Key，完整 key 形如 {@code hlw:auth:logout:{token}}，过期时间由令牌剩余有效期动态决定。
      */
-    AUTH_LOGOUT_BLACKLIST("hlw:auth:logout:%s", 0L);
+    AUTH_LOGOUT_BLACKLIST("hlw:auth:logout:%s", 0L),
+
+    /**
+     * 患者端手机验证码 Key，完整 key 形如 {@code hlw:auth:phone-code:{phone}}，过期时间 300 秒。
+     */
+    AUTH_PHONE_CODE("hlw:auth:phone-code:%s", 300_000L);
 
     /**
      * Redis Key 前缀。

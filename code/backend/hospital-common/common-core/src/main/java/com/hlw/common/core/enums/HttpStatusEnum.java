@@ -25,6 +25,10 @@ public enum HttpStatusEnum {
 
     // AUTH/SYSTEM/Gateway 模块结束
 
+    // 患者端手机号登录
+    SMS_CODE_NOT_MATCH(10021, "验证码错误"),
+    SMS_CODE_EXPIRED(10022, "验证码已过期，请重新获取"),
+    PHONE_NOT_FOUND(10023, "该手机号未注册"),
     ;
 
     private final int code;
