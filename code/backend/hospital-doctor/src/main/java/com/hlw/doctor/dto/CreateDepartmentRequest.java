@@ -10,6 +10,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateDepartmentRequest {
+    /** 系统部门编号。 */
+    private Long deptId;
     /** 科室名称。 */
     @NotBlank(message = "科室名称不能为空")
     private String name;

@@ -150,6 +150,7 @@ public class DeptService {
         entity.setLeader(request.getLeader());
         entity.setPhone(request.getPhone());
         entity.setEmail(request.getEmail());
+        entity.setIsDepartment(DefaultValueUtils.defaultIfNull(request.getIsDepartment(), 0));
         entity.setStatus(DefaultValueUtils.defaultIfNull(request.getStatus(), 0));
     }
 

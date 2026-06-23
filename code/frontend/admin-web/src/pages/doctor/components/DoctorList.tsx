@@ -5,6 +5,8 @@ import { useState } from 'react';
 
 export interface DoctorRecord {
   id: number;
+  doctorId?: number;
+  userId?: number;
   name: string;
   title: string;
   department: string;
@@ -14,16 +16,17 @@ export interface DoctorRecord {
   schedule: string;
   patientCount: number;
   consultFee?: string;
+  configured?: boolean;
 }
 
 interface DoctorListProps {
   doctors: DoctorRecord[];
-  onCreateDoctor: () => void;
+  onEditDoctor: (doctor: DoctorRecord) => void;
   onCreateSchedule: (doctor: DoctorRecord) => void;
   onToggleStatus: (doctor: DoctorRecord) => void;
 }
 
-function DoctorList({ doctors, onCreateDoctor, onCreateSchedule, onToggleStatus }: DoctorListProps) {
+function DoctorList({ doctors, onEditDoctor, onCreateSchedule, onToggleStatus }: DoctorListProps) {
   const [keyword, setKeyword] = useState('');
   const columns: ColumnsType<DoctorRecord> = [
     {
@@ -55,10 +58,13 @@ function DoctorList({ doctors, onCreateDoctor, onCreateSchedule, onToggleStatus 
       key: 'actions',
       render: (_, record) => (
         <Space wrap>
+          <Button size="small" type="link" onClick={() => onEditDoctor(record)}>
+            编辑
+          </Button>
           <Button size="small" onClick={() => onToggleStatus(record)}>
             {record.consultStatus === 'OFFLINE' ? '恢复接诊' : '停诊'}
           </Button>
-          <Button size="small" onClick={() => onCreateSchedule(record)}>
+          <Button size="small" onClick={() => onCreateSchedule(record)} disabled={!record.doctorId}>
             排班
           </Button>
         </Space>
@@ -79,9 +85,9 @@ function DoctorList({ doctors, onCreateDoctor, onCreateSchedule, onToggleStatus 
       <div className="console-card__toolbar">
         <div>
           <Typography.Title level={4} className="console-card__title">
-            医生列表
+            医生资源列表
           </Typography.Title>
-          <Typography.Text className="console-card__subtitle">组件已抽离，后续可直接复用。</Typography.Text>
+          <Typography.Text className="console-card__subtitle">维护已纳入互联网医院的医生线上资源。</Typography.Text>
         </div>
         <Space wrap>
           <Input
@@ -92,7 +98,6 @@ function DoctorList({ doctors, onCreateDoctor, onCreateSchedule, onToggleStatus 
             placeholder="搜索医生、科室或擅长方向"
             className="console-card__search"
           />
-          <Button type="primary" onClick={onCreateDoctor}>新增医生</Button>
           <Tag color="cyan">筛选后 {filteredDoctors.length} 位</Tag>
         </Space>
       </div>

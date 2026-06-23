@@ -749,14 +749,24 @@ run_all_cases() {
 
     # 医生与排班接口。
     run_case "查询科室列表" "GET" "/doctor/departments"
-    run_case "创建科室" "POST" "/doctor/departments" "{\"name\":\"接口测试科室\",\"status\":\"启用\"}"
+    local department_resource_id
+    department_resource_id="$(extract_data_id "${last_body}")"
+    if [ -n "${department_resource_id}" ]; then
+      run_case "更新科室扩展属性" "PUT" "/doctor/departments/${department_resource_id}" "{\"name\":\"接口测试线上科室\",\"queue\":\"当前等候 0 人\",\"status\":\"启用\",\"sort\":99,\"description\":\"脚本自动更新\"}"
+    else
+      record_skip_case "更新科室扩展属性" "PUT" "/doctor/departments/{id}" "-" "科室资源列表未返回 data.id，跳过扩展属性更新用例"
+    fi
     run_case "查询医生列表" "GET" "/doctor/doctors"
-    run_case "查询医生详情" "GET" "/doctor/doctors/1"
-    run_case "创建医生" "POST" "/doctor/doctors" "{\"userId\":1,\"name\":\"接口测试医生\",\"title\":\"主治医师\",\"department\":\"全科\",\"specialty\":\"慢病复诊\",\"consultFee\":30,\"consultStatus\":\"ONLINE\",\"status\":\"接诊中\",\"schedule\":\"2026-06-13 上午\"}"
-    run_case "更新医生状态" "PUT" "/doctor/doctors/1/status" "{\"status\":\"ONLINE\"}"
-    run_case "绑定医生科室" "POST" "/doctor/doctors/1/departments" "{\"departmentId\":10,\"appointmentFee\":50}"
+    local doctor_user_id
+    doctor_user_id="$(extract_data_id "${last_body}")"
+    if [ -n "${doctor_user_id}" ]; then
+      run_case "查询医生详情" "GET" "/doctor/doctors/${doctor_user_id}"
+      run_case "更新医生扩展属性" "PUT" "/doctor/doctors/${doctor_user_id}" "{\"name\":\"接口测试医生\",\"title\":\"主治医师\",\"department\":\"全科\",\"specialty\":\"慢病复诊\",\"consultFee\":30,\"consultStatus\":\"ONLINE\",\"status\":\"接诊中\",\"schedule\":\"2026-06-13 上午\"}"
+      run_case "更新医生状态" "PUT" "/doctor/doctors/${doctor_user_id}/status" "{\"status\":\"ONLINE\"}"
+    else
+      record_skip_case "医生详情与扩展属性更新" "GET/PUT" "/doctor/doctors/{id}" "-" "医生资源列表未返回 data.id，跳过串联用例"
+    fi
     run_case "查询排班列表" "GET" "/doctor/schedules"
-    run_case "创建排班" "POST" "/doctor/schedules" "{\"doctorId\":1,\"slot\":\"2026-06-13 上午\",\"scheduleDate\":\"2026-06-13\",\"timeSlot\":\"上午\",\"totalNumber\":30,\"remainNumber\":30}"
     run_case "计算挂号费" "POST" "/doctor/appointment-fee/resolve" "{\"title\":\"主任医师\",\"doctorFee\":80,\"departmentFee\":20}"
 
     # 预约挂号接口。

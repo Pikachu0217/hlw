@@ -84,6 +84,7 @@ const menuIconOptions: MenuIconOption[] = [
   { label: '日志', value: 'log', icon: <FileTextOutlined /> },
   { label: '部门', value: 'dept', icon: <PartitionOutlined /> },
   { label: '网关', value: 'gateway', icon: <CloudServerOutlined /> },
+  { label: '医疗资源', value: 'medical-resource', icon: <MedicineBoxOutlined /> },
   { label: '医生', value: 'doctor', icon: <MedicineBoxOutlined /> },
   { label: '患者', value: 'patient', icon: <TeamOutlined /> },
   { label: '咨询', value: 'consult', icon: <SolutionOutlined /> },

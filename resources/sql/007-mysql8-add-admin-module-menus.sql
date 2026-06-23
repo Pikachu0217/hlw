@@ -64,7 +64,7 @@ BEGIN
         ('system-tenant-package', 'system', '套餐管理', 8, '/system/tenant-package', 'system/tenant-package/index', 'C', 'system:tenant-package:index', 'post', '套餐管理菜单'),
         ('system-notice', 'system', '通知公告', 9, '/system/notice', 'system/notice/index', 'C', 'system:notice:index', 'notice', '通知公告菜单'),
         ('system-logs', 'system', '系统日志', 10, '/system/logs', 'system/logs/index', 'C', 'system:logs:index', 'log', '系统日志菜单'),
-        ('doctor', NULL, '医生管理', 4, '', '', 'M', 'doctor:index', 'doctor', '医生管理目录'),
+            ('doctor', NULL, '医疗资源', 4, '', '', 'M', 'doctor:index', 'medical-resource', '医疗资源目录'),
         ('doctor-list', 'doctor', '医生名录', 1, '/doctor', 'doctor/index', 'C', 'doctor:list', 'doctor', '医生名录菜单'),
         ('doctor-departments', 'doctor', '科室管理', 2, '/doctor/departments', 'doctor/departments/index', 'C', 'doctor:department:index', 'dept', '科室管理菜单'),
         ('patient', NULL, '患者管理', 5, '/patient', 'patient/index', 'C', 'patient:index', 'patient', '患者管理菜单'),

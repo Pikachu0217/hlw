@@ -29,6 +29,7 @@ public class DeptConverter {
         vo.setLeader(entity.getLeader());
         vo.setPhone(entity.getPhone());
         vo.setEmail(entity.getEmail());
+        vo.setIsDepartment(DefaultValueUtils.defaultIfNull(entity.getIsDepartment(), 0));
         vo.setStatus(entity.getStatus());
         vo.setIsDefault(entity.getIsDefault());
         return vo;

@@ -8,8 +8,13 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class DoctorVO {    /** 医生编号。 */
+public class DoctorVO {
+    /** 医生账号编号。 */
     private Long id;
+    /** 医生扩展编号。 */
+    private Long doctorId;
+    /** 医生账号编号。 */
+    private Long userId;
     /** 医生姓名。 */
     private String name;
     /** 医生职称。 */
@@ -28,4 +33,6 @@ public class DoctorVO {    /** 医生编号。 */
     private Integer patientCount;
     /** 问诊费用。 */
     private String consultFee;
+    /** 是否已维护扩展信息。 */
+    private Boolean configured;
 }

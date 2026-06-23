@@ -37,7 +37,7 @@
 
 管理端登录页已接入登录前租户选择，会调用公开租户列表接口加载可登录租户，并在提交认证时携带租户编号；登录后右上角账号区域展示真实姓名、登录账号和用户类型中文名称。
 
-管理端 `tenant` 页面已接入租户新增、编辑和删除弹窗，字段同步当前 `sys_tenant` 企业主体模型；`system/user` 页面新增和编辑用户时需要维护真实姓名，用户类型下拉从 `user_type` 数据字典读取，登录密码支持前端生成随机密码；`doctor` 页面已接入新增医生、医生状态切换和医生排班创建操作，`doctor/departments` 页面已接入新增科室弹窗，提交后会刷新后端列表数据；`patient` 页面已接入患者档案创建、患者资料更新和健康档案创建操作，并同步展示患者详情与档案列表。
+管理端 `tenant` 页面已接入租户新增、编辑和删除弹窗，字段同步当前 `sys_tenant` 企业主体模型；`system/user` 页面新增和编辑用户时需要维护真实姓名，用户类型下拉从 `user_type` 数据字典读取，登录密码支持前端生成随机密码；`system/dept` 页面支持标记部门是否为科室；医疗资源菜单下的 `doctor` 页面列出所有医生账号并编辑医生线上扩展属性，`doctor/departments` 页面列出已标记为科室的系统部门并编辑科室线上扩展属性；`patient` 页面已接入患者档案创建、患者资料更新和健康档案创建操作，并同步展示患者详情与档案列表。
 
 `patient-h5` 当前已覆盖以下页面骨架：
 
@@ -165,7 +165,7 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 
 网关管理已新增 `gateway/routes` 页面，支持路由配置列表、详情、创建、编辑和删除；页面复用 `ModulePage` 和 `src/styles/global.css` 的统一样式约束。认证服务已无库化，管理端不再保留认证中心登录记录页面，登录审计统一在 `system/logs` 查看。
 
-科室管理页面已接入新增科室弹窗，提交后调用 `POST /doctor/departments` 并刷新列表；医生管理页面已接入 `GET /doctor/doctors`、`POST /doctor/doctors`、`PUT /doctor/doctors/{id}/status` 和 `POST /doctor/schedules`，医生列表与排班弹窗继续复用统一样式；弹窗样式同样收口在 `src/styles/global.css`。
+医疗资源菜单聚合医生资源和科室资源：科室资源列表来源于 `sys_dept.isDepartment=1`，行内“编辑”调用 `PUT /doctor/departments/{id}` 维护线上展示名称、候诊展示和排序；医生资源列表来源于 `sys_user.userType=doctor`，行内“编辑”调用 `PUT /doctor/doctors/{id}` 维护职称、线上科室、擅长方向、问诊费用、接诊状态和排班描述；医生状态切换调用 `PUT /doctor/doctors/{id}/status`，医生排班继续调用 `POST /doctor/schedules`；页面样式继续收口在 `src/styles/global.css`。
 
 患者管理页面已接入 `GET /patient/patients`、`GET /patient/patients/{id}`、`POST /patient/patients`、`PUT /patient/patients/{id}`、`GET /patient/health-records` 和 `POST /patient/health-records`；患者资料卡片和健康档案区域继续复用 `ModulePage` 与 `src/styles/global.css` 的统一视觉约束。
 

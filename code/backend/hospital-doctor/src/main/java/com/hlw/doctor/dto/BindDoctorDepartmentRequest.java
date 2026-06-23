@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 public class BindDoctorDepartmentRequest {
     /** 科室编号。 */
     @NotNull(message = "科室编号不能为空")
-    private Long departmentId;
+    private Long deptId;
     /** 是否免挂号费。 */
     private Boolean free;
     /** 挂号费用。 */

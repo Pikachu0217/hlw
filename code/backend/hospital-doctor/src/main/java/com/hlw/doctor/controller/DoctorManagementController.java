@@ -69,7 +69,22 @@ public class DoctorManagementController {
      */
     @PostMapping("/departments")
     public R<DepartmentVO> createDepartment(@Valid @RequestBody CreateDepartmentRequest request) {
+        log.info("开放科室资源，deptId={}，name={}", request.getDeptId(), request.getName());
         return R.ok(doctorTenantContextService.createDepartment(request));
+    }
+
+    /**
+     * 更新科室扩展属性。
+     *
+     * @param id 系统部门编号
+     * @param request 科室扩展请求
+     * @return 科室展示对象
+     */
+    @PutMapping("/departments/{id}")
+    public R<DepartmentVO> updateDepartment(@PathVariable Long id, @Valid @RequestBody CreateDepartmentRequest request) {
+        log.info("更新科室扩展属性，deptId={}，name={}", id, request.getName());
+        request.setDeptId(id);
+        return R.ok(doctorTenantContextService.updateDepartmentExtension(id, request));
     }
 
     /**
@@ -102,7 +117,21 @@ public class DoctorManagementController {
      */
     @PostMapping("/doctors")
     public R<DoctorVO> createDoctor(@Valid @RequestBody CreateDoctorRequest request) {
+        log.info("纳入医生资源，userId={}，title={}", request.getUserId(), request.getTitle());
         return R.ok(doctorTenantContextService.createDoctor(request));
+    }
+
+    /**
+     * 更新医生扩展属性。
+     *
+     * @param id 医生账号编号
+     * @param request 医生扩展请求
+     * @return 医生展示对象
+     */
+    @PutMapping("/doctors/{id}")
+    public R<DoctorVO> updateDoctor(@PathVariable Long id, @RequestBody CreateDoctorRequest request) {
+        log.info("更新医生扩展属性，userId={}，title={}", id, request.getTitle());
+        return R.ok(doctorTenantContextService.updateDoctorExtension(id, request));
     }
 
     /**
@@ -114,6 +143,7 @@ public class DoctorManagementController {
      */
     @PutMapping("/doctors/{id}/status")
     public R<DoctorVO> updateDoctorStatus(@PathVariable Long id, @Valid @RequestBody UpdateDoctorStatusRequest request) {
+        log.info("更新医生接诊状态，userId={}，status={}", id, request.getStatus());
         return R.ok(doctorTenantContextService.updateDoctorStatus(id, request));
     }
 

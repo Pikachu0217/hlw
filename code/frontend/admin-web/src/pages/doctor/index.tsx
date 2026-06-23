@@ -1,6 +1,6 @@
 import { Col, Form, Input, InputNumber, Modal, Row, Select, Spin, message } from 'antd';
 import { useState } from 'react';
-import { createDoctor, createDoctorSchedule, fetchDoctors, updateDoctorStatus } from '@/api/modules';
+import { createDoctorSchedule, fetchDoctors, updateDoctorExtension, updateDoctorStatus } from '@/api/modules';
 import { MetricCard } from '@/components/MetricCard';
 import PageHero from '@/components/PageHero';
 import DoctorList, { type DoctorRecord } from '@/pages/doctor/components/DoctorList';
@@ -12,20 +12,38 @@ function DoctorPage() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<DoctorRecord | null>(null);
+  const [editingDoctor, setEditingDoctor] = useState<DoctorRecord | null>(null);
   const [doctorForm] = Form.useForm();
   const [scheduleForm] = Form.useForm();
 
-  const handleCreateDoctor = async () => {
+  const handleOpenEditDoctor = (doctor: DoctorRecord) => {
+    setEditingDoctor(doctor);
+    doctorForm.setFieldsValue({
+      userId: doctor.userId ?? doctor.id,
+      name: doctor.name,
+      title: doctor.title,
+      department: doctor.department,
+      specialty: doctor.specialty,
+      consultFee: Number(doctor.consultFee ?? 0),
+      consultStatus: doctor.consultStatus,
+      status: doctor.status,
+      schedule: doctor.schedule,
+    });
+    setDoctorOpen(true);
+  };
+
+  const handleSaveDoctorExtension = async () => {
     const values = await doctorForm.validateFields();
     setSubmitting(true);
     try {
-      await createDoctor(values);
-      message.success('医生创建成功');
+      await updateDoctorExtension(values.userId, values);
+      message.success('医生扩展属性已更新');
       setDoctorOpen(false);
+      setEditingDoctor(null);
       doctorForm.resetFields();
       refreshDoctors();
     } catch {
-      message.warning('医生创建失败，请检查接口或稍后重试');
+      message.warning('医生扩展属性更新失败，请检查接口或稍后重试');
     } finally {
       setSubmitting(false);
     }
@@ -48,7 +66,7 @@ function DoctorPage() {
   const handleOpenSchedule = (doctor: DoctorRecord) => {
     setSelectedDoctor(doctor);
     scheduleForm.setFieldsValue({
-      doctorId: Number(doctor.id),
+      doctorId: Number(doctor.doctorId ?? doctor.id),
       slot: doctor.schedule || '2026-06-13 上午',
       scheduleDate: '2026-06-13',
       timeSlot: '上午',
@@ -77,7 +95,7 @@ function DoctorPage() {
   return (
     <>
       <div className="page-shell">
-        <PageHero eyebrow="医生管理" title="医生名录与排班概览" description="医生模块采用独立可复用的 DoctorList 组件。" badgeText="DoctorList 已抽离" />
+        <PageHero eyebrow="医疗资源" title="医生资源与排班概览" description="将已有医生档案纳入线上资源池，并维护展示信息、接诊状态和排班。" badgeText="资源扩展信息" />
         <Row gutter={[18, 18]}>
           {[
             { title: '医生总数', value: String(doctors.length), note: '来自后端医生接口' },
@@ -92,31 +110,34 @@ function DoctorPage() {
         <Spin spinning={loading || submitting}>
           <DoctorList
             doctors={doctors}
-            onCreateDoctor={() => setDoctorOpen(true)}
+            onEditDoctor={handleOpenEditDoctor}
             onCreateSchedule={handleOpenSchedule}
             onToggleStatus={handleToggleStatus}
           />
         </Spin>
       </div>
       <Modal
-        title="新增医生"
+        title={editingDoctor ? `编辑医生扩展属性：${editingDoctor.name}` : '编辑医生扩展属性'}
         open={doctorOpen}
         confirmLoading={submitting}
-        onOk={handleCreateDoctor}
-        onCancel={() => setDoctorOpen(false)}
+        onOk={handleSaveDoctorExtension}
+        onCancel={() => {
+          setDoctorOpen(false);
+          setEditingDoctor(null);
+        }}
         destroyOnClose
       >
         <Form form={doctorForm} layout="vertical" className="module-form" initialValues={{ consultStatus: 'ONLINE', status: '接诊中', consultFee: 30 }}>
-          <Form.Item name="userId" label="关联账号编号" rules={[{ required: true, message: '请输入关联账号编号' }]}>
-            <InputNumber min={1} className="module-form__number" />
+          <Form.Item name="userId" label="医生账号编号" rules={[{ required: true, message: '请输入医生账号编号' }]}>
+            <InputNumber min={1} disabled className="module-form__number" />
           </Form.Item>
-          <Form.Item name="name" label="医生姓名" rules={[{ required: true, message: '请输入医生姓名' }]}>
+          <Form.Item name="name" label="线上展示姓名" rules={[{ required: true, message: '请输入线上展示姓名' }]}>
             <Input placeholder="请输入医生姓名" />
           </Form.Item>
-          <Form.Item name="title" label="职称" rules={[{ required: true, message: '请输入职称' }]}>
+          <Form.Item name="title" label="职称">
             <Input placeholder="例如：主治医师" />
           </Form.Item>
-          <Form.Item name="department" label="所属科室" rules={[{ required: true, message: '请输入所属科室' }]}>
+          <Form.Item name="department" label="线上科室">
             <Input placeholder="例如：全科" />
           </Form.Item>
           <Form.Item name="specialty" label="擅长方向">
@@ -134,7 +155,7 @@ function DoctorPage() {
               ]}
             />
           </Form.Item>
-          <Form.Item name="schedule" label="排班描述">
+          <Form.Item name="schedule" label="线上排班描述">
             <Input placeholder="例如：2026-06-13 上午" />
           </Form.Item>
         </Form>

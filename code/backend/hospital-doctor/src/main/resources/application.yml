@@ -11,7 +11,7 @@ spring:
     url: ${hlw.datasource.url}
     username: ${hlw.datasource.username}
     password: ${hlw.datasource.password}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
       host: ${hlw.redis.host}

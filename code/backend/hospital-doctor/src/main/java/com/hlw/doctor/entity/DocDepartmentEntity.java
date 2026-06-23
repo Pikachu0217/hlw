@@ -9,7 +9,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * 科室持久化对象。
+ * 科室扩展信息持久化对象。
  */
 @Getter
 @Setter
@@ -18,6 +18,8 @@ public class DocDepartmentEntity {
     /** 主键编号。 */
     @TableId(type = IdType.AUTO)
     private Long id;
+    /** 系统部门编号。 */
+    private Long deptId;
     /** 租户编号。 */
     private Long tenantId;
     /** 兼容旧表科室名称。 */

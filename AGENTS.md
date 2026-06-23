@@ -17,7 +17,7 @@ Java 17 / Spring Boot / Maven 多模块后端 + React 18 / TypeScript / Vite / A
 ### 3. 每个方法、每个数据库表字段都要增加注释，关键方法增加日志输出
 - Java 后端：每个 public 方法必须有中文 Javadoc（描述、@param、@return），每个 Entity/DTO/VO 字段必须有行注释。
 - 每个 Controller 入口方法和关键 Service 方法必须有 `log.info`/`log.warn` 日志，记录入参、关键分支和异常。
-- SQL 脚本：每个表有 `COMMENT ON TABLE`，每个字段有 `COMMENT ON COLUMN`，全部使用中文。
+- SQL 脚本：每个表和字段都要补充中文 `COMMENT`。
 
 ### 4. 前端样式全部收口到文件中，其他地方均从此处引用
 - 所有 CSS 样式必须写在 `.css` 文件（如 `src/styles/global.css`）中，禁止内联 `style={}` 和 CSS-in-JS。
@@ -43,7 +43,7 @@ Java 17 / Spring Boot / Maven 多模块后端 + React 18 / TypeScript / Vite / A
 
 - `code/backend/` — Maven 多模块，10 个业务模块 + 公共模块
 - `code/frontend/` — pnpm monorepo，`admin-web`（管理端）+ `patient-h5`（患者端）
-- `resources/sql/init.sql` — 单一基线建库建表脚本
+- `resources/sql/001-mysql8-baseline.sql` — MySQL 8 基线建库建表脚本
 - `resources/scripts/api-test.sh` — 接口测试脚本
 - `resources/scripts/service.sh` — 一键启停脚本
 

@@ -63,8 +63,8 @@ export const navigationTree: NavigationItem[] = [
     children: [{ key: 'gateway-routes', label: '路由配置', path: '/gateway/routes' }],
   },
   {
-    key: 'doctor',
-    label: '医生管理',
+    key: 'medical-resource',
+    label: '医疗资源',
     icon: <MedicineBoxOutlined />,
     children: [
       { key: 'doctor-list', label: '医生名录', path: '/doctor' },
@@ -96,6 +96,7 @@ const backendIconMap: Record<string, ReactNode> = {
   gateway: <CloudServerOutlined />,
   log: <FileTextOutlined />,
   menu: <SafetyCertificateOutlined />,
+  'medical-resource': <MedicineBoxOutlined />,
   notice: <NotificationOutlined />,
   order: <PartitionOutlined />,
   patient: <TeamOutlined />,

@@ -7,8 +7,10 @@ import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.entity.SysMenuEntity;
 import com.hlw.system.entity.SysRoleEntity;
 import com.hlw.system.entity.SysRoleMenuEntity;
+import com.hlw.system.entity.SysDeptEntity;
 import com.hlw.system.entity.SysUserEntity;
 import com.hlw.system.entity.SysUserRoleEntity;
+import com.hlw.system.mapper.SysDeptMapper;
 import com.hlw.system.mapper.SysMenuMapper;
 import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysRoleMenuMapper;
@@ -34,6 +36,8 @@ import java.util.stream.Collectors;
 public class InternalUserService {
     /** 用户数据访问组件。 */
     private final SysUserMapper sysUserMapper;
+    /** 部门数据访问组件。 */
+    private final SysDeptMapper sysDeptMapper;
     /** 用户角色关系数据访问组件。 */
     private final SysUserRoleMapper sysUserRoleMapper;
     /** 角色数据访问组件。 */
@@ -78,6 +82,25 @@ public class InternalUserService {
     }
 
     /**
+     * 按租户编号和用户类型查询用户列表。
+     *
+     * @param tenantId 租户编号
+     * @param userType 用户类型
+     * @return 内部用户展示列表
+     */
+    @Transactional(readOnly = true)
+    public List<InternalUserResp> listByTenantIdAndUserType(Long tenantId, String userType) {
+        log.info("内部按用户类型查询用户列表，tenantId={}，userType={}", tenantId, userType);
+        return ignoreTenantLine(() -> sysUserMapper.selectList(new LambdaQueryWrapper<SysUserEntity>()
+                .eq(SysUserEntity::getTenantId, String.valueOf(tenantId))
+                .eq(SysUserEntity::getUserType, userType)
+                .eq(SysUserEntity::getStatus, SystemTenantConstants.STATUS_NORMAL_VALUE)
+                .orderByAsc(SysUserEntity::getId))).stream()
+            .map(this::toInternalUserResp)
+            .toList();
+    }
+
+    /**
      * 转换内部用户展示对象。
      *
      * @param entity 用户实体
@@ -92,6 +115,8 @@ public class InternalUserService {
         resp.setUserId(entity.getUserId());
         resp.setTenantId(parseTenantId(entity.getTenantId()));
         resp.setTenantCode(entity.getTenantId());
+        resp.setDeptId(entity.getDeptId());
+        resp.setDeptName(resolveDeptName(entity));
         resp.setUsername(entity.getUserName());
         resp.setRealName(entity.getRealName());
         resp.setPassword(entity.getPassword());
@@ -169,6 +194,23 @@ public class InternalUserService {
             log.warn("租户编号无法转换为 Long，tenantId={}", tenantId);
             return -1L;
         }
+    }
+
+    /**
+     * 解析用户部门名称。
+     *
+     * @param entity 用户实体
+     * @return 部门名称
+     */
+    private String resolveDeptName(SysUserEntity entity) {
+        if (entity.getDeptId() == null) {
+            return "";
+        }
+        SysDeptEntity dept = ignoreTenantLine(() -> sysDeptMapper.selectOne(new LambdaQueryWrapper<SysDeptEntity>()
+            .eq(SysDeptEntity::getTenantId, entity.getTenantId())
+            .eq(SysDeptEntity::getId, entity.getDeptId())
+            .last("limit 1")));
+        return dept == null ? "" : dept.getDeptName();
     }
 
     /**

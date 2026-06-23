@@ -16,7 +16,7 @@ function SystemDeptsPage() {
   const handleOpenCreate = () => {
     setEditingRecord(null);
     form.resetFields();
-    form.setFieldsValue({ parentId: 0, status: 0, orderNum: 0 });
+    form.setFieldsValue({ parentId: 0, status: 0, orderNum: 0, isDepartment: 0 });
     setOpen(true);
   };
 
@@ -75,6 +75,11 @@ function SystemDeptsPage() {
       { title: '负责人', dataIndex: 'leader' },
       { title: '电话', dataIndex: 'phone' },
       { title: '祖级列表', dataIndex: 'ancestors' },
+      {
+        title: '科室',
+        dataIndex: 'isDepartment',
+        render: (value: number | undefined) => <Tag color={value === 1 ? 'blue' : 'default'}>{value === 1 ? '是' : '否'}</Tag>,
+      },
       {
         title: '状态',
         dataIndex: 'status',
@@ -151,6 +156,14 @@ function SystemDeptsPage() {
           </Form.Item>
           <Form.Item name="email" label="邮箱">
             <Input placeholder="请输入邮箱" />
+          </Form.Item>
+          <Form.Item name="isDepartment" label="是否科室">
+            <Select
+              options={[
+                { label: '否', value: 0 },
+                { label: '是', value: 1 },
+              ]}
+            />
           </Form.Item>
           <Form.Item name="status" label="状态">
             <Select

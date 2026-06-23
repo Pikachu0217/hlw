@@ -26,6 +26,7 @@ interface ApiResult<T> {
 }
 
 export interface CreateDepartmentPayload {
+  deptId?: number;
   name: string;
   queue?: string;
   status?: string;
@@ -79,6 +80,7 @@ export interface SystemDeptRecord {
   phone?: string;
   email?: string;
   status: number;
+  isDepartment?: number;
   isDefault?: number;
 }
 
@@ -89,6 +91,7 @@ export interface CreateSystemDeptPayload {
   leader?: string;
   phone?: string;
   email?: string;
+  isDepartment?: number;
   status?: number;
 }
 
@@ -184,10 +187,10 @@ export interface CreateGatewayRoutePayload {
 }
 
 export interface CreateDoctorPayload {
-  userId: number;
-  name: string;
-  title: string;
-  department: string;
+  userId?: number;
+  name?: string;
+  title?: string;
+  department?: string;
   specialty?: string;
   consultFee?: number;
   consultStatus?: string;
@@ -765,15 +768,29 @@ export function fetchDepartments(): Promise<DepartmentRecord[]> {
 
 // 创建科室。
 export async function createDepartment(payload: CreateDepartmentPayload): Promise<DepartmentRecord> {
-  console.info('[admin-module] 创建科室', payload);
+  console.info('[admin-module] 开放科室资源', payload);
   const response = await apiClient.post<ApiResult<DepartmentRecord>>('/doctor/departments', payload);
+  return response.data.data;
+}
+
+// 更新科室扩展属性。
+export async function updateDepartmentExtension(id: string | number, payload: CreateDepartmentPayload): Promise<DepartmentRecord> {
+  console.info('[admin-module] 更新科室扩展属性', id, payload);
+  const response = await apiClient.put<ApiResult<DepartmentRecord>>(`/doctor/departments/${id}`, payload);
   return response.data.data;
 }
 
 // 创建医生。
 export async function createDoctor(payload: CreateDoctorPayload): Promise<unknown> {
-  console.info('[admin-module] 创建医生', payload);
+  console.info('[admin-module] 纳入医生资源', payload);
   const response = await apiClient.post<ApiResult<unknown>>('/doctor/doctors', payload);
+  return response.data.data;
+}
+
+// 更新医生扩展属性。
+export async function updateDoctorExtension(id: string | number, payload: CreateDoctorPayload): Promise<unknown> {
+  console.info('[admin-module] 更新医生扩展属性', id, payload);
+  const response = await apiClient.put<ApiResult<unknown>>(`/doctor/doctors/${id}`, payload);
   return response.data.data;
 }
 

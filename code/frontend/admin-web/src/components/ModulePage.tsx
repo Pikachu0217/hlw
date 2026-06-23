@@ -39,6 +39,8 @@ interface ModulePageProps<T extends { id: string | number }> {
   tableClassName?: string;
   /** 新增回调。 */
   onCreate?: () => void;
+  /** 新增按钮文案。 */
+  createButtonText?: string;
 }
 
 function ModulePage<T extends { id: string | number }>({
@@ -56,6 +58,7 @@ function ModulePage<T extends { id: string | number }>({
   filterDataSource,
   tableClassName,
   onCreate,
+  createButtonText = '新增',
 }: ModulePageProps<T>) {
   const [keyword, setKeyword] = useState('');
 
@@ -100,7 +103,7 @@ function ModulePage<T extends { id: string | number }>({
             />
             {onCreate ? (
               <Button type="primary" onClick={onCreate}>
-                新增
+                {createButtonText}
               </Button>
             ) : null}
             <Button>批量导出</Button>

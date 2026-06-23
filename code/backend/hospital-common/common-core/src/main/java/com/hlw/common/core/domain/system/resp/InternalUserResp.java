@@ -19,6 +19,10 @@ public class InternalUserResp {
     private Long tenantId;
     /** 租户业务编号。 */
     private String tenantCode;
+    /** 部门编号。 */
+    private Long deptId;
+    /** 部门名称。 */
+    private String deptName;
     /** 登录账号。 */
     private String username;
     /** 真实姓名。 */

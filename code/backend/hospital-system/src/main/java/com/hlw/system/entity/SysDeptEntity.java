@@ -26,6 +26,8 @@ public class SysDeptEntity extends BaseEntity {
     private String phone;
     /** 邮箱。 */
     private String email;
+    /** 是否科室（0=否，1=是）。 */
+    private Integer isDepartment;
     /** 部门状态。 */
     private Integer status;
     /** 是否默认数据（0=系统默认不可删除，1=普通数据可删除）。 */

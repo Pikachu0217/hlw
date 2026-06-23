@@ -114,7 +114,7 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 
 `hospital_system` 当前已补齐基础管理表：
 
-- `sys_tenant`：租户主数据表，基线脚本默认写入租户 `100 / 明亮互联网医院`，供管理端登录前选择。
+- `sys_tenant`：租户主数据表，基线脚本默认写入平台默认租户 `0 / 互联网医院平台`，供管理端登录前选择。
 - `sys_user`：后台用户展示与管理基础表，业务用户编号统一为 `U_` 加 32 位 UUID 字符串，`real_name` 保存真实姓名。
 - `sys_role`：角色与数据范围基础表。
 - `sys_menu`：菜单、路由和权限标识基础表，`tenant_id=0` 的记录作为平台模板菜单，业务租户记录通过 `source_menu_id` 关联来源模板；`is_default=0` 的平台模板菜单和套餐复制菜单受保护，禁止更新或删除。
@@ -179,7 +179,7 @@ HLW_GATEWAY_DB_PASSWORD=root
 
 `resources/sql/001-mysql8-baseline.sql` 是当前 MySQL 8 初始化脚本，兼作现有领域设计基线和本地联调用脚本；每个表和字段必须补充中文 `COMMENT`。
 
-MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护，`resources/sql/002-mysql8-system-base-entity.sql` 统一系统模块基础字段，`resources/sql/003-mysql8-sys-menu-tenant-package-bootstrap.sql` 为 `sys_menu` 补充 `source_menu_id` 和租户套餐初始化所需索引，`resources/sql/006-mysql8-add-menu-is-default-field.sql` 为菜单补充默认数据保护字段，`resources/sql/008-mysql8-use-sys-user-id-for-doctor-patient.sql` 将医生与患者档案的用户关联统一迁移为 `sys_user.id`。后续每次修改 schema 时新增一份独立 SQL 执行文件，不要继续把所有变更堆叠到 `init.sql` 中。
+MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护，`resources/sql/002-mysql8-system-base-entity.sql` 统一系统模块基础字段，`resources/sql/003-mysql8-sys-menu-tenant-package-bootstrap.sql` 为 `sys_menu` 补充 `source_menu_id` 和租户套餐初始化所需索引，`resources/sql/006-mysql8-add-menu-is-default-field.sql` 为菜单补充默认数据保护字段，`resources/sql/008-mysql8-use-sys-user-id-for-doctor-patient.sql` 将医生与患者档案的用户关联统一迁移为 `sys_user.id`，`resources/sql/009-mysql8-complete-doctor-display-fields.sql` 补齐医生列表展示字段并统一接诊状态枚举，`resources/sql/010-mysql8-add-sys-dept-is-department.sql` 为系统部门补充科室标记。后续每次修改 schema 时新增一份独立 SQL 执行文件。
 
 ## 构建与测试
 
@@ -239,7 +239,7 @@ mvn -pl hospital-patient -am test
 - 控制器统一仅接收 DTO、执行参数校验、调用 Service 并返回 `R`。
 - Service 统一负责患者档案、健康档案、风险字段与日期字段的业务编排、租户上下文校验和 VO 转换。
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担数据读写，不再保留 `JdbcOperations` 和内存仓储实现。
-- `pat_patient` 与 `pat_health_record` 已在 `resources/sql/init.sql` 中补齐字段和列注释，后续新增字段仍需同步维护该脚本。
+- `pat_patient` 与 `pat_health_record` 已在 MySQL 8 顺序 SQL 脚本中补齐字段和列注释，后续新增字段需新增独立 SQL 变更文件。
 
 执行预约模块号源锁定与抢单测试：
 
@@ -506,8 +506,10 @@ DELETE /gateway/route/{id}
 ```http
 GET /doctor/departments
 POST /doctor/departments
+PUT /doctor/departments/{id}
 GET /doctor/doctors
 POST /doctor/doctors
+PUT /doctor/doctors/{id}
 PUT /doctor/doctors/{id}/status
 POST /doctor/doctors/{id}/departments
 GET /doctor/schedules
@@ -515,7 +517,7 @@ POST /doctor/schedules
 POST /doctor/appointment-fee/resolve
 ```
 
-医生管理已接入 `doc_doctor`、`doc_department`、`doc_doctor_department` 和 `doc_schedule` 表；`doc_doctor.user_id` 统一保存 `sys_user.id` 数字主键，用于从统一账号定位医生档案；医生、科室、医生科室绑定和排班接口已统一改造为 DTO/VO + MyBatis Plus 分层实现，医生状态变更与挂号费计算也已完成服务层收口。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
+医生管理列表来源于系统基础数据：医生资源列表通过内部 Feign 查询 `sys_user.user_type=doctor` 的账号，再合并 `doc_doctor` 线上扩展属性；科室资源列表通过内部 Feign 查询 `sys_dept.is_department=1` 的部门，再合并 `doc_department` 线上扩展属性。`doc_doctor.user_id` 统一保存 `sys_user.id` 数字主键，`doc_department.dept_id` 统一保存 `sys_dept.id`，医生和科室扩展属性通过 `PUT /doctor/doctors/{id}`、`PUT /doctor/departments/{id}` 维护；医生状态变更、医生科室绑定、排班和挂号费计算继续由医生模块收口。
 
 患者与健康档案接口：
 
@@ -557,7 +559,7 @@ GET /consult/doctor/workbench
 WS /ws/consult/{consultId}
 ```
 
-问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。`GET /consult/doctor/workbench` 会根据 JWT 当前用户通过 Feign 查询 `doc_doctor.user_id` 对应医生档案，只返回该医生名下“待接单、咨询中、已延长”的问诊患者。患者发起问诊时会通过 `/internal/patients/by-user` Feign 查询 `pat_patient.user_id` 对应患者档案，并将 `con_consult.patient_id` 保存为患者档案编号；医生工作台通过 `/internal/doctors/by-user` Feign 查询登录用户绑定医生档案，internal 路径不应经网关对外暴露。WebSocket 收到的 `TEXT` 和 `IMAGE` 消息会写入 `con_message` 并广播给同一问诊房间内的医生和患者，`IMAGE` 消息内容保存图片 URL；`GET /consult/consults/{id}/messages` 统一从数据库读取消息记录。`con_consult_image` 仅存在于 `resources/sql/init.sql` 的完整 baseline 中，用于后续图文问诊图片附件扩展；当前首版 IM 不提供图片上传能力，因此暂不启用该表，避免产生无入口的伪业务数据。
+问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。`GET /consult/doctor/workbench` 会根据 JWT 当前用户通过 Feign 查询 `doc_doctor.user_id` 对应医生档案，只返回该医生名下“待接单、咨询中、已延长”的问诊患者。患者发起问诊时会通过 `/internal/patients/by-user` Feign 查询 `pat_patient.user_id` 对应患者档案，并将 `con_consult.patient_id` 保存为患者档案编号；医生工作台通过 `/internal/doctors/by-user` Feign 查询登录用户绑定医生档案，internal 路径不应经网关对外暴露。WebSocket 收到的 `TEXT` 和 `IMAGE` 消息会写入 `con_message` 并广播给同一问诊房间内的医生和患者，`IMAGE` 消息内容保存图片 URL；`GET /consult/consults/{id}/messages` 统一从数据库读取消息记录。后续如启用图文问诊图片附件扩展，应通过新的 MySQL 8 顺序 SQL 变更文件补充表结构。
 
 `hospital-consult` 当前约定补充如下：
 

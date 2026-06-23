@@ -6,6 +6,8 @@ import com.hlw.system.service.InternalUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * 系统内部用户接口，专供 hospital-auth 通过 OpenFeign 服务间直连调用，
  * 网关不应对 /internal/** 进行外部路由。
@@ -49,5 +51,18 @@ public class InternalUserController {
     public R<InternalUserResp> detail(@PathVariable Long id, @RequestParam Long tenantId) {
         log.info("接收内部用户资料查询请求，id={}，tenantId={}", id, tenantId);
         return R.ok(internalUserService.findByIdAndTenantId(id, tenantId));
+    }
+
+    /**
+     * 按租户编号和用户类型查询用户列表。
+     *
+     * @param tenantId 租户编号
+     * @param userType 用户类型
+     * @return 内部用户展示列表
+     */
+    @GetMapping("/users/by-type")
+    public R<List<InternalUserResp>> listByUserType(@RequestParam Long tenantId, @RequestParam String userType) {
+        log.info("接收内部用户类型列表查询请求，tenantId={}，userType={}", tenantId, userType);
+        return R.ok(internalUserService.listByTenantIdAndUserType(tenantId, userType));
     }
 }

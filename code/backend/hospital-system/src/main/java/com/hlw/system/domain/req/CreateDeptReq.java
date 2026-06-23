@@ -23,6 +23,8 @@ public class CreateDeptReq {
     private String phone;
     /** 邮箱。 */
     private String email;
+    /** 是否科室（0=否，1=是）。 */
+    private Integer isDepartment;
     /** 部门状态。 */
     private Integer status;
 }
