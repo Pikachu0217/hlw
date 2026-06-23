@@ -152,11 +152,12 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 
 - 登录页可在未登录状态通过 `GET /system/tenant/options` 读取所有启用租户的最小选项信息，用于选择管理端登录租户。
 - 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 通过 Feign 查询 `hospital-system` 的 `sys_user.password` 中的 BCrypt 哈希，成功后返回 `username`、`realName` 和 `userType`，默认初始化平台账号为 `hlw_admin / 123456`，租户编号为 `0`。
+- 患者端手机号登录：`POST /auth/phone-code` 以手机号为 key 将固定验证码 `1234` 写入 Redis（TTL=300s）；`POST /auth/phone-login` 从 Redis 校验验证码后查询 `sys_user.phone` 匹配患者用户，签发 JWT 返回。
 - `sys_user.user_type` 仅标识统一账号的主身份和默认登录入口，例如后台系统用户、医生、患者或药师；医生档案、患者档案和健康档案仍分别落在 `doc_doctor`、`pat_patient`、`pat_health_record` 业务表中，后台菜单权限继续由 `sys_user_role`、`sys_role`、`sys_role_menu` 管理。
 - 后台用户新增接口未传 `password` 时，后端使用 `SystemTenantConstants.DEFAULT_TENANT_ADMIN_PASSWORD` 作为初始密码并写入 BCrypt 哈希。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
 - 网关只信任 `hlw.auth.token-name` 请求头中的登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `hlw.auth.tenant-header-name` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
-- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login` 和 `/system/tenant/options`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
+- 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login`、`/auth/phone-code`、`/auth/phone-login` 和 `/system/tenant/options`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
 - 登录接口属于公开接口，平台账号使用请求体 `tenantId=0` 登录；业务租户账号允许携带正数可信租户头辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
 - 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，优先消费网关透传的可信租户头，缺少租户头时再兜底解析 JWT；令牌无效或租户缺失时进入隔离租户 `-1`。
 
@@ -414,6 +415,8 @@ PRD 规划端口：
 
 ```http
 POST /auth/login
+POST /auth/phone-code
+POST /auth/phone-login
 GET /auth/detail
 POST /auth/logout
 GET /system/getInfo
