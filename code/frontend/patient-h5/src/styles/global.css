@@ -217,3 +217,181 @@ body {
 .chat-image-input .adm-input {
   flex: 1;
 }
+
+/* ========== 登录 & 实名认证页 ========== */
+.login-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 30% 10%, rgba(28, 171, 143, 0.20), transparent 50%),
+    radial-gradient(ellipse at 70% 90%, rgba(47, 105, 90, 0.12), transparent 40%),
+    linear-gradient(180deg, #f0f9f5 0%, #e6f2ec 100%);
+}
+
+/* ---------- 顶部横幅 ---------- */
+.login-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 56px 24px 12px;
+  text-align: center;
+}
+
+.login-banner--compact {
+  padding-top: 40px;
+}
+
+.login-medical-icon {
+  margin-bottom: 12px;
+  filter: drop-shadow(0 4px 12px rgba(28, 171, 143, 0.20));
+}
+
+.login-banner-title {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #1a3e36;
+  letter-spacing: 1px;
+}
+
+.login-banner-desc {
+  margin: 0;
+  font-size: 14px;
+  color: #6a8f84;
+  letter-spacing: 0.5px;
+}
+
+/* ---------- 登录卡片 ---------- */
+.login-card {
+  width: calc(100% - 32px);
+  max-width: 400px;
+  margin-top: 20px;
+  padding: 28px 24px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 2px 8px rgba(43, 83, 71, 0.04),
+    0 12px 40px rgba(43, 83, 71, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.login-card-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.login-card-title {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f3a33;
+}
+
+.login-card-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: #7a9e92;
+}
+
+/* ---------- 登录表单 ---------- */
+.login-form {
+  --border-radius: 12px;
+  --border-inner: none;
+}
+
+.login-form .adm-list {
+  --border-radius: 12px;
+  --border-inner: none;
+  --border-bottom: none;
+  overflow: hidden;
+}
+
+.login-form .adm-list-item {
+  padding-left: 0;
+  background: transparent;
+}
+
+.login-form .adm-list-item-content {
+  border-bottom: 1px solid rgba(31, 58, 51, 0.06);
+}
+
+.login-form .adm-list-item:last-child .adm-list-item-content {
+  border-bottom: none;
+}
+
+.login-form .adm-input {
+  --font-size: 16px;
+  --placeholder-color: #b0c8bf;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: #f5faf7;
+}
+
+.login-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.login-phone-input {
+  flex: 1;
+}
+
+.login-code-btn {
+  flex-shrink: 0;
+  min-width: 100px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.login-code-btn.adm-button-disabled {
+  opacity: 0.6;
+}
+
+/* ---------- 登录按钮 ---------- */
+.login-submit-btn {
+  height: 48px;
+  margin-top: 8px;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #1cab8f 0%, #2b7a68 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(28, 171, 143, 0.30);
+}
+
+.login-submit-btn.adm-button-loading {
+  opacity: 0.85;
+}
+
+/* ---------- 跳过按钮 ---------- */
+.login-skip-btn {
+  margin-top: -12px;
+  color: #8aada1;
+  font-size: 14px;
+}
+
+.login-skip-btn:active {
+  color: #1cab8f;
+}
+
+/* ---------- 底部提示 ---------- */
+.login-tip {
+  margin: 20px 0 0;
+  font-size: 12px;
+  text-align: center;
+  color: #a0bcb1;
+}
+
+/* ---------- antd-mobile Form.Item 移除多余 label 占用 ---------- */
+.login-form .adm-form-item-label {
+  display: none;
+}

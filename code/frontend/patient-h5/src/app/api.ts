@@ -6,6 +6,27 @@ interface ApiResult<T> {
   data: T;
 }
 
+export interface LoginResult {
+  token: string;
+  tenantId: number;
+  username: string;
+  realName: string;
+  userType: string;
+}
+
+/** 发送手机验证码。 */
+export async function sendPhoneCode(phone: string): Promise<void> {
+  console.info("[auth] 发送验证码", phone);
+  await http.post<ApiResult<null>>("/auth/phone-code", { phone });
+}
+
+/** 手机号+验证码登录。 */
+export async function phoneLogin(phone: string, smsCode: string): Promise<LoginResult> {
+  console.info("[auth] 手机号登录", phone);
+  const response = await http.post<ApiResult<LoginResult>>("/auth/phone-login", { phone, smsCode });
+  return response.data.data;
+}
+
 export interface PatientProfile {
   id: number;
   userId?: number;
