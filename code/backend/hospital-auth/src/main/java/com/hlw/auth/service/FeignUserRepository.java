@@ -9,10 +9,12 @@ import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Repository;
 
 /**
  * 基于 OpenFeign 的用户仓储，通过调用 hospital-system 内部接口完成用户查询。
+ * <p>标记 @Primary 以优先于已移除源码的 MybatisUserRepository 旧版编译类。</p>
  */
 @Repository
 @RequiredArgsConstructor
@@ -33,6 +35,32 @@ public class FeignUserRepository implements UserRepository {
         log.info("Feign 调用 hospital-system 查询用户，tenantId={}，username={}", tenantId, username);
         R<InternalUserResp> response = userFeignClient.users(tenantId, username);
         InternalUserResp data = requireOk(response, "查询用户失败");
+        if (data == null) {
+            return null;
+        }
+        return new LoginUserResp(
+            data.getId(),
+            data.getUserId(),
+            data.getTenantId(),
+            data.getUsername(),
+            data.getRealName(),
+            data.getPassword(),
+            data.getUserType()
+        );
+    }
+
+    /**
+     * 按租户编号和手机号查询用户。
+     *
+     * @param tenantId 租户编号
+     * @param phone    手机号
+     * @return 登录用户，不存在返回 null
+     */
+    @Override
+    public LoginUserResp findByTenantIdAndPhone(Long tenantId, String phone) {
+        log.info("Feign 调用 hospital-system 按手机号查询用户，tenantId={}，phone={}", tenantId, phone);
+        R<InternalUserResp> response = userFeignClient.findByPhone(tenantId, phone);
+        InternalUserResp data = requireOk(response, "按手机号查询用户失败");
         if (data == null) {
             return null;
         }

@@ -1,10 +1,13 @@
 package com.hlw.auth.client;
 
+import com.hlw.auth.domain.req.CreatePatientUserFeignReq;
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
@@ -33,4 +36,23 @@ public interface UserFeignClient {
      */
     @GetMapping("/internal/users/{id}")
     R<InternalUserResp> detail(@PathVariable("id") Long id, @RequestParam("tenantId") Long tenantId);
+
+    /**
+     * 按租户编号和手机号查询用户。
+     *
+     * @param tenantId 租户编号
+     * @param phone    手机号
+     * @return 用户数据，不存在时 data 为 null
+     */
+    @GetMapping("/internal/users/by-phone")
+    R<InternalUserResp> findByPhone(@RequestParam("tenantId") Long tenantId, @RequestParam("phone") String phone);
+
+    /**
+     * 创建患者用户（手机号未注册时自动注册）。
+     *
+     * @param req 创建请求
+     * @return 用户数据
+     */
+    @PostMapping("/internal/users")
+    R<InternalUserResp> createPatientUser(@RequestBody CreatePatientUserFeignReq req);
 }

@@ -17,6 +17,15 @@ public interface UserRepository {
     LoginUserResp findByTenantIdAndUsername(Long tenantId, String username);
 
     /**
+     * 按租户编号和手机号查询用户。
+     *
+     * @param tenantId 租户编号
+     * @param phone    手机号
+     * @return 登录用户，不存在返回 null
+     */
+    LoginUserResp findByTenantIdAndPhone(Long tenantId, String phone);
+
+    /**
      * 按用户编号和租户编号查询用户资料。
      *
      * @param id 用户编号

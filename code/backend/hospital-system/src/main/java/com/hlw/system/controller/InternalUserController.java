@@ -2,6 +2,7 @@ package com.hlw.system.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.common.core.domain.system.resp.InternalUserResp;
+import com.hlw.system.domain.req.CreatePatientUserInternalReq;
 import com.hlw.system.service.InternalUserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -51,6 +52,31 @@ public class InternalUserController {
     public R<InternalUserResp> detail(@PathVariable Long id, @RequestParam Long tenantId) {
         log.info("接收内部用户资料查询请求，id={}，tenantId={}", id, tenantId);
         return R.ok(internalUserService.findByIdAndTenantId(id, tenantId));
+    }
+
+    /**
+     * 按租户编号和手机号查询用户。
+     *
+     * @param tenantId 租户编号
+     * @param phone    手机号
+     * @return 内部用户展示对象，不存在返回 data=null
+     */
+    @GetMapping("/users/by-phone")
+    public R<InternalUserResp> findByPhone(@RequestParam Long tenantId, @RequestParam String phone) {
+        log.info("接收内部用户手机号查询请求，tenantId={}，phone={}", tenantId, phone);
+        return R.ok(internalUserService.findByTenantIdAndPhone(tenantId, phone));
+    }
+
+    /**
+     * 创建患者用户（手机号未注册时自动注册）。
+     *
+     * @param req 内部创建请求
+     * @return 内部用户展示对象
+     */
+    @PostMapping("/users")
+    public R<InternalUserResp> createPatientUser(@RequestBody CreatePatientUserInternalReq req) {
+        log.info("接收内部创建患者用户请求，tenantId={}，phone={}", req.getTenantId(), req.getPhone());
+        return R.ok(internalUserService.createPatientUser(req));
     }
 
     /**

@@ -14,14 +14,17 @@ import com.hlw.system.mapper.SysDeptMapper;
 import com.hlw.system.mapper.SysMenuMapper;
 import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysRoleMenuMapper;
+import com.hlw.system.domain.req.CreatePatientUserInternalReq;
 import com.hlw.system.mapper.SysUserMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
 import com.hlw.system.service.support.MybatisTenantHelpers;
+import com.hlw.system.service.support.UserIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -62,6 +65,54 @@ public class InternalUserService {
             .eq(SysUserEntity::getUserName, username)
             .last("limit 1")));
         return entity == null ? null : toInternalUserResp(entity);
+    }
+
+    /**
+     * 按租户编号和手机号查询用户。
+     *
+     * @param tenantId 租户编号
+     * @param phone    手机号
+     * @return 内部用户展示对象
+     */
+    @Transactional(readOnly = true)
+    public InternalUserResp findByTenantIdAndPhone(Long tenantId, String phone) {
+        log.info("内部按手机号查询用户，tenantId={}，phone={}", tenantId, phone);
+        SysUserEntity entity = ignoreTenantLine(() -> sysUserMapper.selectOne(new LambdaQueryWrapper<SysUserEntity>()
+            .eq(SysUserEntity::getTenantId, String.valueOf(tenantId))
+            .eq(SysUserEntity::getPhone, phone)
+            .last("limit 1")));
+        return entity == null ? null : toInternalUserResp(entity);
+    }
+
+    /**
+     * 创建患者用户（手机号未注册时自动注册）。
+     *
+     * @param req 内部创建请求
+     * @return 内部用户展示对象
+     */
+    @Transactional
+    public InternalUserResp createPatientUser(CreatePatientUserInternalReq req) {
+        Long tenantId = req.getTenantId();
+        String phone = req.getPhone();
+        String userName = req.getUserName();
+        log.info("内部创建患者用户，tenantId={}，phone={}，userName={}", tenantId, phone, userName);
+        SysUserEntity entity = new SysUserEntity();
+        entity.setTenantId(String.valueOf(tenantId));
+        entity.setUserId(UserIdGenerator.nextUserId());
+        entity.setUserName(userName);
+        entity.setRealName(phone);
+        entity.setNickName(phone);
+        entity.setUserType("patient");
+        entity.setPhone(phone);
+        entity.setStatus(0);
+        entity.setPassword("");
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        ignoreTenantLine(() -> {
+            sysUserMapper.insert(entity);
+            return null;
+        });
+        return toInternalUserResp(entity);
     }
 
     /**
