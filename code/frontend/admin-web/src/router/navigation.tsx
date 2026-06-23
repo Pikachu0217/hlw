@@ -1,16 +1,23 @@
 import type { ReactNode } from 'react';
 import {
+  BookOutlined,
   CalendarOutlined,
   CloudServerOutlined,
   DashboardOutlined,
   DeploymentUnitOutlined,
+  EditOutlined,
   ExperimentOutlined,
+  FileTextOutlined,
+  IdcardOutlined,
   MedicineBoxOutlined,
+  NotificationOutlined,
   PartitionOutlined,
   SafetyCertificateOutlined,
+  SettingOutlined,
   ShopOutlined,
   SolutionOutlined,
   TeamOutlined,
+  UserOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons';
 import { matchPath } from 'react-router-dom';
@@ -75,22 +82,33 @@ export const navigationTree: NavigationItem[] = [
 
 const backendIconMap: Record<string, ReactNode> = {
   appointment: <CalendarOutlined />,
+  book: <BookOutlined />,
   calendar: <CalendarOutlined />,
   config: <SafetyCertificateOutlined />,
   dashboard: <DashboardOutlined />,
   dept: <PartitionOutlined />,
   dict: <SafetyCertificateOutlined />,
+  documentation: <BookOutlined />,
   doctor: <MedicineBoxOutlined />,
   drug: <DeploymentUnitOutlined />,
+  edit: <EditOutlined />,
+  file: <FileTextOutlined />,
   gateway: <CloudServerOutlined />,
+  log: <FileTextOutlined />,
   menu: <SafetyCertificateOutlined />,
+  notice: <NotificationOutlined />,
   order: <PartitionOutlined />,
   patient: <TeamOutlined />,
+  peoples: <TeamOutlined />,
+  post: <IdcardOutlined />,
   prescription: <ExperimentOutlined />,
   role: <SafetyCertificateOutlined />,
+  setting: <SettingOutlined />,
   system: <SafetyCertificateOutlined />,
   tenant: <ShopOutlined />,
+  'tree-table': <SettingOutlined />,
   user: <TeamOutlined />,
+  user2: <UserOutlined />,
 };
 
 const staticNavigationByPath = new Map<string, NavigationItem>();

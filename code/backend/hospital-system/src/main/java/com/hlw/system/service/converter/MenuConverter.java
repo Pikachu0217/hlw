@@ -34,6 +34,7 @@ public class MenuConverter {
         vo.setIcon(entity.getIcon());
         vo.setRemark(entity.getRemark());
         vo.setStatus(entity.getStatus());
+        vo.setIsDefault(entity.getIsDefault());
         return vo;
     }
 }

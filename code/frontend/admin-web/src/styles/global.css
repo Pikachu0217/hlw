@@ -661,6 +661,29 @@ body {
   white-space: nowrap;
 }
 
+.menu-config-table__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: #2563eb;
+  font-size: 16px;
+}
+
+.menu-icon-option {
+  display: inline-flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-icon-option__value {
+  margin-left: auto;
+  color: #8ca0b3;
+  font-size: 12px;
+}
+
 .dict-list-page {
   display: flex;
   flex-direction: column;

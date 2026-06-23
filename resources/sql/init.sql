@@ -183,6 +183,7 @@ CREATE TABLE IF NOT EXISTS sys_menu (
     route_path VARCHAR(128) NOT NULL,
     sort INTEGER NOT NULL DEFAULT 0,
     status VARCHAR(32) NOT NULL DEFAULT '0',
+    is_default SMALLINT NOT NULL DEFAULT 1,
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     update_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     create_by BIGINT,
@@ -328,6 +329,7 @@ ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS menu_type VARCHAR(32) NOT NULL DEF
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS permission VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS route_path VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS sort INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE sys_menu ADD COLUMN IF NOT EXISTS is_default SMALLINT NOT NULL DEFAULT 1;
 ALTER TABLE sys_config ALTER COLUMN config_type SET DEFAULT '业务参数';
 ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS tenant_name VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE sys_tenant ADD COLUMN IF NOT EXISTS package_name VARCHAR(128) NOT NULL DEFAULT '';
@@ -409,6 +411,7 @@ COMMENT ON COLUMN sys_menu.permission IS '权限标识';
 COMMENT ON COLUMN sys_menu.route_path IS '路由路径';
 COMMENT ON COLUMN sys_menu.sort IS '菜单排序';
 COMMENT ON COLUMN sys_menu.status IS '菜单状态';
+COMMENT ON COLUMN sys_menu.is_default IS '是否默认数据（0=系统默认不可删除，1=普通数据可删除）';
 COMMENT ON COLUMN sys_menu.create_time IS '创建时间';
 COMMENT ON COLUMN sys_menu.update_time IS '更新时间';
 COMMENT ON COLUMN sys_menu.create_by IS '创建人编号';
@@ -568,6 +571,8 @@ ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
                                route_path = EXCLUDED.route_path,
                                sort = EXCLUDED.sort,
                                status = EXCLUDED.status;
+
+UPDATE sys_menu SET is_default = 0 WHERE tenant_id = 0;
 
 INSERT INTO sys_dict (id, tenant_id, dict_type, dict_label, dict_value, sort, status, remark)
 VALUES

@@ -1,5 +1,26 @@
+import {
+  BookOutlined,
+  CalendarOutlined,
+  CloudServerOutlined,
+  DashboardOutlined,
+  DeploymentUnitOutlined,
+  EditOutlined,
+  ExperimentOutlined,
+  FileTextOutlined,
+  IdcardOutlined,
+  MedicineBoxOutlined,
+  NotificationOutlined,
+  PartitionOutlined,
+  SafetyCertificateOutlined,
+  SettingOutlined,
+  ShopOutlined,
+  SolutionOutlined,
+  TeamOutlined,
+  UserOutlined,
+} from '@ant-design/icons';
 import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, TreeSelect, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { createMenu, deleteMenu, fetchMenus, updateMenu } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
@@ -26,6 +47,7 @@ export interface MenuRecord {
   orderNum?: number;
   icon?: string;
   status: string;
+  isDefault?: number;
   remark?: string;
   children?: MenuRecord[];
 }
@@ -35,6 +57,49 @@ const menuTypeMap: Record<string, string> = {
   C: '菜单',
   F: '按钮',
 };
+
+interface MenuIconOption {
+  /** 图标名称。 */
+  label: string;
+  /** 图标键值。 */
+  value: string;
+  /** 图标节点。 */
+  icon: ReactNode;
+}
+
+const menuIconOptions: MenuIconOption[] = [
+  { label: '工作台', value: 'dashboard', icon: <DashboardOutlined /> },
+  { label: '租户', value: 'tenant', icon: <ShopOutlined /> },
+  { label: '系统', value: 'system', icon: <SafetyCertificateOutlined /> },
+  { label: '用户', value: 'user', icon: <TeamOutlined /> },
+  { label: '用户组', value: 'peoples', icon: <TeamOutlined /> },
+  { label: '角色', value: 'role', icon: <SafetyCertificateOutlined /> },
+  { label: '菜单', value: 'menu', icon: <SafetyCertificateOutlined /> },
+  { label: '字典', value: 'dict', icon: <BookOutlined /> },
+  { label: '文档', value: 'documentation', icon: <BookOutlined /> },
+  { label: '参数', value: 'tree-table', icon: <SettingOutlined /> },
+  { label: '编辑', value: 'edit', icon: <EditOutlined /> },
+  { label: '岗位', value: 'post', icon: <IdcardOutlined /> },
+  { label: '通知', value: 'notice', icon: <NotificationOutlined /> },
+  { label: '日志', value: 'log', icon: <FileTextOutlined /> },
+  { label: '部门', value: 'dept', icon: <PartitionOutlined /> },
+  { label: '网关', value: 'gateway', icon: <CloudServerOutlined /> },
+  { label: '医生', value: 'doctor', icon: <MedicineBoxOutlined /> },
+  { label: '患者', value: 'patient', icon: <TeamOutlined /> },
+  { label: '咨询', value: 'consult', icon: <SolutionOutlined /> },
+  { label: '预约', value: 'appointment', icon: <CalendarOutlined /> },
+  { label: '处方', value: 'prescription', icon: <ExperimentOutlined /> },
+  { label: '药品', value: 'drug', icon: <DeploymentUnitOutlined /> },
+  { label: '订单', value: 'order', icon: <PartitionOutlined /> },
+  { label: '文件', value: 'file', icon: <FileTextOutlined /> },
+  { label: '个人', value: 'user2', icon: <UserOutlined /> },
+];
+
+const menuIconSelectOptions = menuIconOptions.map((item) => ({
+  label: item.label,
+  value: item.value,
+  icon: item.icon,
+}));
 
 /** 通知后台布局重新拉取后端菜单路由树。 */
 function emitNavigationRefresh(): void {
@@ -63,6 +128,7 @@ function MenusPage() {
 
   const handleOpenEdit = (record: MenuRecord) => {
     setEditingRecord(record);
+    form.resetFields();
     form.setFieldsValue({ ...record, parentId: Number(record.parentId ?? 0) });
     setOpen(true);
   };
@@ -115,14 +181,15 @@ function MenusPage() {
       {
         title: '菜单名称',
         dataIndex: 'menuName',
-        width: 220,
+        width: 172,
         className: 'menu-config-table__name-column',
         render: (value: string) => <span className="menu-config-table__name">{value}</span>,
       },
+      { title: '图标', dataIndex: 'icon', width: 62, render: (value: string) => resolveMenuIcon(value) },
       { title: '类型', dataIndex: 'menuType', width: 72, render: (value: string) => menuTypeMap[value] ?? value },
-      { title: '权限标识', dataIndex: 'perms', width: 210 },
-      { title: '路由路径', dataIndex: 'path', width: 170 },
-      { title: '组件路径', dataIndex: 'component', width: 210 },
+      { title: '权限标识', dataIndex: 'perms', width: 160 },
+      { title: '路由路径', dataIndex: 'path', width: 120 },
+      { title: '组件路径', dataIndex: 'component', width: 150 },
       { title: '排序', dataIndex: 'orderNum', width: 64 },
       {
         title: '状态',
@@ -133,17 +200,20 @@ function MenusPage() {
       {
         title: '操作',
         key: 'actions',
-        width: 82,
-        render: (_: unknown, record: MenuRecord) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              编辑
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        width: 96,
+        render: (_: unknown, record: MenuRecord) => {
+          const isDefaultMenu = record.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenEdit(record)} disabled={isDefaultMenu}>
+                编辑
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDelete(record)} disabled={isDefaultMenu}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [],
@@ -213,7 +283,14 @@ function MenusPage() {
             <InputNumber min={0} className="module-form__number" />
           </Form.Item>
           <Form.Item name="icon" label="图标">
-            <Input placeholder="例如：user" />
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="请选择菜单图标"
+              options={menuIconSelectOptions}
+              optionRender={(option) => renderMenuIconOption(option.data as MenuIconOption)}
+            />
           </Form.Item>
           <Form.Item name="visible" label="显示状态">
             <Select
@@ -243,6 +320,33 @@ function MenusPage() {
       </Modal>
     </>
   );
+}
+
+/**
+ * 渲染菜单图标下拉选项。
+ *
+ * @param option 菜单图标选项
+ * @return 图标选项节点
+ */
+function renderMenuIconOption(option: MenuIconOption): ReactNode {
+  return (
+    <span className="menu-icon-option">
+      {option.icon}
+      <span>{option.label}</span>
+      <span className="menu-icon-option__value">{option.value}</span>
+    </span>
+  );
+}
+
+/**
+ * 解析菜单图标节点。
+ *
+ * @param value 图标键值
+ * @return 图标节点
+ */
+function resolveMenuIcon(value?: string): ReactNode {
+  const iconOption = menuIconOptions.find((item) => item.value === value);
+  return iconOption ? <span className="menu-config-table__icon">{iconOption.icon}</span> : '-';
 }
 
 export default MenusPage;

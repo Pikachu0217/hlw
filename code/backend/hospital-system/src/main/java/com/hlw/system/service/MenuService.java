@@ -12,6 +12,7 @@ import com.hlw.system.entity.SysMenuEntity;
 import com.hlw.system.mapper.SysMenuMapper;
 import com.hlw.system.service.converter.MenuConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
+import com.hlw.system.service.support.SystemDefaultDataGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -107,6 +108,7 @@ public class MenuService {
         log.info("创建菜单，tenantId={}，menuName={}，perms={}", tenantId, request.getMenuName(), request.getPerms());
         SysMenuEntity entity = new SysMenuEntity();
         entity.setTenantId(tenantId);
+        entity.setIsDefault(SystemTenantConstants.NORMAL_DATA_FLAG);
         fillMenu(entity, request);
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
@@ -138,6 +140,7 @@ public class MenuService {
         log.info("更新菜单，tenantId={}，id={}，menuName={}，perms={}",
             MybatisTenantHelpers.currentTenantIdString(), id, request.getMenuName(), request.getPerms());
         SysMenuEntity entity = requireMenu(id);
+        SystemDefaultDataGuard.ensureCanUpdate(entity.getIsDefault(), "菜单");
         fillMenu(entity, request);
         entity.setUpdateTime(LocalDateTime.now());
         sysMenuMapper.updateById(entity);
@@ -152,7 +155,8 @@ public class MenuService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteMenu(Long id) {
         log.info("删除菜单，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
-        requireMenu(id);
+        SysMenuEntity entity = requireMenu(id);
+        SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "菜单");
         sysMenuMapper.deleteById(id);
     }
 

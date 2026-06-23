@@ -37,6 +37,8 @@ public class MenuResp {
     private String remark;
     /** 状态。 */
     private String status;
+    /** 是否默认数据（0=系统默认不可删除，1=普通数据可删除）。 */
+    private Integer isDefault;
     /** 子菜单列表。 */
     private List<MenuResp> children;
 }

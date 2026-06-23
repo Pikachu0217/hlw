@@ -264,6 +264,7 @@ CREATE TABLE `sys_menu` (
                             `menu_type` char(1) NOT NULL DEFAULT '' COMMENT '菜单类型（M目录 C菜单 F按钮）',
                             `visible` char(1) NOT NULL DEFAULT '0' COMMENT '显示状态（0显示 1隐藏）',
                             `status` char(1) NOT NULL DEFAULT '0' COMMENT '菜单状态（0正常 1停用）',
+                            `is_default` tinyint NOT NULL DEFAULT 1 COMMENT '是否默认数据（0=系统默认不可删除，1=普通数据可删除）',
                             `perms` varchar(100) DEFAULT NULL COMMENT '权限标识',
                             `icon` varchar(100) NOT NULL DEFAULT '#' COMMENT '菜单图标',
                             `remark` varchar(500) DEFAULT '' COMMENT '备注',
@@ -341,6 +342,7 @@ INSERT INTO `sys_menu` (`id`, `tenant_id`, `menu_name`, `parent_id`, `order_num`
                         `update_by`, `update_time`, `deleted`)
 VALUES (18, '0', '系统日志', 3, 9, '/system/logs', 'system/logs/index', 1, 'C', '0', '0', 'system:logs:index', 'post',
         '日志管理菜单', NULL, NULL, NULL, NULL, 0);
+UPDATE `sys_menu` SET `is_default` = 0 WHERE `tenant_id` = '0';
 COMMIT;
 
 -- ----------------------------

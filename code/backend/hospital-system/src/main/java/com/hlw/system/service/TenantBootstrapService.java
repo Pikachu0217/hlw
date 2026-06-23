@@ -522,6 +522,7 @@ public class TenantBootstrapService {
         entity.setMenuType(template.getMenuType());
         entity.setVisible(template.getVisible());
         entity.setStatus(template.getStatus());
+        entity.setIsDefault(SystemTenantConstants.SYSTEM_DEFAULT_DATA_FLAG);
         entity.setPerms(template.getPerms());
         entity.setIcon(template.getIcon());
         entity.setRemark(template.getRemark());
