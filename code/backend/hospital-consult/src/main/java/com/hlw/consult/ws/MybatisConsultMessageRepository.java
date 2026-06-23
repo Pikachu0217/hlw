@@ -3,6 +3,7 @@ package com.hlw.consult.ws;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.consult.entity.ConMessageEntity;
+import com.hlw.consult.service.ConsultMessageType;
 import com.hlw.consult.mapper.ConMessageMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -26,14 +27,18 @@ public class MybatisConsultMessageRepository implements ConsultMessageRepository
      * 保存问诊消息。
      *
      * @param message 问诊消息
+     * @return 已保存的问诊消息
      */
     @Override
     @Transactional
-    public void save(ConsultMessage message) {
+    public ConsultMessage save(ConsultMessage message) {
         if (message.content() == null || message.content().isBlank()) {
             throw new BizException(400, "消息内容不能为空");
         }
-        String contentType = message.contentType() == null || message.contentType().isBlank() ? "TEXT" : message.contentType();
+        String contentType = message.contentType() == null || message.contentType().isBlank() ? ConsultMessageType.TEXT : message.contentType();
+        if (!ConsultMessageType.isSendable(contentType)) {
+            throw new BizException(400, "消息类型不支持");
+        }
         log.info("保存问诊消息，consultId={}，senderId={}", message.consultId(), message.senderId());
         ConMessageEntity entity = new ConMessageEntity();
         entity.setConsultId(message.consultId());
@@ -45,6 +50,16 @@ public class MybatisConsultMessageRepository implements ConsultMessageRepository
         entity.setIsRead(message.read() ? 1 : 0);
         entity.setCreateTime(message.createTime());
         conMessageMapper.insert(entity);
+        return new ConsultMessage(
+            entity.getId(),
+            entity.getConsultId(),
+            entity.getSenderId(),
+            entity.getSenderType(),
+            entity.getContent(),
+            entity.getContentType(),
+            Boolean.TRUE.equals(entity.getReadFlag()),
+            entity.getCreateTime()
+        );
     }
 
     /**
@@ -61,6 +76,7 @@ public class MybatisConsultMessageRepository implements ConsultMessageRepository
                 .orderByAsc(ConMessageEntity::getId))
             .stream()
             .map(entity -> new ConsultMessage(
+                entity.getId(),
                 entity.getConsultId(),
                 entity.getSenderId(),
                 entity.getSenderType(),

@@ -520,11 +520,15 @@ ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id,
                                status = EXCLUDED.status;
 
 DELETE FROM sys_user
-WHERE id <> 1;
+WHERE id NOT IN (1, 2, 3, 4, 5);
 
 INSERT INTO sys_user (id, tenant_id, username, real_name, password, phone, user_type, dept_id, dept_name, role_name, last_login, status)
 VALUES
-    (1, 0, 'hlw_admin', '平台超级管理员', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'sys_user', 1, '平台运营中心', '系统管理员', '2026-06-19 09:21:52', '0')
+    (1, 0, 'hlw_admin', '平台超级管理员', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13800001111', 'sys_user', 1, '平台运营中心', '系统管理员', '2026-06-19 09:21:52', '0'),
+    (2, 100, 'patient_zhao', '赵晓岚', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13900001111', 'patient', NULL, '', '', '', '0'),
+    (3, 100, 'patient_shen', '沈博远', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13900002222', 'patient', NULL, '', '', '', '0'),
+    (4, 100, 'doctor_chen', '陈知衡', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13900003333', 'doctor', NULL, '', '', '', '0'),
+    (5, 100, 'doctor_gu', '顾清和', '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', '13900004444', 'doctor', NULL, '', '', '', '0')
 ON CONFLICT (id) DO UPDATE SET tenant_id = EXCLUDED.tenant_id,
                                username = EXCLUDED.username,
                                real_name = EXCLUDED.real_name,
@@ -583,7 +587,8 @@ VALUES
     (5, 0, 'menu_type', '按钮', '按钮', 3, '0', '页面按钮权限'),
     (6, 0, 'user_type', '系统用户', 'sys_user', 1, '0', '后台系统用户'),
     (7, 0, 'user_type', '医生', 'doctor', 2, '0', '医生工作台用户'),
-    (8, 0, 'user_type', '药师', 'pharmacist', 3, '0', '药师工作台用户')
+    (8, 0, 'user_type', '药师', 'pharmacist', 3, '0', '药师工作台用户'),
+    (9, 0, 'user_type', '患者', 'patient', 4, '0', '患者端用户')
 ON CONFLICT (id) DO UPDATE SET dict_type = EXCLUDED.dict_type,
                                dict_label = EXCLUDED.dict_label,
                                dict_value = EXCLUDED.dict_value,
@@ -708,7 +713,9 @@ ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS patient_name VARCHAR(64) NOT NU
 ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS age INT NOT NULL DEFAULT 0;
 ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS risk_level VARCHAR(32) NOT NULL DEFAULT '低风险';
 ALTER TABLE pat_patient ADD COLUMN IF NOT EXISTS last_visit DATE;
+ALTER TABLE pat_patient ALTER COLUMN user_id TYPE BIGINT USING CASE WHEN user_id::text ~ '^[0-9]+$' THEN user_id::text::BIGINT ELSE 0 END;
 ALTER TABLE pat_patient ALTER COLUMN gender TYPE VARCHAR(16) USING CASE WHEN gender::text = '1' THEN '男' WHEN gender::text = '2' THEN '女' ELSE gender::text END;
+CREATE INDEX IF NOT EXISTS idx_pat_patient_user ON pat_patient (tenant_id, user_id);
 ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS title VARCHAR(128) NOT NULL DEFAULT '';
 ALTER TABLE pat_health_record ADD COLUMN IF NOT EXISTS summary VARCHAR(256) NOT NULL DEFAULT '';
 UPDATE pat_health_record
@@ -723,7 +730,7 @@ SET patient_name = COALESCE(NULLIF(patient_name, ''), name),
 COMMENT ON TABLE pat_patient IS '患者档案表';
 COMMENT ON COLUMN pat_patient.id IS '主键编号';
 COMMENT ON COLUMN pat_patient.tenant_id IS '租户编号';
-COMMENT ON COLUMN pat_patient.user_id IS '关联用户编号';
+COMMENT ON COLUMN pat_patient.user_id IS '关联用户编号（关联sys_user.id）';
 COMMENT ON COLUMN pat_patient.name IS '兼容旧表患者姓名';
 COMMENT ON COLUMN pat_patient.patient_name IS '患者姓名';
 COMMENT ON COLUMN pat_patient.phone IS '联系电话';
@@ -742,7 +749,7 @@ COMMENT ON COLUMN pat_patient.deleted IS '逻辑删除标识';
 COMMENT ON TABLE pat_health_record IS '健康档案表';
 COMMENT ON COLUMN pat_health_record.id IS '主键编号';
 COMMENT ON COLUMN pat_health_record.tenant_id IS '租户编号';
-COMMENT ON COLUMN pat_health_record.patient_id IS '患者编号';
+COMMENT ON COLUMN pat_health_record.patient_id IS '患者档案编号（关联pat_patient.id）';
 COMMENT ON COLUMN pat_health_record.title IS '档案标题';
 COMMENT ON COLUMN pat_health_record.summary IS '档案摘要';
 COMMENT ON COLUMN pat_health_record.allergies IS '过敏史';
@@ -757,8 +764,8 @@ COMMENT ON COLUMN pat_health_record.deleted IS '逻辑删除标识';
 
 INSERT INTO pat_patient (id, tenant_id, user_id, name, patient_name, phone, gender, age, risk_level, id_card, birthday, address, last_visit)
 VALUES
-    (1, 100, 1, '赵晓岚', '赵晓岚', '13900001111', '女', 34, '中风险', '110101199201010011', '1992-01-01', '杭州市西湖区', '2026-06-11'),
-    (2, 100, 2, '沈博远', '沈博远', '13900002222', '男', 58, '高风险', '110101196801010022', '1968-01-01', '杭州市滨江区', '2026-06-10')
+    (1, 100, 2, '赵晓岚', '赵晓岚', '13900001111', '女', 34, '中风险', '110101199201010011', '1992-01-01', '杭州市西湖区', '2026-06-11'),
+    (2, 100, 3, '沈博远', '沈博远', '13900002222', '男', 58, '高风险', '110101196801010022', '1968-01-01', '杭州市滨江区', '2026-06-10')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO pat_health_record (id, tenant_id, patient_id, title, summary, history, diagnosis, remark)
@@ -830,9 +837,11 @@ CREATE TABLE IF NOT EXISTS doc_doctor (
     deleted SMALLINT NOT NULL DEFAULT 0
 );
 
+ALTER TABLE doc_doctor ALTER COLUMN user_id TYPE BIGINT USING CASE WHEN user_id::text ~ '^[0-9]+$' THEN user_id::text::BIGINT ELSE 0 END;
+
 COMMENT ON TABLE doc_doctor IS '医生信息表';
 COMMENT ON COLUMN doc_doctor.id IS '主键编号';
-COMMENT ON COLUMN doc_doctor.user_id IS '关联用户编号';
+COMMENT ON COLUMN doc_doctor.user_id IS '关联用户编号（关联sys_user.id）';
 COMMENT ON COLUMN doc_doctor.tenant_id IS '租户编号';
 COMMENT ON COLUMN doc_doctor.name IS '医生姓名';
 COMMENT ON COLUMN doc_doctor.avatar IS '头像地址';
@@ -956,6 +965,7 @@ WHERE current_row.id > kept_row.id
   AND current_row.department_id = kept_row.department_id
   AND current_row.deleted = 0
   AND kept_row.deleted = 0;
+CREATE INDEX IF NOT EXISTS idx_doc_doctor_user ON doc_doctor (tenant_id, user_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_doc_doctor_department_active
 ON doc_doctor_department (doctor_id, department_id)
 WHERE deleted = 0;
@@ -975,8 +985,8 @@ ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
 
 INSERT INTO doc_doctor (id, tenant_id, user_id, name, title, specialty, consult_fee, consult_status)
 VALUES
-    (1, 100, 1, '陈知衡', '主任医师', '冠脉慢病管理', 50.00, 1),
-    (2, 100, 2, '顾清和', '副主任医师', '糖尿病营养干预', 30.00, 2)
+    (1, 100, 4, '陈知衡', '主任医师', '冠脉慢病管理', 50.00, 1),
+    (2, 100, 5, '顾清和', '副主任医师', '糖尿病营养干预', 30.00, 2)
 ON CONFLICT (id) DO UPDATE SET user_id = EXCLUDED.user_id,
                                name = EXCLUDED.name,
                                title = EXCLUDED.title,
@@ -1060,7 +1070,7 @@ ALTER TABLE con_consult ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN sta
 COMMENT ON TABLE con_consult IS '问诊单表';
 COMMENT ON COLUMN con_consult.id IS '主键编号';
 COMMENT ON COLUMN con_consult.tenant_id IS '租户编号';
-COMMENT ON COLUMN con_consult.patient_id IS '患者编号';
+COMMENT ON COLUMN con_consult.patient_id IS '患者档案编号（关联pat_patient.id）';
 COMMENT ON COLUMN con_consult.doctor_id IS '医生编号';
 COMMENT ON COLUMN con_consult.consult_type IS '问诊类型';
 COMMENT ON COLUMN con_consult.consult_no IS '问诊单号';
@@ -1179,7 +1189,7 @@ ALTER TABLE apt_appointment ALTER COLUMN status TYPE VARCHAR(32) USING CASE WHEN
 COMMENT ON TABLE apt_appointment IS '预约单表';
 COMMENT ON COLUMN apt_appointment.id IS '主键编号';
 COMMENT ON COLUMN apt_appointment.tenant_id IS '租户编号';
-COMMENT ON COLUMN apt_appointment.patient_id IS '患者编号';
+COMMENT ON COLUMN apt_appointment.patient_id IS '患者档案编号（关联pat_patient.id）';
 COMMENT ON COLUMN apt_appointment.doctor_id IS '医生编号';
 COMMENT ON COLUMN apt_appointment.department_id IS '科室编号';
 COMMENT ON COLUMN apt_appointment.schedule_id IS '排班编号';
@@ -1345,7 +1355,7 @@ COMMENT ON TABLE pre_prescription IS '处方表';
 COMMENT ON COLUMN pre_prescription.id IS '主键编号';
 COMMENT ON COLUMN pre_prescription.tenant_id IS '租户编号';
 COMMENT ON COLUMN pre_prescription.consult_id IS '问诊编号';
-COMMENT ON COLUMN pre_prescription.patient_id IS '患者编号';
+COMMENT ON COLUMN pre_prescription.patient_id IS '患者档案编号（关联pat_patient.id）';
 COMMENT ON COLUMN pre_prescription.doctor_id IS '医生编号';
 COMMENT ON COLUMN pre_prescription.pharmacist_id IS '审核药师编号';
 COMMENT ON COLUMN pre_prescription.prescription_no IS '处方编号';
@@ -1592,7 +1602,7 @@ COMMENT ON COLUMN ord_order.id IS '主键编号';
 COMMENT ON COLUMN ord_order.tenant_id IS '租户编号';
 COMMENT ON COLUMN ord_order.biz_type IS '业务类型编码';
 COMMENT ON COLUMN ord_order.biz_id IS '业务编号';
-COMMENT ON COLUMN ord_order.patient_id IS '患者编号';
+COMMENT ON COLUMN ord_order.patient_id IS '患者档案编号（关联pat_patient.id）';
 COMMENT ON COLUMN ord_order.order_no IS '订单号';
 COMMENT ON COLUMN ord_order.business_type IS '业务类型';
 COMMENT ON COLUMN ord_order.patient_name IS '患者姓名';

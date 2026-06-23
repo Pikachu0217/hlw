@@ -107,6 +107,9 @@ function DoctorPage() {
         destroyOnClose
       >
         <Form form={doctorForm} layout="vertical" className="module-form" initialValues={{ consultStatus: 'ONLINE', status: '接诊中', consultFee: 30 }}>
+          <Form.Item name="userId" label="关联账号编号" rules={[{ required: true, message: '请输入关联账号编号' }]}>
+            <InputNumber min={1} className="module-form__number" />
+          </Form.Item>
           <Form.Item name="name" label="医生姓名" rules={[{ required: true, message: '请输入医生姓名' }]}>
             <Input placeholder="请输入医生姓名" />
           </Form.Item>

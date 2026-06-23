@@ -10,8 +10,9 @@ public interface ConsultMessageRepository {
      * 保存问诊消息。
      *
      * @param message 问诊消息
+     * @return 已保存的问诊消息
      */
-    void save(ConsultMessage message);
+    ConsultMessage save(ConsultMessage message);
 
     /**
      * 查询问诊消息列表。

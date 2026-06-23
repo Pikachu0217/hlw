@@ -742,7 +742,7 @@ run_all_cases() {
     run_case "更新当前患者档案" "PUT" "/patient/profile" "{\"patientName\":\"张小满\",\"phone\":\"13800000009\",\"gender\":\"女\",\"age\":28,\"riskLevel\":\"中风险\",\"idCard\":\"330101199801010011\",\"birthday\":\"1998-01-01\",\"address\":\"杭州市上城区\",\"lastVisit\":\"2026-06-13\"}"
     run_case "查询患者列表" "GET" "/patient/patients"
     run_case "查询患者详情" "GET" "/patient/patients/1"
-    run_case "创建患者档案" "POST" "/patient/patients" "{\"patientName\":\"接口测试患者\",\"phone\":\"13800001234\",\"gender\":\"男\",\"age\":36,\"riskLevel\":\"低风险\",\"idCard\":\"330101198801010012\",\"birthday\":\"1988-01-01\",\"address\":\"杭州市余杭区\",\"lastVisit\":\"2026-06-12\"}"
+    run_case "创建患者档案" "POST" "/patient/patients" "{\"userId\":1,\"patientName\":\"接口测试患者\",\"phone\":\"13800001234\",\"gender\":\"男\",\"age\":36,\"riskLevel\":\"低风险\",\"idCard\":\"330101198801010012\",\"birthday\":\"1988-01-01\",\"address\":\"杭州市余杭区\",\"lastVisit\":\"2026-06-12\"}"
     run_case "更新患者档案" "PUT" "/patient/patients/1" "{\"patientName\":\"赵晓岚\",\"phone\":\"13900001111\",\"gender\":\"女\",\"age\":35,\"riskLevel\":\"中风险\",\"idCard\":\"110101199201010011\",\"birthday\":\"1992-01-01\",\"address\":\"杭州市西湖区\",\"lastVisit\":\"2026-06-12\"}"
     run_case "查询健康档案列表" "GET" "/patient/health-records?patientId=1"
     run_case "创建健康档案" "POST" "/patient/health-records" "{\"patientId\":1,\"title\":\"接口测试档案\",\"summary\":\"脚本自动创建\",\"allergies\":\"无\",\"history\":\"随访记录\",\"diagnosis\":\"血压稳定\",\"remark\":\"自动化脚本写入\"}"
@@ -752,7 +752,7 @@ run_all_cases() {
     run_case "创建科室" "POST" "/doctor/departments" "{\"name\":\"接口测试科室\",\"status\":\"启用\"}"
     run_case "查询医生列表" "GET" "/doctor/doctors"
     run_case "查询医生详情" "GET" "/doctor/doctors/1"
-    run_case "创建医生" "POST" "/doctor/doctors" "{\"name\":\"接口测试医生\",\"title\":\"主治医师\",\"department\":\"全科\",\"specialty\":\"慢病复诊\",\"consultFee\":30,\"consultStatus\":\"ONLINE\",\"status\":\"接诊中\",\"schedule\":\"2026-06-13 上午\"}"
+    run_case "创建医生" "POST" "/doctor/doctors" "{\"userId\":1,\"name\":\"接口测试医生\",\"title\":\"主治医师\",\"department\":\"全科\",\"specialty\":\"慢病复诊\",\"consultFee\":30,\"consultStatus\":\"ONLINE\",\"status\":\"接诊中\",\"schedule\":\"2026-06-13 上午\"}"
     run_case "更新医生状态" "PUT" "/doctor/doctors/1/status" "{\"status\":\"ONLINE\"}"
     run_case "绑定医生科室" "POST" "/doctor/doctors/1/departments" "{\"departmentId\":10,\"appointmentFee\":50}"
     run_case "查询排班列表" "GET" "/doctor/schedules"
@@ -782,7 +782,8 @@ run_all_cases() {
     run_case "延长问诊" "POST" "/consult/consults/1/extend"
     run_case "完成问诊" "POST" "/consult/consults/1/complete"
     run_case "查询问诊消息" "GET" "/consult/consults/1/messages"
-    record_skip_case "问诊 WebSocket 通道" "WS" "/ws/consult/{consultId}" "{\"consultId\":\"占位示例\"}" "WebSocket 长连接不适合用 curl 在本脚本中断言，建议使用专用 ws 客户端补充验证"
+    run_case "查询医生咨询工作台" "GET" "/consult/doctor/workbench"
+    record_skip_case "问诊 WebSocket 通道" "WS" "/ws/consult/{consultId}" "{\"contentType\":\"TEXT\",\"content\":\"接口测试消息\"}" "WebSocket 长连接不适合用 curl 在本脚本中断言，建议使用专用 ws 客户端补充验证"
 
     # 处方接口。
     run_case "查询处方列表" "GET" "/prescription/prescriptions"

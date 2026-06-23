@@ -115,6 +115,7 @@ function PatientPage() {
     }
     setEditingPatient(selectedPatient);
     patientForm.setFieldsValue({
+      userId: selectedPatient.userId,
       patientName: selectedPatient.patientName,
       gender: selectedPatient.gender,
       age: selectedPatient.age,
@@ -274,6 +275,11 @@ function PatientPage() {
         destroyOnClose
       >
         <Form form={patientForm} layout="vertical" className="module-form">
+          {!editingPatient && (
+            <Form.Item name="userId" label="关联账号编号" rules={[{ required: true, message: '请输入关联账号编号' }]}>
+              <InputNumber min={1} className="module-form__number" />
+            </Form.Item>
+          )}
           <Form.Item name="patientName" label="患者姓名" rules={[{ required: true, message: '请输入患者姓名' }]}>
             <Input placeholder="请输入患者姓名" />
           </Form.Item>

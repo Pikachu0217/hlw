@@ -6,6 +6,7 @@ import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.patient.dto.CreateHealthRecordRequest;
 import com.hlw.patient.dto.CreatePatientRequest;
 import com.hlw.patient.dto.UpdatePatientProfileRequest;
+import com.hlw.patient.domain.resp.InternalPatientResp;
 import com.hlw.patient.entity.PatHealthRecordEntity;
 import com.hlw.patient.entity.PatPatientEntity;
 import com.hlw.patient.mapper.PatHealthRecordMapper;
@@ -101,6 +102,31 @@ public class PatientTenantContextService {
     }
 
     /**
+     * 按租户和登录用户查询内部患者档案。
+     *
+     * @param tenantId 租户编号
+     * @param userId 登录用户编号
+     * @return 内部患者档案
+     */
+    public InternalPatientResp getInternalPatientByUser(Long tenantId, Long userId) {
+        log.info("按登录用户查询内部患者档案，tenantId={}，userId={}", tenantId, userId);
+        if (tenantId == null || tenantId <= 0L || userId == null || userId <= 0L) {
+            log.warn("查询内部患者档案失败，租户或用户编号无效，tenantId={}，userId={}", tenantId, userId);
+            throw new BizException(400, "租户或用户编号无效");
+        }
+        PatPatientEntity entity = patPatientMapper.selectOne(new LambdaQueryWrapper<PatPatientEntity>()
+            .eq(PatPatientEntity::getTenantId, tenantId)
+            .eq(PatPatientEntity::getUserId, userId)
+            .eq(PatPatientEntity::getDeleted, 0)
+            .last("limit 1"));
+        if (entity == null) {
+            log.warn("登录用户未绑定患者档案，tenantId={}，userId={}", tenantId, userId);
+            throw new BizException(403, "当前登录账号未绑定患者档案");
+        }
+        return new InternalPatientResp(entity.getId(), entity.getUserId(), entity.getTenantId(), resolvePatientName(entity));
+    }
+
+    /**
      * 查询患者详情。
      *
      * @param id 患者编号
@@ -122,7 +148,7 @@ public class PatientTenantContextService {
         ensureBusinessTenantContext("患者模块操作缺少有效租户上下文");
         log.info("创建患者档案，patientName={}，phone={}", request.getPatientName(), request.getPhone());
         PatPatientEntity entity = new PatPatientEntity();
-        entity.setUserId(defaultLong(request.getUserId(), 0L));
+        entity.setUserId(request.getUserId());
         applyPatientProfile(entity, request);
         patPatientMapper.insert(entity);
         return toPatientProfileVO(entity);
@@ -277,9 +303,15 @@ public class PatientTenantContextService {
      * @return 患者实体
      */
     private PatPatientEntity requireCurrentPatient() {
+        Long loginUserId = TokenPrincipalContext.get().getUserId();
+        if (loginUserId == null || loginUserId <= 0L) {
+            log.warn("查询当前患者档案失败，登录用户编号为空");
+            throw new BizException(401, "当前登录用户无效");
+        }
+        log.info("按登录账号查询当前患者档案，userId={}", loginUserId);
         return requireEntity(patPatientMapper.selectOne(activePatientWrapper()
-            .orderByAsc(PatPatientEntity::getId)
-            .last("limit 1")), "当前租户下不存在患者档案");
+            .eq(PatPatientEntity::getUserId, loginUserId)
+            .last("limit 1")), "当前登录账号未关联患者档案");
     }
 
     /**

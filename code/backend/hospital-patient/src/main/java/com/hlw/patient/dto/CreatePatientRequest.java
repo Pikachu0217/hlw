@@ -12,7 +12,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreatePatientRequest {
-    /** 关联用户编号。 */
+    /** 关联用户编号（关联 sys_user.id）。 */
+    @NotNull(message = "关联用户编号不能为空")
+    @Min(value = 1, message = "关联用户编号必须大于 0")
     private Long userId;
     /** 患者姓名。 */
     @NotBlank(message = "患者姓名不能为空")

@@ -181,26 +181,27 @@ function MenusPage() {
       {
         title: '菜单名称',
         dataIndex: 'menuName',
-        width: 172,
+        width: 150,
         className: 'menu-config-table__name-column',
         render: (value: string) => <span className="menu-config-table__name">{value}</span>,
       },
-      { title: '图标', dataIndex: 'icon', width: 62, render: (value: string) => resolveMenuIcon(value) },
-      { title: '类型', dataIndex: 'menuType', width: 72, render: (value: string) => menuTypeMap[value] ?? value },
-      { title: '权限标识', dataIndex: 'perms', width: 160 },
-      { title: '路由路径', dataIndex: 'path', width: 120 },
-      { title: '组件路径', dataIndex: 'component', width: 150 },
-      { title: '排序', dataIndex: 'orderNum', width: 64 },
+      { title: '图标', dataIndex: 'icon', width: 48, render: (value: string) => resolveMenuIcon(value) },
+      { title: '类型', dataIndex: 'menuType', width: 56, render: (value: string) => menuTypeMap[value] ?? value },
+      { title: '权限标识', dataIndex: 'perms', width: 132 },
+      { title: '路由路径', dataIndex: 'path', width: 110 },
+      { title: '组件路径', dataIndex: 'component', width: 128 },
+      { title: '排序', dataIndex: 'orderNum', width: 48 },
       {
         title: '状态',
         dataIndex: 'status',
-        width: 82,
+        width: 62,
         render: (value: string) => <Tag color={value === '0' ? 'green' : 'default'}>{value === '0' ? '启用' : '禁用'}</Tag>,
       },
       {
         title: '操作',
         key: 'actions',
-        width: 96,
+        width: 86,
+        className: 'menu-config-table__actions-column',
         render: (_: unknown, record: MenuRecord) => {
           const isDefaultMenu = record.isDefault === 0;
           return (

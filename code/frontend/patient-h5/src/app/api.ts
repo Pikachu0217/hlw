@@ -59,9 +59,10 @@ interface BackendPatientDoctor {
 }
 
 export interface ConsultMessageItem {
-  id: number;
+  id?: number;
   content: string;
   contentType: "TEXT" | "IMAGE";
+  senderType?: string;
 }
 
 interface BackendConsultMessage {
@@ -69,6 +70,7 @@ interface BackendConsultMessage {
   content: string;
   contentType: "TEXT" | "IMAGE";
   senderId?: number;
+  senderType?: string;
 }
 
 export interface CreatedConsult {
@@ -179,7 +181,8 @@ export async function fetchConsultMessages(consultId: number): Promise<ConsultMe
   return response.data.data.map((message, index) => ({
     id: message.id ?? index + 1,
     content: message.content,
-    contentType: message.contentType
+    contentType: message.contentType,
+    senderType: message.senderType
   }));
 }
 

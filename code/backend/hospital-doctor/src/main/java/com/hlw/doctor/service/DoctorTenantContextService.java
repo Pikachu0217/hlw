@@ -8,6 +8,7 @@ import com.hlw.doctor.dto.CreateDepartmentRequest;
 import com.hlw.doctor.dto.CreateDoctorRequest;
 import com.hlw.doctor.dto.CreateScheduleRequest;
 import com.hlw.doctor.dto.UpdateDoctorStatusRequest;
+import com.hlw.doctor.domain.resp.InternalDoctorResp;
 import com.hlw.doctor.entity.DocDepartmentEntity;
 import com.hlw.doctor.entity.DocDoctorDepartmentEntity;
 import com.hlw.doctor.entity.DocDoctorEntity;
@@ -134,7 +135,7 @@ public class DoctorTenantContextService {
         ensureBusinessTenantContext("医生模块操作缺少有效租户上下文");
         log.info("创建医生，name={}，department={}，title={}", request.getName(), request.getDepartment(), request.getTitle());
         DocDoctorEntity entity = new DocDoctorEntity();
-        entity.setUserId(defaultLong(request.getUserId(), 0L));
+        entity.setUserId(request.getUserId());
         entity.setName(request.getName());
         entity.setDoctorName(request.getName());
         entity.setTitle(request.getTitle());
@@ -198,6 +199,31 @@ public class DoctorTenantContextService {
         }
         refreshDepartmentDoctorCount(request.getDepartmentId());
         return toDoctorDepartmentBindingVO(relation);
+    }
+
+    /**
+     * 按租户和登录用户查询内部医生档案。
+     *
+     * @param tenantId 租户编号
+     * @param userId 登录用户编号
+     * @return 内部医生档案
+     */
+    public InternalDoctorResp getInternalDoctorByUser(Long tenantId, Long userId) {
+        log.info("按登录用户查询内部医生档案，tenantId={}，userId={}", tenantId, userId);
+        if (tenantId == null || tenantId <= 0L || userId == null || userId <= 0L) {
+            log.warn("查询内部医生档案失败，租户或用户编号无效，tenantId={}，userId={}", tenantId, userId);
+            throw new BizException(400, "租户或用户编号无效");
+        }
+        DocDoctorEntity entity = docDoctorMapper.selectOne(new LambdaQueryWrapper<DocDoctorEntity>()
+            .eq(DocDoctorEntity::getTenantId, tenantId)
+            .eq(DocDoctorEntity::getUserId, userId)
+            .eq(DocDoctorEntity::getDeleted, 0)
+            .last("limit 1"));
+        if (entity == null) {
+            log.warn("登录用户未绑定医生档案，tenantId={}，userId={}", tenantId, userId);
+            throw new BizException(403, "当前登录账号未绑定医生档案");
+        }
+        return new InternalDoctorResp(entity.getId(), entity.getUserId(), entity.getTenantId(), resolveDoctorName(entity));
     }
 
     /**
@@ -451,6 +477,16 @@ public class DoctorTenantContextService {
     }
 
     /**
+     * 解析医生展示姓名。
+     *
+     * @param entity 医生实体
+     * @return 医生展示姓名
+     */
+    private String resolveDoctorName(DocDoctorEntity entity) {
+        return defaultIfBlank(entity.getDoctorName(), entity.getName());
+    }
+
+    /**
      * 转换医生展示对象。
      *
      * @param entity 医生实体
@@ -459,7 +495,7 @@ public class DoctorTenantContextService {
     private DoctorVO toDoctorVO(DocDoctorEntity entity) {
         DoctorVO vo = new DoctorVO();
         vo.setId(entity.getId());
-        vo.setName(defaultIfBlank(entity.getDoctorName(), entity.getName()));
+        vo.setName(resolveDoctorName(entity));
         vo.setTitle(entity.getTitle());
         vo.setDepartment(entity.getDepartment());
         vo.setSpecialty(entity.getSpecialty());

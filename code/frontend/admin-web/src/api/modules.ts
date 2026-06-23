@@ -184,6 +184,7 @@ export interface CreateGatewayRoutePayload {
 }
 
 export interface CreateDoctorPayload {
+  userId: number;
   name: string;
   title: string;
   department: string;
@@ -241,6 +242,32 @@ export interface NumberSourceRecord {
   status: string;
 }
 
+export interface DoctorConsultWorkbenchRecord {
+  consultId: number;
+  consultNo: string;
+  patientId: number;
+  patientName: string;
+  doctorId: number;
+  doctorName: string;
+  status: string;
+  channel: string;
+  updatedAt: string;
+  lastMessage: string;
+  lastMessageTime: string;
+  remainingSeconds: number;
+}
+
+export interface ConsultMessageRecord {
+  id?: number;
+  consultId?: number;
+  senderId?: number;
+  senderType?: string;
+  content: string;
+  contentType: 'TEXT' | 'IMAGE';
+  read?: boolean;
+  createTime?: string;
+}
+
 export interface CreateConsultPayload {
   patientId?: number;
   doctorId?: number;
@@ -290,6 +317,7 @@ export interface PayOrderPayload {
 }
 
 export interface CreatePatientPayload {
+  userId: number;
   patientName: string;
   gender: string;
   age: number;
@@ -766,6 +794,18 @@ export async function createDoctorSchedule(payload: CreateSchedulePayload): Prom
 // 查询问诊单列表。
 export function fetchConsults(): Promise<ConsultRecord[]> {
   return fetchModuleRecords<ConsultRecord>('/consult/consults', '问诊单');
+}
+
+// 查询当前登录医生咨询工作台。
+export function fetchDoctorConsultWorkbench(): Promise<DoctorConsultWorkbenchRecord[]> {
+  return fetchModuleRecords<DoctorConsultWorkbenchRecord>('/consult/doctor/workbench', '医生咨询工作台');
+}
+
+// 查询问诊消息。
+export async function fetchConsultMessages(id: string | number): Promise<ConsultMessageRecord[]> {
+  console.info('[admin-module] 查询问诊消息', id);
+  const response = await apiClient.get<ApiResult<ConsultMessageRecord[]>>(`/consult/consults/${id}/messages`);
+  return response.data.data;
 }
 
 // 创建问诊单。

@@ -4,7 +4,9 @@ import com.hlw.common.core.domain.R;
 import com.hlw.consult.dto.AcceptConsultRequest;
 import com.hlw.consult.dto.CreateConsultRequest;
 import com.hlw.consult.service.ConsultWorkflowService;
+import com.hlw.consult.service.DoctorConsultWorkbenchService;
 import com.hlw.consult.vo.ConsultVO;
+import com.hlw.consult.vo.DoctorConsultWorkbenchVO;
 import com.hlw.consult.ws.ConsultMessage;
 import com.hlw.consult.ws.ConsultMessageRepository;
 import jakarta.validation.Valid;
@@ -28,19 +30,23 @@ import lombok.extern.slf4j.Slf4j;
 public class ConsultController {
     private final ConsultWorkflowService consultWorkflowService;
     private final ConsultMessageRepository consultMessageRepository;
+    private final DoctorConsultWorkbenchService doctorConsultWorkbenchService;
 
     /**
      * 构造问诊控制器。
      *
      * @param consultWorkflowService 问诊工作流服务
      * @param consultMessageRepository 问诊消息仓储
+     * @param doctorConsultWorkbenchService 医生咨询工作台服务
      */
     public ConsultController(
         ConsultWorkflowService consultWorkflowService,
-        ConsultMessageRepository consultMessageRepository
+        ConsultMessageRepository consultMessageRepository,
+        DoctorConsultWorkbenchService doctorConsultWorkbenchService
     ) {
         this.consultWorkflowService = consultWorkflowService;
         this.consultMessageRepository = consultMessageRepository;
+        this.doctorConsultWorkbenchService = doctorConsultWorkbenchService;
     }
 
     /**
@@ -97,6 +103,17 @@ public class ConsultController {
     @PostMapping("/consults/{id}/extend")
     public R<ConsultVO> extend(@PathVariable Long id) {
         return R.ok(consultWorkflowService.extend(id));
+    }
+
+    /**
+     * 查询当前登录医生咨询工作台。
+     *
+     * @return 医生咨询工作台列表
+     */
+    @GetMapping("/doctor/workbench")
+    public R<List<DoctorConsultWorkbenchVO>> doctorWorkbench() {
+        log.info("查询当前登录医生咨询工作台");
+        return R.ok(doctorConsultWorkbenchService.listCurrentDoctorWorkbench());
     }
 
     /**

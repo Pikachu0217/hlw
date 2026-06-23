@@ -21,7 +21,7 @@ public class PatPatientEntity {
     private Long id;
     /** 租户编号。 */
     private Long tenantId;
-    /** 关联用户编号。 */
+    /** 关联用户编号（关联 sys_user.id）。 */
     private Long userId;
     /** 兼容旧表患者姓名。 */
     private String name;

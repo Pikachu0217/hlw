@@ -1,9 +1,12 @@
 package com.hlw.consult.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.hlw.common.core.domain.R;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.consult.client.PatientFeignClient;
+import com.hlw.consult.client.resp.InternalPatientResp;
 import com.hlw.consult.dto.AcceptConsultRequest;
 import com.hlw.consult.dto.CreateConsultRequest;
 import com.hlw.consult.entity.ConConsultEntity;
@@ -41,17 +44,13 @@ public class ConsultWorkflowService {
     private static final String DEFAULT_CONSULT_TYPE = "IMAGE_TEXT";
     private static final String DEFAULT_PATIENT_NAME = "赵晓岚";
     private static final String DEFAULT_DOCTOR_NAME = "陈知衡";
-    private static final String STATUS_WAITING = "待接单";
-    private static final String STATUS_IN_PROGRESS = "咨询中";
-    private static final String STATUS_EXTENDED = "已延长";
-    private static final String STATUS_FINISHED = "已完成";
-    private static final String STATUS_CANCELLED = "已取消";
-    private static final String STATUS_TIMEOUT = "已超时";
 
     /** 问诊单数据访问组件。 */
     private final ConConsultMapper conConsultMapper;
     /** 问诊消息数据访问组件。 */
     private final ConMessageMapper conMessageMapper;
+    /** 患者服务内部客户端。 */
+    private final PatientFeignClient patientFeignClient;
 
     /**
      * 查询问诊单列表。
@@ -76,10 +75,11 @@ public class ConsultWorkflowService {
     @Transactional
     public ConsultVO createConsult(CreateConsultRequest request) {
         ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
-        Long patientId = defaultLong(request.getPatientId(), DEFAULT_PATIENT_ID);
+        InternalPatientResp currentPatient = request.getPatientId() == null ? resolveCurrentPatient() : null;
+        Long patientId = defaultLong(request.getPatientId(), currentPatient == null ? DEFAULT_PATIENT_ID : currentPatient.id());
         Long doctorId = defaultLong(request.getDoctorId(), DEFAULT_DOCTOR_ID);
         String consultType = defaultIfBlank(request.getType(), DEFAULT_CONSULT_TYPE);
-        String patientName = defaultIfBlank(request.getPatientName(), DEFAULT_PATIENT_NAME);
+        String patientName = defaultIfBlank(request.getPatientName(), currentPatient == null ? DEFAULT_PATIENT_NAME : currentPatient.patientName());
         String doctorName = defaultIfBlank(request.getDoctorName(), DEFAULT_DOCTOR_NAME);
         String channel = defaultIfBlank(request.getChannel(), channelName(consultType));
         String chiefComplaint = defaultIfBlank(request.getChiefComplaint(), "");
@@ -94,7 +94,7 @@ public class ConsultWorkflowService {
         entity.setPatientName(patientName);
         entity.setDoctorName(doctorName);
         entity.setChannel(channel);
-        entity.setStatus(STATUS_WAITING);
+        entity.setStatus(ConsultDisplayStatus.WAITING);
         entity.setFeeAmount(feeAmount);
         entity.setDurationLimit(DEFAULT_DURATION_LIMIT);
         entity.setRemainingSeconds(DEFAULT_DURATION_LIMIT * 60);
@@ -119,15 +119,15 @@ public class ConsultWorkflowService {
         ConConsultEntity consult = requireActiveConsult(id);
         Long doctorId = request == null ? consult.getDoctorId() : defaultLong(request.getDoctorId(), consult.getDoctorId());
         log.info("医生接单问诊，consultId={}，doctorId={}", id, doctorId);
-        if (STATUS_IN_PROGRESS.equals(consult.getStatus()) || STATUS_EXTENDED.equals(consult.getStatus())) {
+        if (ConsultDisplayStatus.IN_PROGRESS.equals(consult.getStatus()) || ConsultDisplayStatus.EXTENDED.equals(consult.getStatus())) {
             log.info("问诊单无需重复接单，consultId={}，status={}", id, consult.getStatus());
             return toConsultVO(consult);
         }
-        if (!STATUS_WAITING.equals(consult.getStatus())) {
+        if (!ConsultDisplayStatus.WAITING.equals(consult.getStatus())) {
             throw new BizException(409, "问诊单当前状态不允许接单");
         }
         consult.setDoctorId(doctorId);
-        consult.setStatus(STATUS_IN_PROGRESS);
+        consult.setStatus(ConsultDisplayStatus.IN_PROGRESS);
         consult.setStartTime(LocalDateTime.now());
         consult.setDurationLimit(consult.getDurationLimit() == null || consult.getDurationLimit() <= 0 ? DEFAULT_DURATION_LIMIT : consult.getDurationLimit());
         consult.setRemainingSeconds(consult.getRemainingSeconds() == null || consult.getRemainingSeconds() <= 0 ? DEFAULT_DURATION_LIMIT * 60 : consult.getRemainingSeconds());
@@ -147,14 +147,14 @@ public class ConsultWorkflowService {
         ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
         log.info("完成问诊，consultId={}", id);
         ConConsultEntity consult = requireActiveConsult(id);
-        if (STATUS_FINISHED.equals(consult.getStatus())) {
+        if (ConsultDisplayStatus.FINISHED.equals(consult.getStatus())) {
             log.info("问诊单无需重复完成，consultId={}", id);
             return toConsultVO(consult);
         }
-        if (STATUS_CANCELLED.equals(consult.getStatus()) || STATUS_TIMEOUT.equals(consult.getStatus())) {
+        if (ConsultDisplayStatus.CANCELLED.equals(consult.getStatus()) || ConsultDisplayStatus.TIMEOUT.equals(consult.getStatus())) {
             throw new BizException(409, "问诊单当前状态不允许完成");
         }
-        consult.setStatus(STATUS_FINISHED);
+        consult.setStatus(ConsultDisplayStatus.FINISHED);
         consult.setRemainingSeconds(0);
         consult.setEndTime(LocalDateTime.now());
         consult.setUpdatedAt(currentDisplayTime());
@@ -173,10 +173,10 @@ public class ConsultWorkflowService {
         ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
         log.info("延长问诊，consultId={}，extendMinutes={}", id, EXTEND_MINUTES);
         ConConsultEntity consult = requireActiveConsult(id);
-        if (!STATUS_IN_PROGRESS.equals(consult.getStatus()) && !STATUS_EXTENDED.equals(consult.getStatus())) {
+        if (!ConsultDisplayStatus.IN_PROGRESS.equals(consult.getStatus()) && !ConsultDisplayStatus.EXTENDED.equals(consult.getStatus())) {
             throw new BizException(409, "问诊单当前状态不允许延长");
         }
-        consult.setStatus(STATUS_EXTENDED);
+        consult.setStatus(ConsultDisplayStatus.EXTENDED);
         consult.setDurationLimit(defaultInt(consult.getDurationLimit(), 0) + EXTEND_MINUTES);
         consult.setRemainingSeconds(defaultInt(consult.getRemainingSeconds(), 0) + EXTEND_MINUTES * 60);
         consult.setUpdatedAt(currentDisplayTime());
@@ -198,12 +198,32 @@ public class ConsultWorkflowService {
         ConMessageEntity message = new ConMessageEntity();
         message.setConsultId(consultId);
         message.setSenderId(patientId);
-        message.setSenderType("PATIENT");
+        message.setSenderType(ConsultParticipantType.PATIENT);
         message.setContent(chiefComplaint);
-        message.setContentType("TEXT");
+        message.setContentType(ConsultMessageType.TEXT);
         message.setReadFlag(false);
         message.setIsRead(0);
         conMessageMapper.insert(message);
+    }
+
+    /**
+     * 解析当前登录患者档案。
+     *
+     * @return 内部患者档案，演示兼容场景下可能返回 null
+     */
+    private InternalPatientResp resolveCurrentPatient() {
+        if (TokenPrincipalContext.get() == null || TokenPrincipalContext.get().getUserId() == null || TokenPrincipalContext.get().getUserId() <= 0L) {
+            log.warn("创建问诊时登录用户为空，使用默认患者信息");
+            return null;
+        }
+        Long tenantId = TokenPrincipalContext.get().getTenantId();
+        Long userId = TokenPrincipalContext.get().getUserId();
+        R<InternalPatientResp> response = patientFeignClient.findByUser(tenantId, userId);
+        if (response == null || response.code() != 200 || response.data() == null) {
+            log.warn("创建问诊时未查询到当前患者档案，tenantId={}，userId={}", tenantId, userId);
+            throw new BizException(403, "当前登录账号未绑定患者档案");
+        }
+        return response.data();
     }
 
     /**
@@ -256,7 +276,7 @@ public class ConsultWorkflowService {
         vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));
         vo.setDoctorName(defaultIfBlank(entity.getDoctorName(), ""));
         vo.setChannel(defaultIfBlank(entity.getChannel(), channelName(entity.getConsultType())));
-        vo.setStatus(defaultIfBlank(entity.getStatus(), STATUS_WAITING));
+        vo.setStatus(defaultIfBlank(entity.getStatus(), ConsultDisplayStatus.WAITING));
         vo.setUpdatedAt(defaultIfBlank(entity.getUpdatedAt(), ""));
         return vo;
     }

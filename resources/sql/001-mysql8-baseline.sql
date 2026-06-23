@@ -175,7 +175,7 @@ CREATE TABLE `sys_dict_data` (
                                  PRIMARY KEY (`id`),
                                  UNIQUE KEY `uk_sys_dict_data` (`tenant_id`,`dict_type`,`dict_value`),
                                  KEY `idx_sys_dict_data_type` (`tenant_id`,`dict_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='字典数据表';
 
 -- ----------------------------
 -- Records of sys_dict_data
@@ -189,6 +189,7 @@ INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict
 INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (6, '0', 1, '系统用户', 'sys_user', 'user_type', '后台系统用户', NULL, NULL, NULL, NULL, 0);
 INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (7, '0', 2, '医生', 'doctor', 'user_type', '医生工作台用户', NULL, NULL, NULL, NULL, 0);
 INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (8, '0', 3, '药师', 'pharmacist', 'user_type', '药师工作台用户', NULL, NULL, NULL, NULL, 0);
+INSERT INTO `sys_dict_data` (`id`, `tenant_id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `remark`, `create_by`, `create_time`, `update_by`, `update_time`, `deleted`) VALUES (9, '0', 4, '患者', 'patient', 'user_type', '患者端用户', NULL, NULL, NULL, NULL, 0);
 COMMIT;
 
 -- ----------------------------
@@ -707,6 +708,10 @@ CREATE TABLE `sys_user` (
 -- ----------------------------
 BEGIN;
 INSERT INTO `sys_user` (`id`, `user_id`, `tenant_id`, `dept_id`, `user_name`, `real_name`, `nick_name`, `user_type`, `email`, `phone`, `sex`, `avatar`, `password`, `status`, `deleted`, `login_ip`, `login_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (1, 'U_550e8400e29b41d4a716446655440001', '0', 1, 'hlw_admin', '平台超级管理员', '平台超级管理员', 'sys_user', 'ops@hlw.local', '13800001111', '2', NULL, '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', 0, 0, '127.0.0.1', '2026-06-19 09:21:52', NULL, NULL, NULL, NULL, '默认平台超管账号');
+INSERT INTO `sys_user` (`id`, `user_id`, `tenant_id`, `dept_id`, `user_name`, `real_name`, `nick_name`, `user_type`, `email`, `phone`, `sex`, `avatar`, `password`, `status`, `deleted`, `login_ip`, `login_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (2, 'U_550e8400e29b41d4a716446655440102', '100', NULL, 'patient_zhao', '赵晓岚', '赵晓岚', 'patient', NULL, '13900001111', '1', NULL, '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, '默认患者演示账号');
+INSERT INTO `sys_user` (`id`, `user_id`, `tenant_id`, `dept_id`, `user_name`, `real_name`, `nick_name`, `user_type`, `email`, `phone`, `sex`, `avatar`, `password`, `status`, `deleted`, `login_ip`, `login_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (3, 'U_550e8400e29b41d4a716446655440103', '100', NULL, 'patient_shen', '沈博远', '沈博远', 'patient', NULL, '13900002222', '0', NULL, '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, '默认患者演示账号');
+INSERT INTO `sys_user` (`id`, `user_id`, `tenant_id`, `dept_id`, `user_name`, `real_name`, `nick_name`, `user_type`, `email`, `phone`, `sex`, `avatar`, `password`, `status`, `deleted`, `login_ip`, `login_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (4, 'U_550e8400e29b41d4a716446655440104', '100', NULL, 'doctor_chen', '陈知衡', '陈知衡', 'doctor', NULL, '13900003333', '0', NULL, '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, '默认医生演示账号');
+INSERT INTO `sys_user` (`id`, `user_id`, `tenant_id`, `dept_id`, `user_name`, `real_name`, `nick_name`, `user_type`, `email`, `phone`, `sex`, `avatar`, `password`, `status`, `deleted`, `login_ip`, `login_date`, `create_by`, `create_time`, `update_by`, `update_time`, `remark`) VALUES (5, 'U_550e8400e29b41d4a716446655440105', '100', NULL, 'doctor_gu', '顾清和', '顾清和', 'doctor', NULL, '13900004444', '0', NULL, '$2a$10$ixRO//u86BmCszxCmA8q/uZcomXfS1qaTs0e1drI4bwl1/CPX.kU2', 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, '默认医生演示账号');
 COMMIT;
 
 -- ----------------------------
@@ -777,7 +782,7 @@ USE hospital_patient;
 CREATE TABLE IF NOT EXISTS pat_patient (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键编号' PRIMARY KEY,
     tenant_id BIGINT NOT NULL COMMENT '租户编号',
-    user_id BIGINT NOT NULL COMMENT '关联用户编号',
+    user_id BIGINT NOT NULL COMMENT '关联用户编号（关联sys_user.id）',
     name VARCHAR(64) NOT NULL COMMENT '兼容旧表患者姓名',
     patient_name VARCHAR(64) NOT NULL DEFAULT '' COMMENT '患者姓名',
     phone VARCHAR(32) COMMENT '联系电话',
@@ -792,13 +797,14 @@ CREATE TABLE IF NOT EXISTS pat_patient (
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
     create_by BIGINT COMMENT '创建人编号',
     update_by BIGINT COMMENT '更新人编号',
-    deleted SMALLINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标识'
+    deleted SMALLINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
+    KEY idx_pat_patient_user (`tenant_id`, `user_id`)
 ) COMMENT='患者档案表' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS pat_health_record (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键编号' PRIMARY KEY,
     tenant_id BIGINT NOT NULL COMMENT '租户编号',
-    patient_id BIGINT NOT NULL COMMENT '患者编号',
+    patient_id BIGINT NOT NULL COMMENT '患者档案编号（关联pat_patient.id）',
     title VARCHAR(128) NOT NULL DEFAULT '' COMMENT '档案标题',
     summary VARCHAR(256) NOT NULL DEFAULT '' COMMENT '档案摘要',
     allergies TEXT COMMENT '过敏史',
@@ -823,8 +829,8 @@ SET patient_name = COALESCE(NULLIF(patient_name, ''), name),
 
 INSERT INTO pat_patient (id, tenant_id, user_id, name, patient_name, phone, gender, age, risk_level, id_card, birthday, address, last_visit)
 VALUES
-    (1, 100, 1, '赵晓岚', '赵晓岚', '13900001111', '女', 34, '中风险', '110101199201010011', '1992-01-01', '杭州市西湖区', '2026-06-11'),
-    (2, 100, 2, '沈博远', '沈博远', '13900002222', '男', 58, '高风险', '110101196801010022', '1968-01-01', '杭州市滨江区', '2026-06-10')
+    (1, 100, 2, '赵晓岚', '赵晓岚', '13900001111', '女', 34, '中风险', '110101199201010011', '1992-01-01', '杭州市西湖区', '2026-06-11'),
+    (2, 100, 3, '沈博远', '沈博远', '13900002222', '男', 58, '高风险', '110101196801010022', '1968-01-01', '杭州市滨江区', '2026-06-10')
 ON DUPLICATE KEY UPDATE id = id;
 
 INSERT INTO pat_health_record (id, tenant_id, patient_id, title, summary, history, diagnosis, remark)
@@ -871,7 +877,7 @@ UPDATE doc_department SET department_name = name WHERE department_name = '' AND 
 
 CREATE TABLE IF NOT EXISTS doc_doctor (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键编号' PRIMARY KEY,
-    user_id BIGINT NOT NULL COMMENT '关联用户编号',
+    user_id BIGINT NOT NULL COMMENT '关联用户编号（关联sys_user.id）',
     tenant_id BIGINT NOT NULL COMMENT '租户编号',
     name VARCHAR(64) NOT NULL COMMENT '医生姓名',
     avatar VARCHAR(512) COMMENT '头像地址',
@@ -886,7 +892,8 @@ CREATE TABLE IF NOT EXISTS doc_doctor (
     update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '更新时间',
     create_by BIGINT COMMENT '创建人编号',
     update_by BIGINT COMMENT '更新人编号',
-    deleted SMALLINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标识'
+    deleted SMALLINT NOT NULL DEFAULT 0 COMMENT '逻辑删除标识',
+    KEY idx_doc_doctor_user (`tenant_id`, `user_id`)
 ) COMMENT='医生信息表' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS doc_doctor_department (
@@ -961,8 +968,8 @@ ON DUPLICATE KEY UPDATE name = VALUES(name),
 
 INSERT INTO doc_doctor (id, tenant_id, user_id, name, title, specialty, consult_fee, consult_status)
 VALUES
-    (1, 100, 1, '陈知衡', '主任医师', '冠脉慢病管理', 50.00, 1),
-    (2, 100, 2, '顾清和', '副主任医师', '糖尿病营养干预', 30.00, 2)
+    (1, 100, 4, '陈知衡', '主任医师', '冠脉慢病管理', 50.00, 1),
+    (2, 100, 5, '顾清和', '副主任医师', '糖尿病营养干预', 30.00, 2)
 ON DUPLICATE KEY UPDATE user_id = VALUES(user_id),
                                name = VALUES(name),
                                title = VALUES(title),
@@ -983,7 +990,7 @@ USE hospital_consult;
 CREATE TABLE IF NOT EXISTS con_consult (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键编号' PRIMARY KEY,
     tenant_id BIGINT NOT NULL COMMENT '租户编号',
-    patient_id BIGINT NOT NULL COMMENT '患者编号',
+    patient_id BIGINT NOT NULL COMMENT '患者档案编号（关联pat_patient.id）',
     doctor_id BIGINT NOT NULL COMMENT '医生编号',
     -- consult_type: IMAGE_TEXT, QUICK, FOLLOW_UP
     consult_type VARCHAR(32) NOT NULL COMMENT '问诊类型',
@@ -1067,7 +1074,7 @@ USE hospital_appointment;
 CREATE TABLE IF NOT EXISTS apt_appointment (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键编号' PRIMARY KEY,
     tenant_id BIGINT NOT NULL COMMENT '租户编号',
-    patient_id BIGINT NOT NULL COMMENT '患者编号',
+    patient_id BIGINT NOT NULL COMMENT '患者档案编号（关联pat_patient.id）',
     doctor_id BIGINT NOT NULL COMMENT '医生编号',
     department_id BIGINT NOT NULL COMMENT '科室编号',
     schedule_id BIGINT NOT NULL COMMENT '排班编号',
@@ -1153,7 +1160,7 @@ CREATE TABLE IF NOT EXISTS pre_prescription (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键编号' PRIMARY KEY,
     tenant_id BIGINT NOT NULL COMMENT '租户编号',
     consult_id BIGINT NOT NULL COMMENT '问诊编号',
-    patient_id BIGINT NOT NULL COMMENT '患者编号',
+    patient_id BIGINT NOT NULL COMMENT '患者档案编号（关联pat_patient.id）',
     doctor_id BIGINT NOT NULL COMMENT '医生编号',
     pharmacist_id BIGINT COMMENT '审核药师编号',
     -- status: 0 draft, 1 submitted, 2 approved, 3 rejected, 4 dispensed
@@ -1310,7 +1317,7 @@ CREATE TABLE IF NOT EXISTS ord_order (
     -- biz_type: CONSULT, APPOINTMENT, PRESCRIPTION, DRUG
     biz_type VARCHAR(32) NOT NULL COMMENT '业务类型编码',
     biz_id BIGINT NOT NULL COMMENT '业务编号',
-    patient_id BIGINT NOT NULL COMMENT '患者编号',
+    patient_id BIGINT NOT NULL COMMENT '患者档案编号（关联pat_patient.id）',
     amount DECIMAL(10, 2) NOT NULL DEFAULT 0 COMMENT '订单金额',
     -- status: 0 pending pay, 1 paid, 2 closed, 3 refunded
     status SMALLINT NOT NULL DEFAULT 0 COMMENT '订单状态',

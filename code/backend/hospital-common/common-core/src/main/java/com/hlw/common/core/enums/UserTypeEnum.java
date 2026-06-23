@@ -4,19 +4,22 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * @Date 2026/6/16 16:01
- * @Created by pakachuzy
- * @Description 用户类型枚举
+ * 用户类型枚举。
  */
 @Getter
 @AllArgsConstructor
 public enum UserTypeEnum {
-    PLATFORM_ADMIN("1", "平台管理员"),
-    TENANT_ADMIN("2", "租户管理员"),
-    DOCTOR("3", "医生"),
-    NURSE("4", "护士"),
-    PATIENT("5", "患者"),
-    ;
+    /** 后台系统用户。 */
+    SYS_USER("sys_user", "系统用户"),
+    /** 医生工作台用户。 */
+    DOCTOR("doctor", "医生"),
+    /** 患者端用户。 */
+    PATIENT("patient", "患者"),
+    /** 药师工作台用户。 */
+    PHARMACIST("pharmacist", "药师");
+
+    /** 用户类型编码。 */
     private final String userType;
+    /** 用户类型描述。 */
     private final String desc;
 }

@@ -11,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateHealthRecordRequest {
-    /** 患者编号。 */
+    /** 患者档案编号（关联 pat_patient.id）。 */
     @NotNull(message = "患者编号不能为空")
     private Long patientId;
     /** 档案标题。 */

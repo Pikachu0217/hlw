@@ -20,7 +20,7 @@ public class PatHealthRecordEntity {
     private Long id;
     /** 租户编号。 */
     private Long tenantId;
-    /** 患者编号。 */
+    /** 患者档案编号（关联 pat_patient.id）。 */
     private Long patientId;
     /** 档案标题。 */
     private String title;

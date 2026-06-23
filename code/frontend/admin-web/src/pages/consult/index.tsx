@@ -1,15 +1,17 @@
-import { Button, Form, Input, InputNumber, Modal, Select, Space, Tag, message } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
+import { Button, Card, Empty, Input, List, Space, Tag, Typography, message } from 'antd';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   acceptConsult,
   completeConsult,
-  createConsult,
   extendConsult,
-  fetchConsults,
+  fetchConsultMessages,
+  fetchDoctorConsultWorkbench,
+  type ConsultMessageRecord,
+  type DoctorConsultWorkbenchRecord,
 } from '@/api/modules';
-import ModulePage from '@/components/ModulePage';
-import { useModuleRecords } from '@/hooks/useModuleRecords';
+import { AUTHORIZATION_TOKEN_PREFIX } from '@/api/auth-header';
+import PageHero from '@/components/PageHero';
+import { readAuthToken } from '@/utils/auth-storage';
 
 export interface ConsultRecord {
   id: number;
@@ -21,226 +23,239 @@ export interface ConsultRecord {
   updatedAt: string;
 }
 
-const columns = (
-  onAccept: (record: ConsultRecord) => void,
-  onComplete: (record: ConsultRecord) => void,
-  onExtend: (record: ConsultRecord) => void,
-): ColumnsType<ConsultRecord> => [
-  { title: '咨询单号', dataIndex: 'consultNo' },
-  { title: '患者', dataIndex: 'patientName' },
-  { title: '接诊医生', dataIndex: 'doctorName' },
-  { title: '渠道', dataIndex: 'channel' },
-  { title: '状态', dataIndex: 'status', render: (value: string) => <Tag color={statusColor(value)}>{value}</Tag> },
-  { title: '最近更新时间', dataIndex: 'updatedAt' },
-  {
-    title: '操作',
-    key: 'actions',
-    render: (_, record) => (
-      <Space wrap>
-        <Button type="link" onClick={() => onAccept(record)} disabled={record.status !== '待接单'}>
-          接单
-        </Button>
-        <Button type="link" onClick={() => onExtend(record)} disabled={!['咨询中', '已延长'].includes(record.status)}>
-          延长
-        </Button>
-        <Button type="link" onClick={() => onComplete(record)} disabled={record.status === '已完成' || record.status === '已取消'}>
-          完成
-        </Button>
-      </Space>
-    ),
-  },
-];
+const ACTIVE_STATUS = ['待接单', '咨询中', '已延长'];
 
 function ConsultPage() {
-  const { records, loading, refresh } = useModuleRecords(fetchConsults, '问诊');
-  const [form] = Form.useForm();
-  const [acceptForm] = Form.useForm();
-  const [open, setOpen] = useState(false);
-  const [acceptOpen, setAcceptOpen] = useState(false);
-  const [currentRecord, setCurrentRecord] = useState<ConsultRecord | null>(null);
+  const [records, setRecords] = useState<DoctorConsultWorkbenchRecord[]>([]);
+  const [messages, setMessages] = useState<ConsultMessageRecord[]>([]);
+  const [activeConsultId, setActiveConsultId] = useState<number>();
+  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const waitingCount = records.filter((record) => record.status.includes('待')).length;
-  const activeCount = records.filter((record) => ['咨询中', '已延长'].includes(record.status)).length;
+  const [textMessage, setTextMessage] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const socketRef = useRef<WebSocket | null>(null);
 
-  async function handleCreate() {
-    const values = await form.validateFields();
-    setSubmitting(true);
+  const activeRecord = useMemo(
+    () => records.find((record) => record.consultId === activeConsultId),
+    [activeConsultId, records],
+  );
+  const canSend = Boolean(activeRecord && activeRecord.status !== '已完成' && activeRecord.status !== '已取消');
+
+  const loadWorkbench = useCallback(async () => {
+    setLoading(true);
     try {
-      await createConsult(values);
-      message.success('问诊单创建成功');
-      setOpen(false);
-      form.resetFields();
-      refresh();
+      const data = await fetchDoctorConsultWorkbench();
+      setRecords(data);
+      setActiveConsultId((current) => current ?? data[0]?.consultId);
     } catch (error) {
-      message.warning(error instanceof Error ? error.message : '问诊单创建失败，请稍后重试');
+      message.warning(error instanceof Error ? error.message : '医生咨询工作台加载失败');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
-  }
+  }, []);
 
-  function openAcceptModal(record: ConsultRecord) {
-    setCurrentRecord(record);
-    acceptForm.setFieldsValue({ doctorId: 1 });
-    setAcceptOpen(true);
-  }
+  const loadMessages = useCallback(async (consultId: number) => {
+    try {
+      const data = await fetchConsultMessages(consultId);
+      setMessages(data);
+    } catch (error) {
+      message.warning(error instanceof Error ? error.message : '问诊消息加载失败');
+    }
+  }, []);
 
-  async function handleAccept() {
-    if (!currentRecord) {
+  useEffect(() => {
+    loadWorkbench();
+  }, [loadWorkbench]);
+
+  useEffect(() => {
+    if (!activeConsultId) {
+      setMessages([]);
       return;
     }
-    const values = await acceptForm.validateFields();
+    loadMessages(activeConsultId);
+  }, [activeConsultId, loadMessages]);
+
+  useEffect(() => {
+    socketRef.current?.close();
+    socketRef.current = null;
+
+    if (!activeConsultId) {
+      return undefined;
+    }
+
+    const socket = new WebSocket(resolveConsultWsUrl(activeConsultId));
+    socketRef.current = socket;
+    socket.onmessage = (event) => {
+      const payload = JSON.parse(event.data) as ConsultMessageRecord;
+      setMessages((items) => [...items, payload]);
+      loadWorkbench();
+    };
+    socket.onerror = () => message.warning('问诊 IM 连接异常，请刷新后重试');
+
+    return () => socket.close();
+  }, [activeConsultId, loadWorkbench]);
+
+  async function handleAccept() {
+    if (!activeRecord) {
+      return;
+    }
     setSubmitting(true);
     try {
-      await acceptConsult(currentRecord.id, values);
+      await acceptConsult(activeRecord.consultId, {});
       message.success('问诊接单成功');
-      setAcceptOpen(false);
-      setCurrentRecord(null);
-      acceptForm.resetFields();
-      refresh();
+      await loadWorkbench();
     } catch (error) {
-      message.warning(error instanceof Error ? error.message : '问诊接单失败，请稍后重试');
+      message.warning(error instanceof Error ? error.message : '问诊接单失败');
     } finally {
       setSubmitting(false);
     }
   }
 
-  async function handleComplete(record: ConsultRecord) {
-    setSubmitting(true);
-    try {
-      await completeConsult(record.id);
-      message.success('问诊已完成');
-      refresh();
-    } catch (error) {
-      message.warning(error instanceof Error ? error.message : '问诊完成失败，请稍后重试');
-    } finally {
-      setSubmitting(false);
+  async function handleExtend() {
+    if (!activeRecord) {
+      return;
     }
-  }
-
-  async function handleExtend(record: ConsultRecord) {
     setSubmitting(true);
     try {
-      await extendConsult(record.id);
+      await extendConsult(activeRecord.consultId);
       message.success('问诊已延长');
-      refresh();
+      await loadWorkbench();
     } catch (error) {
-      message.warning(error instanceof Error ? error.message : '问诊延长失败，请稍后重试');
+      message.warning(error instanceof Error ? error.message : '问诊延长失败');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleComplete() {
+    if (!activeRecord) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await completeConsult(activeRecord.consultId);
+      message.success('问诊已完成');
+      await loadWorkbench();
+    } catch (error) {
+      message.warning(error instanceof Error ? error.message : '问诊完成失败');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function sendMessage(contentType: 'TEXT' | 'IMAGE', content: string) {
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      message.warning(contentType === 'TEXT' ? '请输入消息内容' : '请输入图片地址');
+      return;
+    }
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
+      message.warning('问诊 IM 尚未连接，请稍后重试');
+      return;
+    }
+    socketRef.current.send(JSON.stringify({ contentType, content: trimmedContent }));
+    if (contentType === 'TEXT') {
+      setTextMessage('');
+    } else {
+      setImageUrl('');
     }
   }
 
   return (
-    <>
-      <ModulePage<ConsultRecord>
+    <div className="page-shell consult-workbench">
+      <PageHero
         eyebrow="咨询中心"
-        title="咨询单流转看板"
-        description="统一处理问诊创建、医生接单、服务延长和完成归档。"
-        badgeText="问诊工作流已接入数据库"
-        metrics={[
-          { label: '问诊单', value: String(records.length), hint: '来自后端问诊接口' },
-          { label: '待接单', value: String(waitingCount), hint: '按状态字段实时统计' },
-          { label: '进行中', value: String(activeCount), hint: '覆盖图文与视频渠道' },
-        ]}
-        columns={columns(openAcceptModal, handleComplete, handleExtend)}
-        dataSource={records}
-        loading={loading || submitting}
-        tableTitle="咨询单列表"
-        searchPlaceholder="搜索咨询单、患者、医生"
-        getSearchText={(record) => `${record.consultNo} ${record.patientName} ${record.doctorName} ${record.channel}`}
-        onCreate={() => setOpen(true)}
+        title="医生患者 IM 工作台"
+        description="当前登录医生可查看待接单、咨询中和已延长的问诊患者，并进行文字或图片 URL 沟通。"
+        badgeText="医生工作台已接入实时消息"
       />
-      <Modal
-        title="新增问诊单"
-        open={open}
-        confirmLoading={submitting}
-        onOk={handleCreate}
-        onCancel={() => setOpen(false)}
-        destroyOnClose
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          className="module-form"
-          initialValues={{
-            patientName: '赵晓岚',
-            doctorName: '陈知衡',
-            type: 'IMAGE_TEXT',
-            channel: '图文',
-            feeAmount: 39.9,
-          }}
-        >
-          <Form.Item name="patientName" label="患者姓名" rules={[{ required: true, message: '请输入患者姓名' }]}>
-            <Input placeholder="请输入患者姓名" />
-          </Form.Item>
-          <Form.Item name="doctorName" label="医生姓名" rules={[{ required: true, message: '请输入医生姓名' }]}>
-            <Input placeholder="请输入医生姓名" />
-          </Form.Item>
-          <Form.Item name="type" label="问诊类型">
-            <Select
-              options={[
-                { label: '图文问诊', value: 'IMAGE_TEXT' },
-                { label: '视频问诊', value: 'VIDEO' },
-                { label: '复诊问诊', value: 'FOLLOW_UP' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="channel" label="问诊渠道">
-            <Select
-              options={[
-                { label: '图文', value: '图文' },
-                { label: '视频', value: '视频' },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item name="feeAmount" label="问诊费用">
-            <InputNumber min={0} precision={2} className="module-form__number" />
-          </Form.Item>
-          <Form.Item name="chiefComplaint" label="主诉">
-            <Input.TextArea rows={3} placeholder="请输入患者主诉" />
-          </Form.Item>
-        </Form>
-      </Modal>
-      <Modal
-        title="接单问诊"
-        open={acceptOpen}
-        confirmLoading={submitting}
-        onOk={handleAccept}
-        onCancel={() => {
-          setAcceptOpen(false);
-          setCurrentRecord(null);
-        }}
-        destroyOnClose
-      >
-        <Form form={acceptForm} layout="vertical" className="module-form">
-          <Form.Item label="咨询单号">
-            <Input value={currentRecord?.consultNo} disabled />
-          </Form.Item>
-          <Form.Item name="doctorId" label="接诊医生编号">
-            <InputNumber min={1} className="module-form__number" />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </>
+      <div className="consult-workbench__layout">
+        <Card className="consult-workbench__patients" bordered={false} loading={loading}>
+          <Typography.Title level={4} className="consult-workbench__title">咨询患者</Typography.Title>
+          <List
+            dataSource={records}
+            locale={{ emptyText: <Empty description="暂无待处理咨询" /> }}
+            renderItem={(record) => (
+              <List.Item
+                className={record.consultId === activeConsultId ? 'consult-workbench__patient consult-workbench__patient--active' : 'consult-workbench__patient'}
+                onClick={() => setActiveConsultId(record.consultId)}
+              >
+                <div className="consult-workbench__patient-main">
+                  <strong>{record.patientName}</strong>
+                  <span>{record.consultNo}</span>
+                  <small>{record.lastMessage || '暂无消息'}</small>
+                </div>
+                <Tag color={statusColor(record.status)}>{record.status}</Tag>
+              </List.Item>
+            )}
+          />
+        </Card>
+        <Card className="consult-workbench__chat" bordered={false}>
+          {activeRecord ? (
+            <>
+              <div className="consult-workbench__chat-header">
+                <div>
+                  <Typography.Title level={4} className="consult-workbench__title">{activeRecord.patientName}</Typography.Title>
+                  <Typography.Text type="secondary">{activeRecord.channel} · 剩余 {formatRemaining(activeRecord.remainingSeconds)}</Typography.Text>
+                </div>
+                <Space wrap>
+                  <Button onClick={handleAccept} disabled={activeRecord.status !== '待接单'} loading={submitting}>接单</Button>
+                  <Button onClick={handleExtend} disabled={!['咨询中', '已延长'].includes(activeRecord.status)} loading={submitting}>延长</Button>
+                  <Button type="primary" danger onClick={handleComplete} disabled={!ACTIVE_STATUS.includes(activeRecord.status)} loading={submitting}>完成</Button>
+                </Space>
+              </div>
+              <div className="consult-workbench__messages">
+                {messages.map((item, index) => (
+                  <div key={item.id ?? `${item.createTime}-${index}`} className={item.senderType === 'DOCTOR' ? 'consult-message consult-message--doctor' : 'consult-message'}>
+                    <span className="consult-message__sender">{item.senderType === 'DOCTOR' ? '医生' : '患者'}</span>
+                    {item.contentType === 'IMAGE' ? <img src={item.content} alt="问诊图片" className="consult-message__image" /> : <span className="consult-message__bubble">{item.content}</span>}
+                  </div>
+                ))}
+              </div>
+              <div className="consult-workbench__composer">
+                <Input.TextArea rows={3} value={textMessage} onChange={(event) => setTextMessage(event.target.value)} placeholder="请输入文字消息" disabled={!canSend} />
+                <Space.Compact className="consult-workbench__image-input">
+                  <Input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="请输入图片 URL" disabled={!canSend} />
+                  <Button onClick={() => sendMessage('IMAGE', imageUrl)} disabled={!canSend}>发送图片</Button>
+                </Space.Compact>
+                <Button type="primary" onClick={() => sendMessage('TEXT', textMessage)} disabled={!canSend}>发送文字</Button>
+              </div>
+            </>
+          ) : <Empty description="请选择咨询患者" />}
+        </Card>
+      </div>
+    </div>
   );
 }
 
 function statusColor(status: string): string {
-  switch (status) {
-    case '待接单':
-      return 'gold';
-    case '咨询中':
-      return 'blue';
-    case '已延长':
-      return 'cyan';
-    case '已完成':
-      return 'green';
-    case '已取消':
-    case '已超时':
-      return 'red';
-    default:
-      return 'processing';
+  if (status === '待接单') {
+    return 'gold';
   }
+  if (status === '咨询中') {
+    return 'blue';
+  }
+  if (status === '已延长') {
+    return 'cyan';
+  }
+  return 'default';
+}
+
+function formatRemaining(seconds?: number): string {
+  const safeSeconds = Math.max(seconds ?? 0, 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const restSeconds = safeSeconds % 60;
+  return `${minutes}分${restSeconds}秒`;
+}
+
+function resolveConsultWsUrl(consultId: number): string {
+  const token = readAuthToken();
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? '/api';
+  const baseUrl = apiBaseUrl.startsWith('http') ? apiBaseUrl : `${window.location.origin}${apiBaseUrl}`;
+  const wsUrl = new URL(`/ws/consult/${consultId}`, baseUrl);
+  wsUrl.protocol = wsUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+  wsUrl.searchParams.set('token', token.replace(`${AUTHORIZATION_TOKEN_PREFIX} `, ''));
+  return wsUrl.toString();
 }
 
 export default ConsultPage;

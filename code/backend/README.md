@@ -21,7 +21,7 @@
 - `hospital-doctor`：医生、科室、医生科室绑定、排班和挂号费规则已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-patient`：患者档案、健康档案、风险等级、身份证与就诊信息已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-appointment`：预约单创建、支付、签到、便民门诊抢单、号源锁定和放号配置已改造为 MyBatis Plus + DTO/VO 分层实现。
-- `hospital-consult`：在线问诊生命周期、消息处理和 WebSocket 消息落库已改造为 MyBatis Plus + DTO/VO 分层实现。
+- `hospital-consult`：在线问诊生命周期、医生咨询工作台、文字/图片 URL 消息处理和 WebSocket 消息落库广播已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-prescription`：处方创建、提交、审核和驳回已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-drug`：药品目录、库存记录和配送发货已改造为 MyBatis Plus + DTO/VO 分层实现。
 - `hospital-order`：统一订单创建、模拟支付、支付事件发布已改造为 MyBatis Plus + DTO/VO 分层实现。
@@ -152,6 +152,7 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 
 - 登录页可在未登录状态通过 `GET /system/tenant/options` 读取所有启用租户的最小选项信息，用于选择管理端登录租户。
 - 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 通过 Feign 查询 `hospital-system` 的 `sys_user.password` 中的 BCrypt 哈希，成功后返回 `username`、`realName` 和 `userType`，默认初始化平台账号为 `hlw_admin / 123456`，租户编号为 `0`。
+- `sys_user.user_type` 仅标识统一账号的主身份和默认登录入口，例如后台系统用户、医生、患者或药师；医生档案、患者档案和健康档案仍分别落在 `doc_doctor`、`pat_patient`、`pat_health_record` 业务表中，后台菜单权限继续由 `sys_user_role`、`sys_role`、`sys_role_menu` 管理。
 - 后台用户新增接口未传 `password` 时，后端使用 `SystemTenantConstants.DEFAULT_TENANT_ADMIN_PASSWORD` 作为初始密码并写入 BCrypt 哈希。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
 - 网关只信任 `hlw.auth.token-name` 请求头中的登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `hlw.auth.tenant-header-name` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
@@ -178,7 +179,7 @@ HLW_GATEWAY_DB_PASSWORD=root
 
 `resources/sql/001-mysql8-baseline.sql` 是当前 MySQL 8 初始化脚本，兼作现有领域设计基线和本地联调用脚本；每个表和字段必须补充中文 `COMMENT`。
 
-MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护，`resources/sql/002-mysql8-system-base-entity.sql` 统一系统模块基础字段，`resources/sql/003-mysql8-sys-menu-tenant-package-bootstrap.sql` 为 `sys_menu` 补充 `source_menu_id` 和租户套餐初始化所需索引，`resources/sql/006-mysql8-add-menu-is-default-field.sql` 为菜单补充默认数据保护字段。后续每次修改 schema 时新增一份独立 SQL 执行文件，不要继续把所有变更堆叠到 `init.sql` 中。
+MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护，`resources/sql/002-mysql8-system-base-entity.sql` 统一系统模块基础字段，`resources/sql/003-mysql8-sys-menu-tenant-package-bootstrap.sql` 为 `sys_menu` 补充 `source_menu_id` 和租户套餐初始化所需索引，`resources/sql/006-mysql8-add-menu-is-default-field.sql` 为菜单补充默认数据保护字段，`resources/sql/008-mysql8-use-sys-user-id-for-doctor-patient.sql` 将医生与患者档案的用户关联统一迁移为 `sys_user.id`。后续每次修改 schema 时新增一份独立 SQL 执行文件，不要继续把所有变更堆叠到 `init.sql` 中。
 
 ## 构建与测试
 
@@ -514,7 +515,7 @@ POST /doctor/schedules
 POST /doctor/appointment-fee/resolve
 ```
 
-医生管理已接入 `doc_doctor`、`doc_department`、`doc_doctor_department` 和 `doc_schedule` 表；医生、科室、医生科室绑定和排班接口已统一改造为 DTO/VO + MyBatis Plus 分层实现，医生状态变更与挂号费计算也已完成服务层收口。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
+医生管理已接入 `doc_doctor`、`doc_department`、`doc_doctor_department` 和 `doc_schedule` 表；`doc_doctor.user_id` 统一保存 `sys_user.id` 数字主键，用于从统一账号定位医生档案；医生、科室、医生科室绑定和排班接口已统一改造为 DTO/VO + MyBatis Plus 分层实现，医生状态变更与挂号费计算也已完成服务层收口。接口脚本中的绑定用例使用内置科室 `10`，与初始化数据保持一致。
 
 患者与健康档案接口：
 
@@ -526,7 +527,7 @@ GET /patient/health-records
 POST /patient/health-records
 ```
 
-患者基础档案已接入 `pat_patient` 表，`GET /patient/profile` 和 `PUT /patient/profile` 均读取或更新首位患者示例档案，并保持手机号脱敏返回。患者健康档案管理已接入 `pat_health_record` 表，`POST /patient/health-records` 会校验患者存在并落库档案标题与摘要。
+患者基础档案已接入 `pat_patient` 表，`pat_patient.user_id` 统一保存 `sys_user.id` 数字主键，用于从统一账号定位患者档案；`pat_health_record.patient_id` 统一保存 `pat_patient.id` 患者档案主键；`GET /patient/profile` 和 `PUT /patient/profile` 均读取或更新首位患者示例档案，并保持手机号脱敏返回。患者健康档案管理已接入 `pat_health_record` 表，`POST /patient/health-records` 会校验患者存在并落库档案标题与摘要。
 
 预约挂号接口：
 
@@ -552,17 +553,18 @@ POST /consult/consults/{id}/accept
 POST /consult/consults/{id}/complete
 POST /consult/consults/{id}/extend
 GET /consult/consults/{id}/messages
+GET /consult/doctor/workbench
 WS /ws/consult/{consultId}
 ```
 
-问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。WebSocket 收到的新消息也会写入 `con_message`，`GET /consult/consults/{id}/messages` 统一从数据库读取消息记录。`con_consult_image` 仅存在于 `resources/sql/init.sql` 的完整 baseline 中，用于后续图文问诊图片附件扩展；当前前后端消息接口尚未提供图片上传地址和图片排序入参，因此暂不启用该表，避免产生无入口的伪业务数据。
+问诊管理已接入 `con_consult` 和 `con_message` 表，创建问诊会写入问诊单并按主诉生成患者消息；接单、延长和完成接口均改为数据库状态变更，种子数据不再覆盖运行态状态。`GET /consult/doctor/workbench` 会根据 JWT 当前用户通过 Feign 查询 `doc_doctor.user_id` 对应医生档案，只返回该医生名下“待接单、咨询中、已延长”的问诊患者。患者发起问诊时会通过 `/internal/patients/by-user` Feign 查询 `pat_patient.user_id` 对应患者档案，并将 `con_consult.patient_id` 保存为患者档案编号；医生工作台通过 `/internal/doctors/by-user` Feign 查询登录用户绑定医生档案，internal 路径不应经网关对外暴露。WebSocket 收到的 `TEXT` 和 `IMAGE` 消息会写入 `con_message` 并广播给同一问诊房间内的医生和患者，`IMAGE` 消息内容保存图片 URL；`GET /consult/consults/{id}/messages` 统一从数据库读取消息记录。`con_consult_image` 仅存在于 `resources/sql/init.sql` 的完整 baseline 中，用于后续图文问诊图片附件扩展；当前首版 IM 不提供图片上传能力，因此暂不启用该表，避免产生无入口的伪业务数据。
 
 `hospital-consult` 当前约定补充如下：
 
 - 控制器统一仅接收问诊 DTO、调用 Service 并返回 `ConsultVO`，消息查询继续返回 `ConsultMessage`。
 - Service 统一负责问诊单创建、问诊单号生成、主诉消息写入、接单、延长、完成、租户上下文校验和 VO 转换。
 - Mapper 统一基于 MyBatis Plus `BaseMapper` 承担问诊单和问诊消息数据读写，不再保留 `DemoDataQuery`、`JdbcOperations` 和内存问诊仓储实现。
-- WebSocket 消息仓储统一通过 MyBatis Plus 写入 `con_message`；写接口统一要求有效业务租户上下文。
+- WebSocket 消息仓储统一通过 MyBatis Plus 写入 `con_message`；握手阶段校验登录令牌、租户和问诊参与人身份，医生按 `doc_doctor.user_id` 绑定关系鉴权，患者按 `pat_patient.user_id` 映射出的患者档案编号鉴权。
 
 问诊 WebSocket 地址约定：
 

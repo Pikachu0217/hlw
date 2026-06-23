@@ -192,3 +192,18 @@ body {
     font-size: 18px;
   }
 }
+
+.chat-image {
+  width: 160px;
+  height: 120px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.chat-image-input {
+  width: 100%;
+}
+
+.chat-image-input .adm-input {
+  flex: 1;
+}

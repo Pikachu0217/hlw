@@ -49,7 +49,7 @@
 - `appointment/confirm`
 - `appointment/result`
 - `consult/create`
-- `consult/chat`
+- `consult/chat`（已接入文字和图片 URL 实时问诊沟通）
 - `prescription/list`
 - `order/list`
 - `profile`
@@ -133,6 +133,7 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 - 新增页面时同步更新对应应用的页面说明。
 - 新增共享请求层、状态管理或路由约定时同步补充本文档。
 - 如接入真实后端接口、鉴权流程或 WebSocket 地址，需补充环境变量和联调说明。
+- 管理端和患者端问诊 IM 首版只支持文字与图片 URL，不包含图片上传、压缩和文件鉴权。
 
 ## 管理端接口接入
 
@@ -172,7 +173,7 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 
 预约管理页面已接入预约单创建、预约支付、预约签到、便民门诊抢单、号源锁定和放号配置弹窗；预约列表与号源池均来自真实接口，页面样式统一收口在 `src/styles/global.css`。
 
-问诊管理页面已接入问诊单创建、医生接单、服务延长和完成归档操作；接口业务失败沿用 `apiClient` 的统一错误提示，弹窗样式继续收口在 `src/styles/global.css`。
+问诊管理页面已改造为医生患者 IM 工作台，调用 `GET /consult/doctor/workbench` 展示当前登录医生名下待处理问诊患者，并通过 `/ws/consult/{consultId}` 支持文字和图片 URL 实时沟通；接单、延长和完成操作继续沿用原问诊接口，全部样式收口在 `src/styles/global.css`。
 
 处方管理页面已接入处方草稿创建、提交审方、审核通过和驳回操作；列表和动作接口均来自后端处方服务，弹窗样式继续收口在 `src/styles/global.css`。
 

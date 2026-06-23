@@ -631,13 +631,13 @@ body {
 
 .menu-config-table .ant-table-cell {
   overflow: hidden;
-  padding: 14px 10px !important;
-  font-size: 14px;
+  padding: 12px 6px !important;
+  font-size: 13px;
   text-overflow: ellipsis;
 }
 
 .menu-config-table__name-column {
-  min-width: 220px;
+  min-width: 0;
 }
 
 .menu-config-table__name-column .ant-table-row-indent {
@@ -654,11 +654,19 @@ body {
 
 .menu-config-table__name {
   display: inline-block;
-  max-width: min(128px, 100%);
+  max-width: min(104px, 100%);
   overflow: hidden;
   vertical-align: bottom;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.menu-config-table__actions-column {
+  white-space: normal !important;
+}
+
+.menu-config-table__actions-column .ant-space {
+  justify-content: flex-start;
 }
 
 .menu-config-table__icon {
@@ -1362,5 +1370,131 @@ body {
   .login-hero__description,
   .ant-typography.login-hero__description {
     font-size: 15px;
+  }
+}
+
+.consult-workbench__layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.consult-workbench__patients,
+.consult-workbench__chat {
+  min-height: 620px;
+}
+
+.consult-workbench__title {
+  margin: 0 !important;
+}
+
+.consult-workbench__patient {
+  cursor: pointer;
+  border-radius: 16px;
+  padding: 14px !important;
+  margin-bottom: 10px;
+  background: rgba(20, 125, 143, 0.06);
+  transition: all 0.2s ease;
+}
+
+.consult-workbench__patient--active {
+  background: linear-gradient(135deg, rgba(20, 125, 143, 0.18), rgba(45, 126, 210, 0.14));
+  box-shadow: inset 3px 0 0 #147d8f;
+}
+
+.consult-workbench__patient-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.consult-workbench__patient-main span,
+.consult-workbench__patient-main small {
+  overflow: hidden;
+  color: #607386;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.consult-workbench__chat-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(20, 42, 68, 0.08);
+}
+
+.consult-workbench__messages {
+  display: flex;
+  height: 360px;
+  flex-direction: column;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 16px;
+  overflow-y: auto;
+  border-radius: 18px;
+  background: #f5f9fc;
+}
+
+.consult-message {
+  display: flex;
+  max-width: 72%;
+  flex-direction: column;
+  align-self: flex-start;
+  gap: 4px;
+}
+
+.consult-message--doctor {
+  align-self: flex-end;
+  text-align: right;
+}
+
+.consult-message__sender {
+  color: #7a8a9a;
+  font-size: 12px;
+}
+
+.consult-message__bubble {
+  display: inline-block;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #12324b;
+  box-shadow: 0 8px 20px rgba(18, 50, 75, 0.08);
+  word-break: break-word;
+}
+
+.consult-message--doctor .consult-message__bubble {
+  background: #147d8f;
+  color: #ffffff;
+}
+
+.consult-message__image {
+  max-width: 240px;
+  max-height: 220px;
+  border-radius: 14px;
+  object-fit: cover;
+  box-shadow: 0 8px 20px rgba(18, 50, 75, 0.12);
+}
+
+.consult-workbench__composer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.consult-workbench__image-input {
+  width: 100%;
+}
+
+@media (max-width: 960px) {
+  .consult-workbench__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .consult-message {
+    max-width: 88%;
   }
 }
