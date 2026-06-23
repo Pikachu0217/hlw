@@ -20,6 +20,11 @@ public class CommonConstants {
     public static final String JWT_USER_TYPE = "userType";
 
     /**
+     * jwt中的用户业务编号（sys_user.user_id 字符串）。
+     */
+    public static final String JWT_BUSINESS_USER_ID = "businessUserId";
+
+    /**
      * jwt的默认时效时间(单位 ms)
      */
     public static final Long JWT_DEFAULT_EXPIRATION_MS = 30L * 24 * 60 * 60 * 1000;

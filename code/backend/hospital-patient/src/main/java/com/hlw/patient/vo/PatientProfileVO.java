@@ -11,8 +11,8 @@ import lombok.Setter;
 public class PatientProfileVO {
     /** 患者编号。 */
     private Long id;
-    /** 关联用户编号（关联 sys_user.id）。 */
-    private Long userId;
+    /** 关联用户编号（关联 sys_user.user_id 字符串）。 */
+    private String userId;
     /** 患者姓名。 */
     private String patientName;
     /** 联系电话。 */

@@ -19,6 +19,6 @@ public class AuthTokenConfig {
      */
     @Bean
     public TokenIssuer tokenIssuer(@Value("${hlw.jwt.secret}") String jwtSecret) {
-        return user -> JwtUtil.issue(user.id(), user.tenantId(), user.userType(), jwtSecret);
+        return user -> JwtUtil.issue(user.id(), user.userId(), user.tenantId(), user.userType(), jwtSecret);
     }
 }

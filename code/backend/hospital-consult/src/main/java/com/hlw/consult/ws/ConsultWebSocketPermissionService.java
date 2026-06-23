@@ -79,10 +79,10 @@ public class ConsultWebSocketPermissionService {
      */
     private InternalPatientResp resolvePatient(TokenPrincipal principal) {
         try {
-            R<InternalPatientResp> response = patientFeignClient.findByUser(principal.getTenantId(), principal.getUserId());
+            R<InternalPatientResp> response = patientFeignClient.findByUser(principal.getTenantId(), principal.getBusinessUserId());
             return response == null || response.code() != 200 ? null : response.data();
         } catch (RuntimeException exception) {
-            log.warn("问诊 WebSocket 查询患者档案失败，tenantId={}，userId={}", principal.getTenantId(), principal.getUserId());
+            log.warn("问诊 WebSocket 查询患者档案失败，tenantId={}，userId={}", principal.getTenantId(), principal.getBusinessUserId());
             return null;
         }
     }

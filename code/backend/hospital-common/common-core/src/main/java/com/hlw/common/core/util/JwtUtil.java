@@ -24,17 +24,19 @@ public final class JwtUtil {
     /**
      * 签发 JWT 令牌。
      *
-     * @param userId   用户编号
-     * @param tenantId 租户编号
-     * @param userType 用户类型
-     * @param secret   HMAC 密钥
+     * @param userId         用户编号（sys_user.id）
+     * @param businessUserId 用户业务编号（sys_user.user_id 字符串）
+     * @param tenantId       租户编号
+     * @param userType       用户类型
+     * @param secret         HMAC 密钥
      * @return JWT 令牌字符串
      */
-    public static String issue(Long userId, Long tenantId, String userType, String secret) {
+    public static String issue(Long userId, String businessUserId, Long tenantId, String userType, String secret) {
         Key key = keyFrom(secret);
         Date now = new Date();
         Map<String, Object> claims = new HashMap<>();
         claims.put(CommonConstants.JWT_USER_ID, userId);
+        claims.put(CommonConstants.JWT_BUSINESS_USER_ID, businessUserId);
         claims.put(CommonConstants.JWT_TENANT_ID, tenantId);
         claims.put(CommonConstants.JWT_USER_TYPE, userType);
         return Jwts.builder()

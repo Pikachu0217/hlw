@@ -212,12 +212,12 @@ public class ConsultWorkflowService {
      * @return 内部患者档案，演示兼容场景下可能返回 null
      */
     private InternalPatientResp resolveCurrentPatient() {
-        if (TokenPrincipalContext.get() == null || TokenPrincipalContext.get().getUserId() == null || TokenPrincipalContext.get().getUserId() <= 0L) {
+        if (TokenPrincipalContext.get() == null || TokenPrincipalContext.get().getBusinessUserId() == null || TokenPrincipalContext.get().getBusinessUserId().isBlank()) {
             log.warn("创建问诊时登录用户为空，使用默认患者信息");
             return null;
         }
         Long tenantId = TokenPrincipalContext.get().getTenantId();
-        Long userId = TokenPrincipalContext.get().getUserId();
+        String userId = TokenPrincipalContext.get().getBusinessUserId();
         R<InternalPatientResp> response = patientFeignClient.findByUser(tenantId, userId);
         if (response == null || response.code() != 200 || response.data() == null) {
             log.warn("创建问诊时未查询到当前患者档案，tenantId={}，userId={}", tenantId, userId);

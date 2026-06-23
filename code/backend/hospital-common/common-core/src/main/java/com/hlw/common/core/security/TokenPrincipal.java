@@ -13,9 +13,14 @@ public class TokenPrincipal {
     private Long tenantId;
 
     /**
-     * 用户 id
+     * 用户 id（sys_user.id）
      */
     private Long userId;
+
+    /**
+     * 用户业务编号（sys_user.user_id 字符串）。
+     */
+    private String businessUserId;
 
     /**
      * 用户类型

@@ -75,6 +75,7 @@ public final class JwtPrincipalResolver {
     private static TokenPrincipal fromClaims(Claims claims) {
         TokenPrincipal principal = new TokenPrincipal();
         principal.setUserId(resolveLong(claims, CommonConstants.JWT_USER_ID));
+        principal.setBusinessUserId(resolveString(claims, CommonConstants.JWT_BUSINESS_USER_ID));
         principal.setTenantId(resolveLong(claims, CommonConstants.JWT_TENANT_ID));
         principal.setUserType(resolveString(claims, CommonConstants.JWT_USER_TYPE));
         principal.setPlatformRequest(CommonConstants.isPlatformTenant(principal.getTenantId()));

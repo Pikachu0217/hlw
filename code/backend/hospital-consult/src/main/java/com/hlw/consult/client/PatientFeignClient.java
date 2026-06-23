@@ -15,9 +15,9 @@ public interface PatientFeignClient {
      * 按租户和登录用户查询患者档案。
      *
      * @param tenantId 租户编号
-     * @param userId 登录用户编号
+     * @param userId   关联用户编号（sys_user.user_id 字符串）
      * @return 患者档案
      */
     @GetMapping("/internal/patients/by-user")
-    R<InternalPatientResp> findByUser(@RequestParam("tenantId") Long tenantId, @RequestParam("userId") Long userId);
+    R<InternalPatientResp> findByUser(@RequestParam("tenantId") Long tenantId, @RequestParam("userId") String userId);
 }
