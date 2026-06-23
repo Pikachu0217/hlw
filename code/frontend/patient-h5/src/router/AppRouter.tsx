@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { AppointmentConfirmPage } from "../pages/appointment/confirm/AppointmentConfirmPage";
+import { AppointmentListPage } from "../pages/appointment/list/AppointmentListPage";
 import { AppointmentResultPage } from "../pages/appointment/result/AppointmentResultPage";
 import { ConsultChatPage } from "../pages/consult/chat/ConsultChatPage";
 import { ConsultCreatePage } from "../pages/consult/create/ConsultCreatePage";
@@ -23,6 +24,7 @@ export function AppRouter() {
         <Route path="/doctor/list" element={<DoctorListPage />} />
         <Route path="/doctor/detail" element={<DoctorDetailPage />} />
         <Route path="/appointment/confirm" element={<AppointmentConfirmPage />} />
+        <Route path="/appointment/list" element={<AppointmentListPage />} />
         <Route path="/appointment/result" element={<AppointmentResultPage />} />
         <Route path="/consult/create" element={<ConsultCreatePage />} />
         <Route path="/consult/chat" element={<ConsultChatPage />} />

@@ -34,7 +34,7 @@ export function DoctorDetailPage() {
         <Button color="primary" block onClick={() => navigate(`/appointment/confirm?doctorId=${doctorId}`)}>
           预约挂号
         </Button>
-        <Button block onClick={() => navigate("/consult/create")}>
+        <Button block onClick={() => navigate(`/consult/create?doctorId=${doctorId}`)}>
           发起图文问诊
         </Button>
       </Space>

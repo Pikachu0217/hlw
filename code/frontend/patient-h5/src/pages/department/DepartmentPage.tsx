@@ -1,9 +1,11 @@
 import { List, SpinLoading, Tag } from "antd-mobile";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { fetchDepartments, type DepartmentItem } from "../../app/api";
 import { SectionCard } from "../../components/SectionCard";
 
 export function DepartmentPage() {
+  const navigate = useNavigate();
   const [departments, setDepartments] = useState<DepartmentItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -33,7 +35,7 @@ export function DepartmentPage() {
       {loading ? <SpinLoading /> : null}
       <List>
         {departments.map((department) => (
-          <List.Item key={department.id} extra={<Tag color="warning">{department.queue}</Tag>}>
+          <List.Item key={department.id} extra={<Tag color="warning">{department.queue}</Tag>} onClick={() => navigate("/doctor/list")}>
             {department.name}
           </List.Item>
         ))}

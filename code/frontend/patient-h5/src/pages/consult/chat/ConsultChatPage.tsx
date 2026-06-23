@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Toast } from "antd-mobile";
-import { fetchConsultMessages, type ConsultMessageItem } from "../../../app/api";
+import { Button, Space, Toast } from "antd-mobile";
+import { completeConsult, extendConsult, fetchConsultMessages, type ConsultMessageItem } from "../../../app/api";
 import { AUTHORIZATION_TOKEN_PREFIX } from "../../../app/auth-header";
 import { SectionCard } from "../../../components/SectionCard";
 import { useSessionStore } from "../../../store/sessionStore";
@@ -75,8 +75,44 @@ export function ConsultChatPage() {
     }
   }
 
+  async function handleExtend(): Promise<void> {
+    if (!consultId) {
+      Toast.show("缺少问诊编号");
+      return;
+    }
+
+    try {
+      await extendConsult(consultId);
+      Toast.show("问诊时长已延长");
+    } catch {
+      Toast.show("延长问诊失败");
+    }
+  }
+
+  async function handleComplete(): Promise<void> {
+    if (!consultId) {
+      Toast.show("缺少问诊编号");
+      return;
+    }
+
+    try {
+      await completeConsult(consultId);
+      Toast.show("问诊已完成");
+    } catch {
+      Toast.show("完成问诊失败");
+    }
+  }
+
   return (
     <SectionCard title="问诊聊天" description="支持文字和图片 URL 的实时问诊沟通。">
+      <Space block className="consult-action-bar">
+        <Button size="small" onClick={handleExtend}>
+          延长问诊
+        </Button>
+        <Button size="small" color="primary" onClick={handleComplete}>
+          完成问诊
+        </Button>
+      </Space>
       <ConsultChat
         remainingSeconds={remainingSeconds}
         messages={messages}

@@ -47,6 +47,7 @@
 - `doctor/list`
 - `doctor/detail`
 - `appointment/confirm`
+- `appointment/list`
 - `appointment/result`
 - `consult/create`
 - `consult/chat`（已接入文字和图片 URL 实时问诊沟通）
@@ -70,7 +71,7 @@ code/frontend/
 - 管理端使用 React 18、TypeScript、Vite、Ant Design。
 - 患者端使用 React 18、TypeScript、Vite、Ant Design Mobile、Zustand。
 - 两个应用都需要统一支持 `Authorization: Bearer <token>` 认证头透传。
-- 当前阶段只搭建 MVP 骨架和页面结构，不在本文档中承诺已完成的真实联调或构建结果。
+- 当前阶段不在本文档中承诺已完成构建结果；涉及构建和测试命令只作为本地维护参考。
 
 ## 常用命令
 
@@ -134,6 +135,17 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 - 新增共享请求层、状态管理或路由约定时同步补充本文档。
 - 如接入真实后端接口、鉴权流程或 WebSocket 地址，需补充环境变量和联调说明。
 - 管理端和患者端问诊 IM 首版只支持文字与图片 URL，不包含图片上传、压缩和文件鉴权。
+
+## 患者端接口接入
+
+`patient-h5` 的请求封装集中在 `src/app/api.ts`，当前已接入患者端页面需要的后端接口：
+
+- 患者档案：`GET /patient/profile`、`PUT /patient/profile`、`GET /patient/patients`、`GET /patient/patients/{id}`、`PUT /patient/patients/{id}`、`GET /patient/health-records`、`POST /patient/health-records`
+- 医院与医生：`GET /system/tenant/options`、`GET /doctor/departments`、`GET /doctor/doctors`、`GET /doctor/doctors/{id}`、`GET /doctor/schedules`、`POST /doctor/appointment-fee/resolve`
+- 预约挂号：`GET /appointment/appointments`、`POST /appointment/appointments`、`POST /appointment/appointments/{id}/pay`、`POST /appointment/appointments/{id}/check-in`、`POST /appointment/appointments/{id}/grab`、`GET /appointment/number-sources`、`POST /appointment/number-sources/{scheduleId}/lock`
+- 图文问诊：`GET /consult/consults`、`POST /consult/consults`、`GET /consult/consults/{id}/messages`、`POST /consult/consults/{id}/extend`、`POST /consult/consults/{id}/complete`、`/ws/consult/{consultId}`
+- 处方与药品：`GET /prescription/prescriptions`、`GET /drug/drugs`、`GET /drug/stocks`
+- 订单支付：`GET /order/orders`、`POST /order/orders`、`POST /order/orders/{id}/pay`
 
 ## 管理端接口接入
 

@@ -157,6 +157,16 @@ body {
   overflow: hidden;
 }
 
+.appointment-source-list,
+.order-create-form,
+.profile-health-form {
+  margin-top: 10px;
+}
+
+.consult-action-bar {
+  margin-bottom: 12px;
+}
+
 @media (max-width: 520px) {
   .mobile-shell {
     max-width: none;

@@ -1,6 +1,7 @@
 import { Button, Form, Input, Picker, TextArea, Toast } from "antd-mobile";
-import { useNavigate } from "react-router-dom";
-import { createConsult } from "../../../app/api";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { createConsult, fetchPatientDoctorDetail, type PatientDoctor } from "../../../app/api";
 import { SectionCard } from "../../../components/SectionCard";
 
 interface ConsultFormValues {
@@ -10,7 +11,31 @@ interface ConsultFormValues {
 
 export function ConsultCreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [form] = Form.useForm<ConsultFormValues>();
+  const doctorId = Number(searchParams.get("doctorId") ?? 0);
+  const [doctor, setDoctor] = useState<PatientDoctor | null>(null);
+
+  useEffect(() => {
+    let ignore = false;
+
+    if (!doctorId) {
+      setDoctor(null);
+      return () => {
+        ignore = true;
+      };
+    }
+
+    fetchPatientDoctorDetail(doctorId).then((record) => {
+      if (!ignore) {
+        setDoctor(record);
+      }
+    });
+
+    return () => {
+      ignore = true;
+    };
+  }, [doctorId]);
 
   async function handleCreateConsult(): Promise<void> {
     const values = await form.validateFields();
@@ -18,7 +43,7 @@ export function ConsultCreatePage() {
     const chiefComplaint = values.chiefComplaint ?? "";
 
     try {
-      const consult = await createConsult(consultType, chiefComplaint);
+      const consult = await createConsult(consultType, chiefComplaint, doctor ?? undefined);
       navigate(`/consult/chat?consultId=${consult.id}&remainingSeconds=0`);
     } catch {
       Toast.show("问诊服务暂不可用，请稍后重试");
@@ -27,6 +52,7 @@ export function ConsultCreatePage() {
 
   return (
     <SectionCard title="发起问诊" description="填写病情描述后即可进入图文问诊房间。">
+      {doctor ? <div className="detail-copy">接诊医生：{doctor.name} · 问诊费 {doctor.consultFee} 元</div> : null}
       <Form form={form} layout="horizontal" footer={<Button color="primary" block onClick={handleCreateConsult}>开始问诊</Button>}>
         <Form.Item label="问诊类型" name="consultType" rules={[{ required: true, message: "请选择问诊类型" }]}>
           <Picker columns={[[{ label: "图文问诊", value: "IMAGE_TEXT" }, { label: "复诊续方", value: "FOLLOW_UP" }]]}>
