@@ -52,11 +52,11 @@ public class PatientTenantContextService {
      */
     public PatientProfileVO getCurrentProfile() {
         log.info("查询当前患者档案");
-        return toPatientProfileVO(requireCurrentPatient());
+        return toPatientProfileVO(getOrCreateCurrentPatient());
     }
 
     /**
-     * 更新当前患者档案。
+     * 更新当前患者档案（患者不存在时自动创建）。
      *
      * @param request 更新患者资料请求
      * @return 患者档案展示对象
@@ -64,7 +64,7 @@ public class PatientTenantContextService {
     @Transactional
     public PatientProfileVO updateCurrentProfile(UpdatePatientProfileRequest request) {
         ensureBusinessTenantContext("患者模块操作缺少有效租户上下文");
-        PatPatientEntity entity = requireCurrentPatient();
+        PatPatientEntity entity = getOrCreateCurrentPatient();
         log.info("更新当前患者档案，patientId={}，patientName={}", entity.getId(), request.getPatientName());
         applyPatientProfile(entity, request);
         patPatientMapper.updateById(entity);
@@ -108,7 +108,7 @@ public class PatientTenantContextService {
      * @param userId 登录用户编号
      * @return 内部患者档案
      */
-    public InternalPatientResp getInternalPatientByUser(Long tenantId, Long userId) {
+    public InternalPatientResp getInternalPatientByUser(Long tenantId, String userId) {
         log.info("按登录用户查询内部患者档案，tenantId={}，userId={}", tenantId, userId);
         if (tenantId == null || tenantId <= 0L || userId == null || userId <= 0L) {
             log.warn("查询内部患者档案失败，租户或用户编号无效，tenantId={}，userId={}", tenantId, userId);
@@ -124,6 +124,43 @@ public class PatientTenantContextService {
             throw new BizException(403, "当前登录账号未绑定患者档案");
         }
         return new InternalPatientResp(entity.getId(), entity.getUserId(), entity.getTenantId(), resolvePatientName(entity));
+    }
+
+    /**
+     * 创建或获取患者档案（手机号注册后自动绑定）。
+     *
+     * @param tenantId 租户编号
+     * @param userId   关联用户编号（sys_user.user_id 字符串）
+     * @param phone    联系电话
+     * @return 内部患者档案
+     */
+    @Transactional
+    public InternalPatientResp createOrGetPatientByUser(Long tenantId, String userId, String phone) {
+        log.info("创建或获取患者档案，tenantId={}，userId={}，phone={}", tenantId, userId, phone);
+        if (tenantId == null || tenantId <= 0L || userId == null || userId.isBlank()) {
+            log.warn("创建患者档案失败，租户或用户编号无效，tenantId={}，userId={}", tenantId, userId);
+            throw new BizException(400, "租户或用户编号无效");
+        }
+        // 先查是否存在
+        PatPatientEntity existing = patPatientMapper.selectOne(new LambdaQueryWrapper<PatPatientEntity>()
+            .eq(PatPatientEntity::getTenantId, tenantId)
+            .eq(PatPatientEntity::getUserId, userId)
+            .eq(PatPatientEntity::getDeleted, 0)
+            .last("limit 1"));
+        if (existing != null) {
+            log.info("患者档案已存在，tenantId={}，userId={}，patientId={}", tenantId, userId, existing.getId());
+            return new InternalPatientResp(existing.getId(), existing.getUserId(), existing.getTenantId(), resolvePatientName(existing));
+        }
+        // 不存在则创建
+        PatPatientEntity entity = new PatPatientEntity();
+        entity.setTenantId(tenantId);
+        entity.setUserId(userId);
+        entity.setPhone(phone);
+        entity.setPatientName("");
+        entity.setName("");
+        patPatientMapper.insert(entity);
+        log.info("患者档案创建成功，tenantId={}，userId={}，patientId={}", tenantId, userId, entity.getId());
+        return new InternalPatientResp(entity.getId(), entity.getUserId(), entity.getTenantId(), "");
     }
 
     /**
@@ -298,13 +335,44 @@ public class PatientTenantContextService {
     }
 
     /**
-     * 查询当前租户下默认患者。
+     * 查询当前租户下默认患者（不存在时自动创建）。
+     *
+     * @return 患者实体
+     */
+    private PatPatientEntity getOrCreateCurrentPatient() {
+        String loginUserId = TokenPrincipalContext.get().getBusinessUserId();
+        Long tenantId = TokenPrincipalContext.get().getTenantId();
+        if (loginUserId == null || loginUserId.isBlank() || tenantId == null || tenantId <= 0L) {
+            log.warn("查询当前患者档案失败，登录用户或租户编号无效");
+            throw new BizException(401, "当前登录用户无效");
+        }
+        log.info("查询或创建当前患者档案，userId={}，tenantId={}", loginUserId, tenantId);
+        PatPatientEntity existing = patPatientMapper.selectOne(new LambdaQueryWrapper<PatPatientEntity>()
+            .eq(PatPatientEntity::getUserId, loginUserId)
+            .last("limit 1"));
+        if (existing != null) {
+            return existing;
+        }
+        // 不存在则自动创建
+        PatPatientEntity entity = new PatPatientEntity();
+        entity.setTenantId(tenantId);
+        entity.setUserId(loginUserId);
+        entity.setPhone("");
+        entity.setPatientName("");
+        entity.setName("");
+        patPatientMapper.insert(entity);
+        log.info("患者档案自动创建成功，patientId={}，userId={}", entity.getId(), loginUserId);
+        return entity;
+    }
+
+    /**
+     * 查询当前租户下默认患者（不存在时抛出异常）。
      *
      * @return 患者实体
      */
     private PatPatientEntity requireCurrentPatient() {
-        Long loginUserId = TokenPrincipalContext.get().getUserId();
-        if (loginUserId == null || loginUserId <= 0L) {
+        String loginUserId = TokenPrincipalContext.get().getBusinessUserId();
+        if (loginUserId == null || loginUserId.isBlank()) {
             log.warn("查询当前患者档案失败，登录用户编号为空");
             throw new BizException(401, "当前登录用户无效");
         }
