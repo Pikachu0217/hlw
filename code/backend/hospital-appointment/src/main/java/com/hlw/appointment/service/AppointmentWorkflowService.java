@@ -2,6 +2,7 @@ package com.hlw.appointment.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.hlw.appointment.domain.resp.*;
 import com.hlw.appointment.dto.CreateAppointmentRequest;
 import com.hlw.appointment.dto.CreateReleaseConfigRequest;
 import com.hlw.appointment.dto.InternalCreateReleaseConfigRequest;
@@ -11,10 +12,6 @@ import com.hlw.appointment.entity.AptReleaseConfigEntity;
 import com.hlw.appointment.mapper.AptAppointmentMapper;
 import com.hlw.appointment.mapper.AptNumberSourceMapper;
 import com.hlw.appointment.mapper.AptReleaseConfigMapper;
-import com.hlw.appointment.domain.resp.AppointmentVO;
-import com.hlw.appointment.domain.resp.InternalAppointmentResp;
-import com.hlw.appointment.domain.resp.NumberSourceVO;
-import com.hlw.appointment.domain.resp.ReleaseConfigVO;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.common.core.util.DefaultValueUtils;
@@ -93,6 +90,39 @@ public class AppointmentWorkflowService {
                 .thenComparing(AptNumberSourceEntity::getId))
             .map(this::toNumberSourceVO)
             .toList();
+    }
+
+    /**
+     * 查询号源统计信息（按排班编号汇总容量与状态分布）。
+     *
+     * @param scheduleId 排班编号
+     * @return 号源统计信息
+     */
+    public NumberSourceStatsVO getNumberSourceStats(Long scheduleId) {
+        log.info("查询号源统计信息，scheduleId={}", scheduleId);
+        // 总容量：SUM(release_count)
+        long totalCapacity = aptReleaseConfigMapper.selectList(new LambdaQueryWrapper<AptReleaseConfigEntity>()
+                .eq(AptReleaseConfigEntity::getScheduleId, scheduleId))
+            .stream()
+            .mapToLong(AptReleaseConfigEntity::getReleaseCount)
+            .sum();
+        // 已锁定数
+        long lockedCount = aptNumberSourceMapper.selectCount(new LambdaQueryWrapper<AptNumberSourceEntity>()
+            .eq(AptNumberSourceEntity::getScheduleId, scheduleId)
+            .eq(AptNumberSourceEntity::getStatus, NUMBER_STATUS_LOCKED));
+        // 已使用数
+        long usedCount = aptNumberSourceMapper.selectCount(new LambdaQueryWrapper<AptNumberSourceEntity>()
+            .eq(AptNumberSourceEntity::getScheduleId, scheduleId)
+            .eq(AptNumberSourceEntity::getStatus, NUMBER_STATUS_USED));
+        // 可锁号源数
+        long availableCount = Math.max(0, totalCapacity - lockedCount - usedCount);
+        NumberSourceStatsVO vo = new NumberSourceStatsVO();
+        vo.setScheduleId(scheduleId);
+        vo.setTotalCapacity(totalCapacity);
+        vo.setLockedCount(lockedCount);
+        vo.setUsedCount(usedCount);
+        vo.setAvailableCount(availableCount);
+        return vo;
     }
 
     /**
@@ -223,7 +253,8 @@ public class AppointmentWorkflowService {
     }
 
     /**
-     * 使用 Redis 分布式锁锁定一个可用号源。
+     * 使用 Redis 分布式锁，按需生成并锁定一个号源。
+     * <p>不再从预生成的 AVAILABLE 记录中选取，而是校验释放容量后直接 INSERT 一条 LOCKED 记录。</p>
      *
      * @param scheduleId 排班编号
      * @return 锁定后的号源
@@ -237,17 +268,37 @@ public class AppointmentWorkflowService {
             if (!redisLockService.tryLock(lockKey, 5, 10, TimeUnit.SECONDS)) {
                 throw new BizException(409, "号源锁定繁忙，请稍后重试");
             }
-            AptNumberSourceEntity entity = requireFirstAvailableNumberSource(scheduleId);
-            int updated = aptNumberSourceMapper.update(null, new LambdaUpdateWrapper<AptNumberSourceEntity>()
-                .eq(AptNumberSourceEntity::getId, entity.getId())
-                .eq(AptNumberSourceEntity::getStatus, NUMBER_STATUS_AVAILABLE)
-                .set(AptNumberSourceEntity::getStatus, NUMBER_STATUS_LOCKED)
-                .set(AptNumberSourceEntity::getLockTime, LocalDateTime.now()));
-            if (updated == 0) {
-                throw new BizException(409, "号源已被锁定");
+            // 统计当前排班已占号源数（LOCKED + USED）
+            Long usedCount = aptNumberSourceMapper.selectCount(new LambdaQueryWrapper<AptNumberSourceEntity>()
+                .eq(AptNumberSourceEntity::getScheduleId, scheduleId)
+                .in(AptNumberSourceEntity::getStatus, NUMBER_STATUS_LOCKED, NUMBER_STATUS_USED));
+            // 查询放号配置总容量（SUM(release_count)）
+            long capacity = aptReleaseConfigMapper.selectList(new LambdaQueryWrapper<AptReleaseConfigEntity>()
+                    .eq(AptReleaseConfigEntity::getScheduleId, scheduleId))
+                .stream()
+                .mapToLong(AptReleaseConfigEntity::getReleaseCount)
+                .sum();
+            if (capacity <= 0) {
+                throw new BizException(404, "该排班暂无放号配置，请先创建放号配置");
             }
+            if (usedCount >= capacity) {
+                throw new BizException(404, "暂无可锁号源");
+            }
+            // 计算下一个序号：已占序列最大值 + 1
+            int nextSeq = aptNumberSourceMapper.selectList(new LambdaQueryWrapper<AptNumberSourceEntity>()
+                    .eq(AptNumberSourceEntity::getScheduleId, scheduleId))
+                .stream()
+                .map(AptNumberSourceEntity::getNumberSeq)
+                .max(Integer::compareTo)
+                .orElse(0) + 1;
+            // 直接插入一条 LOCKED 号源
+            AptNumberSourceEntity entity = new AptNumberSourceEntity();
+            entity.setScheduleId(scheduleId);
+            entity.setNumberSeq(nextSeq);
             entity.setStatus(NUMBER_STATUS_LOCKED);
             entity.setLockTime(LocalDateTime.now());
+            aptNumberSourceMapper.insert(entity);
+            log.info("按需生成并锁定号源，scheduleId={}，numberSeq={}，sourceId={}", scheduleId, nextSeq, entity.getId());
             return toNumberSourceVO(entity);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -379,25 +430,15 @@ public class AppointmentWorkflowService {
     }
 
     /**
-     * 按放号配置生成可用号源。
+     * 按放号配置生成可用号源（已改为按需生成，占号时再 INSERT）。
+     * <p>放号配置写入 release_config 后不再预生成号源记录，
+     * 实际号源在 lockNumberSource 时按容量校验并动态插入。</p>
      *
      * @param scheduleId 排班编号
-     * @param releaseCount 放号数量
+     * @param releaseCount 放号数量（当前仅用于日志记录，不再插入号源）
      */
     private void releaseNumberSources(Long scheduleId, Integer releaseCount) {
-        int startSeq = aptNumberSourceMapper.selectList(new LambdaQueryWrapper<AptNumberSourceEntity>()
-                .eq(AptNumberSourceEntity::getScheduleId, scheduleId))
-            .stream()
-            .map(AptNumberSourceEntity::getNumberSeq)
-            .max(Integer::compareTo)
-            .orElse(0);
-        for (int index = 1; index <= releaseCount; index++) {
-            AptNumberSourceEntity numberSource = new AptNumberSourceEntity();
-            numberSource.setScheduleId(scheduleId);
-            numberSource.setNumberSeq(startSeq + index);
-            numberSource.setStatus(NUMBER_STATUS_AVAILABLE);
-            aptNumberSourceMapper.insert(numberSource);
-        }
+        log.info("放号配置已记录，scheduleId={}，releaseCount={}，号源将在占号时按需生成", scheduleId, releaseCount);
     }
 
     /**

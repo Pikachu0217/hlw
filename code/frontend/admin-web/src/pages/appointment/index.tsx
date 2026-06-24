@@ -15,17 +15,19 @@ import {
   message,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   checkInAppointment,
   createAppointment,
   createReleaseConfig,
   fetchAppointments,
   fetchNumberSources,
+  fetchNumberSourceStats,
   grabAppointment,
   lockNumberSource,
   payAppointment,
   type NumberSourceRecord,
+  type NumberSourceStatsRecord,
 } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
@@ -75,8 +77,8 @@ const appointmentColumns = (
 ];
 
 const numberSourceColumns = (
-  records: NumberSourceRecord[],
   onLock: (record: NumberSourceRecord) => void,
+  availableCount: number,
 ): ColumnsType<NumberSourceRecord> => [
   { title: '号源编号', dataIndex: 'id' },
   { title: '排班编号', dataIndex: 'scheduleId' },
@@ -86,7 +88,7 @@ const numberSourceColumns = (
     title: '操作',
     key: 'actions',
     render: (_, record) => (
-      <Button type="link" onClick={() => onLock(record)} disabled={!isLockTarget(records, record)}>
+      <Button type="link" onClick={() => onLock(record)} disabled={availableCount <= 0}>
         锁定排班号源
       </Button>
     ),
@@ -104,20 +106,32 @@ function AppointmentPage() {
   const [releaseOpen, setReleaseOpen] = useState(false);
   const [currentAppointment, setCurrentAppointment] = useState<AppointmentRecord | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [stats, setStats] = useState<NumberSourceStatsRecord | null>(null);
+  const DEFAULT_SCHEDULE_ID = 1;
+  const currentScheduleId = DEFAULT_SCHEDULE_ID;
 
   const checkedInCount = records.filter((record) => record.status.includes('签到')).length;
   const paidCount = records.filter((record) => ['已支付', '已签到', '已完成'].includes(record.status)).length;
-  const availableCount = numberSources.filter((record) => record.status === 'AVAILABLE').length;
-  const lockedCount = numberSources.filter((record) => record.status === 'LOCKED').length;
-
-  const currentScheduleId = (() => {
-    const availableSource = numberSources.find((record) => record.status === 'AVAILABLE');
-    return availableSource?.scheduleId ?? numberSources[0]?.scheduleId ?? 1;
-  })();
+  const availableCount = stats?.availableCount ?? 0;
+  const lockedCount = stats?.lockedCount ?? 0;
 
   const columns = appointmentColumns(handlePay, handleCheckIn, openGrabModal);
 
-  const sourceColumns = numberSourceColumns(numberSources, handleLockNumberSource);
+  const sourceColumns = numberSourceColumns(handleLockNumberSource, availableCount);
+
+  /** 加载号源统计信息。 */
+  const loadStats = useCallback(async () => {
+    try {
+      const result = await fetchNumberSourceStats(currentScheduleId);
+      setStats(result);
+    } catch {
+      // 统计加载失败不影响主流程
+    }
+  }, [currentScheduleId]);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
 
   async function handleCreateAppointment() {
     const values = await appointmentForm.validateFields();
@@ -129,6 +143,7 @@ function AppointmentPage() {
       appointmentForm.resetFields();
       refresh();
       refreshNumberSources();
+      void loadStats();
     } catch (error) {
       message.warning(error instanceof Error ? error.message : '预约单创建失败，请稍后重试');
     } finally {
@@ -187,6 +202,7 @@ function AppointmentPage() {
       return;
     }
     refreshNumberSources();
+    void loadStats();
   }
 
   async function handleCreateReleaseConfig() {
@@ -198,6 +214,7 @@ function AppointmentPage() {
       setReleaseOpen(false);
       releaseForm.resetFields();
       refreshNumberSources();
+      void loadStats();
     } catch (error) {
       message.warning(error instanceof Error ? error.message : '放号配置创建失败，请稍后重试');
     } finally {
@@ -402,16 +419,6 @@ function AppointmentPage() {
       </Modal>
     </>
   );
-}
-
-function isLockTarget(records: NumberSourceRecord[], current: NumberSourceRecord): boolean {
-  if (current.status !== 'AVAILABLE') {
-    return false;
-  }
-  const firstAvailable = records
-    .filter((record) => record.scheduleId === current.scheduleId && record.status === 'AVAILABLE')
-    .sort((left, right) => left.numberSeq - right.numberSeq || left.id - right.id)[0];
-  return firstAvailable?.id === current.id;
 }
 
 function appointmentStatusColor(status: string): string {

@@ -7,6 +7,7 @@ import com.hlw.appointment.dto.InternalCreateReleaseConfigRequest;
 import com.hlw.appointment.service.AppointmentWorkflowService;
 import com.hlw.appointment.domain.resp.AppointmentVO;
 import com.hlw.appointment.domain.resp.InternalAppointmentResp;
+import com.hlw.appointment.domain.resp.NumberSourceStatsVO;
 import com.hlw.appointment.domain.resp.NumberSourceVO;
 import com.hlw.appointment.domain.resp.ReleaseConfigVO;
 import com.hlw.common.core.domain.R;
@@ -60,6 +61,18 @@ public class AppointmentController {
     public R<List<NumberSourceVO>> numberSources() {
         log.info("查询号源列表");
         return R.ok(appointmentWorkflowService.listNumberSources());
+    }
+
+    /**
+     * 查询号源统计信息（按排班编号）。
+     *
+     * @param scheduleId 排班编号
+     * @return 号源统计信息
+     */
+    @GetMapping("/number-sources/stats/{scheduleId}")
+    public R<NumberSourceStatsVO> numberSourceStats(@PathVariable Long scheduleId) {
+        log.info("查询号源统计信息，scheduleId={}", scheduleId);
+        return R.ok(appointmentWorkflowService.getNumberSourceStats(scheduleId));
     }
 
     /**

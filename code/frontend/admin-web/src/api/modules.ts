@@ -947,6 +947,22 @@ export function fetchNumberSources(): Promise<NumberSourceRecord[]> {
   return fetchModuleRecords<NumberSourceRecord>('/appointment/number-sources', '号源');
 }
 
+// 号源统计信息。
+export interface NumberSourceStatsRecord {
+  scheduleId: number;
+  totalCapacity: number;
+  lockedCount: number;
+  usedCount: number;
+  availableCount: number;
+}
+
+// 查询号源统计信息。
+export async function fetchNumberSourceStats(scheduleId: number): Promise<NumberSourceStatsRecord> {
+  console.info('[admin-module] 查询号源统计信息', scheduleId);
+  const response = await apiClient.get<ApiResult<NumberSourceStatsRecord>>(`/appointment/number-sources/stats/${scheduleId}`);
+  return response.data.data;
+}
+
 // 锁定号源。
 export async function lockNumberSource(scheduleId: number): Promise<NumberSourceRecord> {
   console.info('[admin-module] 锁定号源', scheduleId);
