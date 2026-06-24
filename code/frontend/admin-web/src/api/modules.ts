@@ -839,6 +839,31 @@ export async function createDoctorSchedule(payload: CreateSchedulePayload): Prom
   return response.data.data;
 }
 
+export interface ScheduleRecord {
+  id: number;
+  doctorId: number;
+  deptId: number;
+  doctorName: string;
+  departmentName: string;
+  slot: string;
+  scheduleDate: string;
+  timeSlot: string;
+  totalNumber: number;
+  remain: number;
+}
+
+export interface ScheduleQueryParams {
+  scheduleDate?: string;
+  doctorId?: number;
+  deptId?: number;
+}
+
+/** 查询排班列表，支持按日期/医生/科室筛选。 */
+export function fetchSchedules(params?: ScheduleQueryParams): Promise<ScheduleRecord[]> {
+  console.info('[admin-module] 查询排班列表', params);
+  return fetchModuleRecords<ScheduleRecord>('/doctor/schedules', '排班', params as Record<string, unknown> | undefined);
+}
+
 // 查询问诊单列表。
 export function fetchConsults(): Promise<ConsultRecord[]> {
   return fetchModuleRecords<ConsultRecord>('/consult/consults', '问诊单');

@@ -68,6 +68,7 @@ export const navigationTree: NavigationItem[] = [
     icon: <MedicineBoxOutlined />,
     children: [
       { key: 'doctor-list', label: '医生名录', path: '/doctor' },
+      { key: 'doctor-schedule', label: '排班管理', path: '/doctor/schedule' },
       { key: 'doctor-departments', label: '科室管理', path: '/doctor/departments' },
     ],
   },

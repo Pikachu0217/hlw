@@ -15,6 +15,7 @@ import TenantPackagesPage from '@/pages/system/tenant-packages';
 import NoticesPage from '@/pages/system/notices';
 import SystemLogsPage from '@/pages/system/logs';
 import DoctorPage from '@/pages/doctor';
+import SchedulePage from '@/pages/doctor/schedule';
 import DepartmentsPage from '@/pages/doctor/departments';
 import PatientPage from '@/pages/patient';
 import ConsultPage from '@/pages/consult';
@@ -49,6 +50,7 @@ export const appRouter = createBrowserRouter([
       { path: 'system/logs', element: <SystemLogsPage /> },
       { path: 'gateway/routes', element: <GatewayRoutesPage /> },
       { path: 'doctor', element: <DoctorPage /> },
+      { path: 'doctor/schedule', element: <SchedulePage /> },
       { path: 'doctor/departments', element: <DepartmentsPage /> },
       { path: 'patient', element: <PatientPage /> },
       { path: 'consult', element: <ConsultPage /> },

@@ -13,6 +13,7 @@ import {
 import { MetricCard } from '@/components/MetricCard';
 import PageHero from '@/components/PageHero';
 import DoctorList, { type DoctorRecord } from '@/pages/doctor/components/DoctorList';
+import type { DepartmentRecord } from '@/pages/doctor/departments';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 const DOCTOR_JOB_TITLE_DICT_TYPE = 'doctor_job_title';
@@ -143,9 +144,9 @@ function DoctorPage() {
           values.department
             .map((departmentName: string) => departments.find((department) => department.name === departmentName))
             .filter(Boolean)
-            .map((department) =>
+            .map((department: DepartmentRecord) =>
               bindDoctorDepartment(doctorId, {
-                deptId: department?.deptId ?? department?.id ?? 0,
+                deptId: department.deptId ?? department.id ?? 0,
                 free: false,
                 appointmentFee: TITLE_FEE_MAP[values.title] ?? 0,
               }),
