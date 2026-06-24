@@ -4,9 +4,9 @@ import type { ColumnsType } from 'antd/es/table';
 import { useState } from 'react';
 
 export interface DoctorRecord {
-  id: number;
+  id: string;
   doctorId?: number;
-  userId?: number;
+  userId?: string;
   name: string;
   title: string;
   department: string;

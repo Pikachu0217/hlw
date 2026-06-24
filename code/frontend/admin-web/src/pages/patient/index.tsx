@@ -14,7 +14,7 @@ import { useModuleRecords } from '@/hooks/useModuleRecords';
 
 export interface PatientRecord {
   id: number;
-  userId?: number;
+  userId?: string;
   patientName: string;
   gender: string;
   age: number;
@@ -277,7 +277,7 @@ function PatientPage() {
         <Form form={patientForm} layout="vertical" className="module-form">
           {!editingPatient && (
             <Form.Item name="userId" label="关联账号编号" rules={[{ required: true, message: '请输入关联账号编号' }]}>
-              <InputNumber min={1} className="module-form__number" />
+              <Input placeholder="请输入用户业务编号" />
             </Form.Item>
           )}
           <Form.Item name="patientName" label="患者姓名" rules={[{ required: true, message: '请输入患者姓名' }]}>

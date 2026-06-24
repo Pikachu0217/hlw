@@ -70,12 +70,12 @@ public class DoctorConsultWorkbenchService {
             throw new BizException(401, "当前登录用户无效");
         }
         Long tenantId = TokenPrincipalContext.get().getTenantId();
-        Long userId = TokenPrincipalContext.get().getUserId();
+        String userId = TokenPrincipalContext.get().getBusinessUserId();
         if (tenantId == null || tenantId <= 0L || Boolean.TRUE.equals(TokenPrincipalContext.get().getPlatformRequest())) {
             log.warn("解析当前医生失败，租户上下文无效，tenantId={}", tenantId);
             throw new BizException(403, "医生工作台仅支持业务租户访问");
         }
-        if (userId == null || userId <= 0L) {
+        if (userId == null || userId.isBlank()) {
             log.warn("解析当前医生失败，登录用户编号为空");
             throw new BizException(401, "当前登录用户无效");
         }

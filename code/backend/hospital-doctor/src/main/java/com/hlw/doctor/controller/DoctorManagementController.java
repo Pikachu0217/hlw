@@ -101,11 +101,11 @@ public class DoctorManagementController {
     /**
      * 查询医生详情。
      *
-     * @param id 医生编号
+     * @param id 医生账号业务编号
      * @return 医生详情
      */
     @GetMapping("/doctors/{id}")
-    public R<DoctorVO> doctorDetail(@PathVariable Long id) {
+    public R<DoctorVO> doctorDetail(@PathVariable String id) {
         return R.ok(doctorTenantContextService.getDoctor(id));
     }
 
@@ -124,12 +124,12 @@ public class DoctorManagementController {
     /**
      * 更新医生扩展属性。
      *
-     * @param id 医生账号编号
+     * @param id 医生账号业务编号
      * @param request 医生扩展请求
      * @return 医生展示对象
      */
     @PutMapping("/doctors/{id}")
-    public R<DoctorVO> updateDoctor(@PathVariable Long id, @RequestBody CreateDoctorRequest request) {
+    public R<DoctorVO> updateDoctor(@PathVariable String id, @RequestBody CreateDoctorRequest request) {
         log.info("更新医生扩展属性，userId={}，title={}", id, request.getTitle());
         return R.ok(doctorTenantContextService.updateDoctorExtension(id, request));
     }
@@ -137,12 +137,12 @@ public class DoctorManagementController {
     /**
      * 更新医生状态。
      *
-     * @param id 医生编号
+     * @param id 医生账号业务编号
      * @param request 状态请求
      * @return 医生展示对象
      */
     @PutMapping("/doctors/{id}/status")
-    public R<DoctorVO> updateDoctorStatus(@PathVariable Long id, @Valid @RequestBody UpdateDoctorStatusRequest request) {
+    public R<DoctorVO> updateDoctorStatus(@PathVariable String id, @Valid @RequestBody UpdateDoctorStatusRequest request) {
         log.info("更新医生接诊状态，userId={}，status={}", id, request.getStatus());
         return R.ok(doctorTenantContextService.updateDoctorStatus(id, request));
     }

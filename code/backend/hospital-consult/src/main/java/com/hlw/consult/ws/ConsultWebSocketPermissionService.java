@@ -50,7 +50,7 @@ public class ConsultWebSocketPermissionService {
         if (doctor != null && consult.getDoctorId().equals(doctor.id())) {
             return ConsultParticipantType.DOCTOR;
         }
-        log.warn("问诊 WebSocket 参与人校验失败，consultId={}，userId={}", consultId, principal.getUserId());
+        log.warn("问诊 WebSocket 参与人校验失败，consultId={}，userId={}", consultId, principal.getBusinessUserId());
         throw new BizException(403, "无权连接该问诊");
     }
 
@@ -95,10 +95,10 @@ public class ConsultWebSocketPermissionService {
      */
     private InternalDoctorResp resolveDoctor(TokenPrincipal principal) {
         try {
-            R<InternalDoctorResp> response = doctorFeignClient.findByUser(principal.getTenantId(), principal.getUserId());
+            R<InternalDoctorResp> response = doctorFeignClient.findByUser(principal.getTenantId(), principal.getBusinessUserId());
             return response == null || response.code() != 200 ? null : response.data();
         } catch (RuntimeException exception) {
-            log.warn("问诊 WebSocket 查询医生档案失败，tenantId={}，userId={}", principal.getTenantId(), principal.getUserId());
+            log.warn("问诊 WebSocket 查询医生档案失败，tenantId={}，userId={}", principal.getTenantId(), principal.getBusinessUserId());
             return null;
         }
     }

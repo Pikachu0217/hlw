@@ -27,6 +27,6 @@ public class CreateDoctorRequest {
     private String status;
     /** 排班描述。 */
     private String schedule;
-    /** 关联用户编号（关联 sys_user.id）。 */
-    private Long userId;
+    /** 关联用户编号（关联 sys_user.user_id 字符串）。 */
+    private String userId;
 }

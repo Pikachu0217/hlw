@@ -80,9 +80,9 @@ public class ConsultWebSocketHandshakeInterceptor implements HandshakeIntercepto
             TokenPrincipalContext.clear();
         }
         attributes.put(CONSULT_ID_ATTRIBUTE, consultId);
-        attributes.put(SENDER_ID_ATTRIBUTE, principal.getUserId());
+        attributes.put(SENDER_ID_ATTRIBUTE, principal.getBusinessUserId());
         attributes.put(SENDER_TYPE_ATTRIBUTE, senderType);
-        log.info("问诊 WebSocket 握手通过，consultId={}，senderId={}，senderType={}", consultId, principal.getUserId(), senderType);
+        log.info("问诊 WebSocket 握手通过，consultId={}，senderId={}，senderType={}", consultId, principal.getBusinessUserId(), senderType);
         return true;
     }
 
@@ -131,7 +131,7 @@ public class ConsultWebSocketHandshakeInterceptor implements HandshakeIntercepto
             token = UriComponentsBuilder.fromUri(request.getURI()).build().getQueryParams().getFirst("token");
         }
         TokenPrincipal principal = JwtPrincipalResolver.resolveNullable(token, jwtSecret);
-        if (principal == null || principal.getTenantId() == null || principal.getUserId() == null) {
+        if (principal == null || principal.getTenantId() == null || principal.getBusinessUserId() == null || principal.getBusinessUserId().isBlank()) {
             log.warn("问诊 WebSocket 鉴权失败，令牌无效");
             throw new BizException(401, "登录令牌无效");
         }

@@ -129,7 +129,7 @@ function DoctorPage() {
       >
         <Form form={doctorForm} layout="vertical" className="module-form" initialValues={{ consultStatus: 'ONLINE', status: '接诊中', consultFee: 30 }}>
           <Form.Item name="userId" label="医生账号编号" rules={[{ required: true, message: '请输入医生账号编号' }]}>
-            <InputNumber min={1} disabled className="module-form__number" />
+            <Input disabled />
           </Form.Item>
           <Form.Item name="name" label="线上展示姓名" rules={[{ required: true, message: '请输入线上展示姓名' }]}>
             <Input placeholder="请输入医生姓名" />

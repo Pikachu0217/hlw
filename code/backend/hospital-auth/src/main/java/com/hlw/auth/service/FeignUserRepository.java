@@ -92,7 +92,7 @@ public class FeignUserRepository implements UserRepository {
         }
         UserDetailResp resp = new UserDetailResp();
         resp.setId(data.getId());
-        resp.setUserId(data.getId());
+        resp.setUserId(data.getUserId());
         resp.setBusinessUserId(data.getUserId());
         resp.setTenantId(data.getTenantId());
         resp.setUsername(data.getUsername());

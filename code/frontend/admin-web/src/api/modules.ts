@@ -187,7 +187,7 @@ export interface CreateGatewayRoutePayload {
 }
 
 export interface CreateDoctorPayload {
-  userId?: number;
+  userId?: string;
   name?: string;
   title?: string;
   department?: string;
@@ -320,7 +320,7 @@ export interface PayOrderPayload {
 }
 
 export interface CreatePatientPayload {
-  userId: number;
+  userId: string;
   patientName: string;
   gender: string;
   age: number;

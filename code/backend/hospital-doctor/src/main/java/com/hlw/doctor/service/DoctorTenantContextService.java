@@ -150,26 +150,26 @@ public class DoctorTenantContextService {
         Long tenantId = currentBusinessTenantId("查询医生资源缺少有效租户上下文");
         log.info("查询医生资源列表，tenantId={}", tenantId);
         List<InternalUserResp> doctorUsers = readFeignData(systemUserFeignClient.listByUserType(tenantId, DOCTOR_USER_TYPE), "查询医生账号失败");
-        Map<Long, DocDoctorEntity> extensionMap = docDoctorMapper.selectList(activeDoctorWrapper()).stream()
+        Map<String, DocDoctorEntity> extensionMap = docDoctorMapper.selectList(activeDoctorWrapper()).stream()
             .collect(Collectors.toMap(DocDoctorEntity::getUserId, Function.identity(), (current, next) -> current));
         return doctorUsers.stream()
             .sorted(Comparator.comparing(InternalUserResp::getId))
-            .map(user -> toDoctorVO(user, extensionMap.get(user.getId())))
+            .map(user -> toDoctorVO(user, extensionMap.get(user.getUserId())))
             .toList();
     }
 
     /**
      * 查询医生详情。
      *
-     * @param id 医生编号
+     * @param id 医生账号业务编号
      * @return 医生展示对象
      */
-    public DoctorVO getDoctor(Long id) {
+    public DoctorVO getDoctor(String id) {
         Long tenantId = currentBusinessTenantId("查询医生详情缺少有效租户上下文");
         log.info("查询医生资源详情，tenantId={}，userId={}", tenantId, id);
         InternalUserResp user = readFeignData(systemUserFeignClient.listByUserType(tenantId, DOCTOR_USER_TYPE), "查询医生账号失败")
             .stream()
-            .filter(item -> Objects.equals(item.getId(), id))
+            .filter(item -> Objects.equals(item.getUserId(), id))
             .findFirst()
             .orElseThrow(() -> new BizException(404, "医生账号不存在"));
         return toDoctorVO(user, findDoctorExtensionByUserId(id));
@@ -189,20 +189,20 @@ public class DoctorTenantContextService {
     /**
      * 更新医生扩展属性。
      *
-     * @param userId 医生账号编号
+     * @param userId 医生账号业务编号
      * @param request 医生扩展请求
      * @return 医生展示对象
      */
     @Transactional
-    public DoctorVO updateDoctorExtension(Long userId, CreateDoctorRequest request) {
+    public DoctorVO updateDoctorExtension(String userId, CreateDoctorRequest request) {
         Long tenantId = currentBusinessTenantId("医生模块操作缺少有效租户上下文");
-        if (userId == null || userId <= 0L) {
+        if (userId == null || userId.isBlank()) {
             throw new BizException(400, "医生账号编号不能为空");
         }
         log.info("更新医生扩展属性，tenantId={}，userId={}，title={}", tenantId, userId, request.getTitle());
         InternalUserResp user = readFeignData(systemUserFeignClient.listByUserType(tenantId, DOCTOR_USER_TYPE), "查询医生账号失败")
             .stream()
-            .filter(item -> Objects.equals(item.getId(), userId))
+            .filter(item -> Objects.equals(item.getUserId(), userId))
             .findFirst()
             .orElseThrow(() -> new BizException(404, "医生账号不存在"));
         DocDoctorEntity entity = findDoctorExtensionByUserId(userId);
@@ -225,12 +225,12 @@ public class DoctorTenantContextService {
     /**
      * 更新医生状态。
      *
-     * @param id 医生编号
+     * @param id 医生账号业务编号
      * @param request 状态请求
      * @return 医生展示对象
      */
     @Transactional
-    public DoctorVO updateDoctorStatus(Long id, UpdateDoctorStatusRequest request) {
+    public DoctorVO updateDoctorStatus(String id, UpdateDoctorStatusRequest request) {
         CreateDoctorRequest extensionRequest = new CreateDoctorRequest();
         extensionRequest.setUserId(id);
         extensionRequest.setConsultStatus(request.getStatus());
@@ -275,12 +275,12 @@ public class DoctorTenantContextService {
      * 按租户和登录用户查询内部医生档案。
      *
      * @param tenantId 租户编号
-     * @param userId 登录用户编号
+     * @param userId 登录用户业务编号
      * @return 内部医生档案
      */
-    public InternalDoctorResp getInternalDoctorByUser(Long tenantId, Long userId) {
+    public InternalDoctorResp getInternalDoctorByUser(Long tenantId, String userId) {
         log.info("按登录用户查询内部医生档案，tenantId={}，userId={}", tenantId, userId);
-        if (tenantId == null || tenantId < 0L || userId == null || userId <= 0L) {
+        if (tenantId == null || tenantId < 0L || userId == null || userId.isBlank()) {
             log.warn("查询内部医生档案失败，租户或用户编号无效，tenantId={}，userId={}", tenantId, userId);
             throw new BizException(400, "租户或用户编号无效");
         }
@@ -462,11 +462,11 @@ public class DoctorTenantContextService {
     /**
      * 按账号编号查询医生扩展信息。
      *
-     * @param userId 医生账号编号
+     * @param userId 医生账号业务编号
      * @return 医生扩展信息
      */
-    private DocDoctorEntity findDoctorExtensionByUserId(Long userId) {
-        if (userId == null) {
+    private DocDoctorEntity findDoctorExtensionByUserId(String userId) {
+        if (userId == null || userId.isBlank()) {
             return null;
         }
         return docDoctorMapper.selectOne(new LambdaQueryWrapper<DocDoctorEntity>()
@@ -723,8 +723,8 @@ public class DoctorTenantContextService {
      */
     private DoctorVO toDoctorVO(InternalUserResp user, DocDoctorEntity extension) {
         DoctorVO vo = new DoctorVO();
-        vo.setId(user.getId());
-        vo.setUserId(user.getId());
+        vo.setId(user.getUserId());
+        vo.setUserId(user.getUserId());
         vo.setDoctorId(extension == null ? null : extension.getId());
         vo.setName(extension == null ? user.getRealName() : resolveDoctorName(extension));
         vo.setTitle(extension == null ? "医师" : extension.getTitle());

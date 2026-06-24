@@ -9,12 +9,12 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DoctorVO {
-    /** 医生账号编号。 */
-    private Long id;
+    /** 医生账号业务编号。 */
+    private String id;
     /** 医生扩展编号。 */
     private Long doctorId;
-    /** 医生账号编号。 */
-    private Long userId;
+    /** 医生账号业务编号。 */
+    private String userId;
     /** 医生姓名。 */
     private String name;
     /** 医生职称。 */

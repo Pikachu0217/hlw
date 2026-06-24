@@ -15,9 +15,9 @@ public interface DoctorFeignClient {
      * 按租户和登录用户查询医生档案。
      *
      * @param tenantId 租户编号
-     * @param userId 登录用户编号
+     * @param userId 登录用户业务编号
      * @return 医生档案
      */
     @GetMapping("/internal/doctors/by-user")
-    R<InternalDoctorResp> findByUser(@RequestParam("tenantId") Long tenantId, @RequestParam("userId") Long userId);
+    R<InternalDoctorResp> findByUser(@RequestParam("tenantId") Long tenantId, @RequestParam("userId") String userId);
 }

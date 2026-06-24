@@ -782,7 +782,7 @@ USE hospital_patient;
 CREATE TABLE IF NOT EXISTS pat_patient (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键编号' PRIMARY KEY,
     tenant_id BIGINT NOT NULL COMMENT '租户编号',
-    user_id BIGINT NOT NULL COMMENT '关联用户编号（关联sys_user.id）',
+    user_id VARCHAR(34) NOT NULL COMMENT '关联用户编号（关联sys_user.user_id）',
     name VARCHAR(64) NOT NULL COMMENT '兼容旧表患者姓名',
     patient_name VARCHAR(64) NOT NULL DEFAULT '' COMMENT '患者姓名',
     phone VARCHAR(32) COMMENT '联系电话',
@@ -829,8 +829,8 @@ SET patient_name = COALESCE(NULLIF(patient_name, ''), name),
 
 INSERT INTO pat_patient (id, tenant_id, user_id, name, patient_name, phone, gender, age, risk_level, id_card, birthday, address, last_visit)
 VALUES
-    (1, 100, 2, '赵晓岚', '赵晓岚', '13900001111', '女', 34, '中风险', '110101199201010011', '1992-01-01', '杭州市西湖区', '2026-06-11'),
-    (2, 100, 3, '沈博远', '沈博远', '13900002222', '男', 58, '高风险', '110101196801010022', '1968-01-01', '杭州市滨江区', '2026-06-10')
+    (1, 100, 'U_550e8400e29b41d4a716446655440102', '赵晓岚', '赵晓岚', '13900001111', '女', 34, '中风险', '110101199201010011', '1992-01-01', '杭州市西湖区', '2026-06-11'),
+    (2, 100, 'U_550e8400e29b41d4a716446655440103', '沈博远', '沈博远', '13900002222', '男', 58, '高风险', '110101196801010022', '1968-01-01', '杭州市滨江区', '2026-06-10')
 ON DUPLICATE KEY UPDATE id = id;
 
 INSERT INTO pat_health_record (id, tenant_id, patient_id, title, summary, history, diagnosis, remark)
@@ -877,7 +877,7 @@ UPDATE doc_department SET department_name = name WHERE department_name = '' AND 
 
 CREATE TABLE IF NOT EXISTS doc_doctor (
     id BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键编号' PRIMARY KEY,
-    user_id BIGINT NOT NULL COMMENT '关联用户编号（关联sys_user.id）',
+    user_id VARCHAR(34) NOT NULL COMMENT '关联用户编号（关联sys_user.user_id）',
     tenant_id BIGINT NOT NULL COMMENT '租户编号',
     name VARCHAR(64) NOT NULL COMMENT '医生姓名',
     avatar VARCHAR(512) COMMENT '头像地址',
@@ -968,8 +968,8 @@ ON DUPLICATE KEY UPDATE name = VALUES(name),
 
 INSERT INTO doc_doctor (id, tenant_id, user_id, name, title, specialty, consult_fee, consult_status)
 VALUES
-    (1, 100, 4, '陈知衡', '主任医师', '冠脉慢病管理', 50.00, 1),
-    (2, 100, 5, '顾清和', '副主任医师', '糖尿病营养干预', 30.00, 2)
+    (1, 100, 'U_550e8400e29b41d4a716446655440104', '陈知衡', '主任医师', '冠脉慢病管理', 50.00, 1),
+    (2, 100, 'U_550e8400e29b41d4a716446655440105', '顾清和', '副主任医师', '糖尿病营养干预', 30.00, 2)
 ON DUPLICATE KEY UPDATE user_id = VALUES(user_id),
                                name = VALUES(name),
                                title = VALUES(title),

@@ -19,8 +19,8 @@ public class DocDoctorEntity {
     /** 主键编号。 */
     @TableId(type = IdType.AUTO)
     private Long id;
-    /** 关联用户编号（关联 sys_user.id）。 */
-    private Long userId;
+    /** 关联用户编号（关联 sys_user.user_id 字符串）。 */
+    private String userId;
     /** 租户编号。 */
     private Long tenantId;
     /** 兼容旧表医生姓名。 */

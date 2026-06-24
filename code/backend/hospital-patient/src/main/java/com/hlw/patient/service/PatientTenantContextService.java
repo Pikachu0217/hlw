@@ -28,6 +28,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 /**
  * 患者模块租户上下文服务。
@@ -110,7 +111,7 @@ public class PatientTenantContextService {
      */
     public InternalPatientResp getInternalPatientByUser(Long tenantId, String userId) {
         log.info("按登录用户查询内部患者档案，tenantId={}，userId={}", tenantId, userId);
-        if (tenantId == null || tenantId <= 0L || userId == null || userId <= 0L) {
+        if (tenantId == null || tenantId <= 0L || !StringUtils.hasText(userId)) {
             log.warn("查询内部患者档案失败，租户或用户编号无效，tenantId={}，userId={}", tenantId, userId);
             throw new BizException(400, "租户或用户编号无效");
         }

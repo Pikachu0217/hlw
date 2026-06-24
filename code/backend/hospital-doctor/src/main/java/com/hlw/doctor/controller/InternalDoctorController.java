@@ -32,11 +32,11 @@ public class InternalDoctorController {
      * 按登录用户查询内部医生档案。
      *
      * @param tenantId 租户编号
-     * @param userId 登录用户编号
+     * @param userId 登录用户业务编号
      * @return 内部医生档案
      */
     @GetMapping("/by-user")
-    public R<InternalDoctorResp> byUser(@RequestParam Long tenantId, @RequestParam Long userId) {
+    public R<InternalDoctorResp> byUser(@RequestParam Long tenantId, @RequestParam String userId) {
         log.info("内部查询医生档案，tenantId={}，userId={}", tenantId, userId);
         return R.ok(doctorTenantContextService.getInternalDoctorByUser(tenantId, userId));
     }

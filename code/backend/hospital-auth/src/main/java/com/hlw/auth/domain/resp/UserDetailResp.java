@@ -13,9 +13,9 @@ import java.util.List;
 public class UserDetailResp {
     /** 主键编号。 */
     private Long id;
-    /** 用户编号。 */
-    private Long userId;
     /** 用户业务编号。 */
+    private String userId;
+    /** 兼容字段：用户业务编号。 */
     private String businessUserId;
     /** 租户编号。 */
     private Long tenantId;

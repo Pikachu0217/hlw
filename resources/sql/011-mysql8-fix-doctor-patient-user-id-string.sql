@@ -1,14 +1,14 @@
--- 医生与患者档案关联 sys_user.user_id 迁移脚本。
--- 执行方式示例：mysql -u root -p < resources/sql/008-mysql8-use-sys-user-id-for-doctor-patient.sql
--- 说明：将 doc_doctor.user_id、pat_patient.user_id 统一为 sys_user.user_id 字符串；若旧值为 sys_user.id 数字主键，会自动映射为对应业务编号。
+-- 修复医生与患者档案用户关联字段为 sys_user.user_id 字符串。
+-- 执行方式示例：mysql -u root -p < resources/sql/011-mysql8-fix-doctor-patient-user-id-string.sql
+-- 说明：用于已执行过旧版 008 脚本的数据库，将 doc_doctor.user_id、pat_patient.user_id 从数字主键值恢复为用户业务编号。
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-DROP PROCEDURE IF EXISTS migrate_doctor_patient_business_user_id;
+DROP PROCEDURE IF EXISTS fix_doctor_patient_business_user_id;
 
 DELIMITER $$
-CREATE PROCEDURE migrate_doctor_patient_business_user_id()
+CREATE PROCEDURE fix_doctor_patient_business_user_id()
 BEGIN
     IF EXISTS (
         SELECT 1
@@ -76,8 +76,8 @@ BEGIN
 END$$
 DELIMITER ;
 
-CALL migrate_doctor_patient_business_user_id();
+CALL fix_doctor_patient_business_user_id();
 
-DROP PROCEDURE IF EXISTS migrate_doctor_patient_business_user_id;
+DROP PROCEDURE IF EXISTS fix_doctor_patient_business_user_id;
 
 SET FOREIGN_KEY_CHECKS = 1;
