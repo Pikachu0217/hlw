@@ -107,8 +107,8 @@ function DepartmentsPage() {
           <Form.Item name="deptId" label="系统科室编号" rules={[{ required: true, message: '请输入系统科室编号' }]}>
             <InputNumber min={1} disabled className="module-form__number" />
           </Form.Item>
-          <Form.Item name="name" label="线上展示名称" rules={[{ required: true, message: '请输入线上展示名称' }]}>
-            <Input placeholder="请输入科室名称" />
+          <Form.Item name="name" label="科室名称" rules={[{ required: true, message: '请输入科室名称' }]}>
+            <Input disabled />
           </Form.Item>
           <Form.Item name="queue" label="候诊展示">
             <Input placeholder="例如：当前等候 0 人" />

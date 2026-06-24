@@ -200,11 +200,29 @@ export interface CreateDoctorPayload {
 
 export interface CreateSchedulePayload {
   doctorId: number;
+  deptId: number;
   slot: string;
   scheduleDate?: string;
   timeSlot?: string;
   totalNumber?: number;
   remainNumber?: number;
+}
+
+export interface DoctorDepartmentBindingRecord {
+  id: number;
+  doctorId: number;
+  doctorName: string;
+  deptId: number;
+  departmentName: string;
+  label: string;
+  free?: boolean;
+  appointmentFee?: number;
+}
+
+export interface BindDoctorDepartmentPayload {
+  deptId: number;
+  free?: boolean;
+  appointmentFee?: number;
 }
 
 export interface CreateDrugPayload {
@@ -781,16 +799,16 @@ export async function updateDepartmentExtension(id: string | number, payload: Cr
 }
 
 // 创建医生。
-export async function createDoctor(payload: CreateDoctorPayload): Promise<unknown> {
+export async function createDoctor(payload: CreateDoctorPayload): Promise<DoctorRecord> {
   console.info('[admin-module] 纳入医生资源', payload);
-  const response = await apiClient.post<ApiResult<unknown>>('/doctor/doctors', payload);
+  const response = await apiClient.post<ApiResult<DoctorRecord>>('/doctor/doctors', payload);
   return response.data.data;
 }
 
 // 更新医生扩展属性。
-export async function updateDoctorExtension(id: string | number, payload: CreateDoctorPayload): Promise<unknown> {
+export async function updateDoctorExtension(id: string | number, payload: CreateDoctorPayload): Promise<DoctorRecord> {
   console.info('[admin-module] 更新医生扩展属性', id, payload);
-  const response = await apiClient.put<ApiResult<unknown>>(`/doctor/doctors/${id}`, payload);
+  const response = await apiClient.put<ApiResult<DoctorRecord>>(`/doctor/doctors/${id}`, payload);
   return response.data.data;
 }
 
@@ -798,6 +816,18 @@ export async function updateDoctorExtension(id: string | number, payload: Create
 export async function updateDoctorStatus(id: string | number, status: string): Promise<unknown> {
   console.info('[admin-module] 更新医生状态', id, status);
   const response = await apiClient.put<ApiResult<unknown>>(`/doctor/doctors/${id}/status`, { status });
+  return response.data.data;
+}
+
+// 查询医生科室绑定列表。
+export function fetchDoctorDepartmentBindings(): Promise<DoctorDepartmentBindingRecord[]> {
+  return fetchModuleRecords<DoctorDepartmentBindingRecord>('/doctor/doctor-department-bindings', '医生科室绑定');
+}
+
+// 绑定医生科室。
+export async function bindDoctorDepartment(id: string | number, payload: BindDoctorDepartmentPayload): Promise<DoctorDepartmentBindingRecord> {
+  console.info('[admin-module] 绑定医生科室', id, payload);
+  const response = await apiClient.post<ApiResult<DoctorDepartmentBindingRecord>>(`/doctor/doctors/${id}/departments`, payload);
   return response.data.data;
 }
 
