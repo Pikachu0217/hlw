@@ -17,6 +17,7 @@ import { AppointmentConfirm } from "./AppointmentConfirm";
 export function AppointmentConfirmPage() {
   const [searchParams] = useSearchParams();
   const doctorId = searchParams.get("doctorId") ?? "";
+  const source = searchParams.get("source") ?? "";
   const [doctor, setDoctor] = useState<PatientDoctor | null>(null);
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
@@ -58,6 +59,7 @@ export function AppointmentConfirmPage() {
         schedules={schedules}
         numberSources={numberSources}
         lockedSource={lockedSource}
+        source={source}
         onLockNumberSource={handleLockNumberSource}
       />
     </SectionCard>

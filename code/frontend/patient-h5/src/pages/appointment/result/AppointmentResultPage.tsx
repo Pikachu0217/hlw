@@ -1,6 +1,6 @@
 import { Button, Result, Space, Toast } from "antd-mobile";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { checkInAppointment, payAppointment } from "../../../app/api";
+import { checkInAppointment, createConsultFromAppointment, payAppointment } from "../../../app/api";
 
 export function AppointmentResultPage() {
   const navigate = useNavigate();
@@ -8,6 +8,7 @@ export function AppointmentResultPage() {
   const appointmentNo = searchParams.get("appointmentNo") ?? "";
   const status = searchParams.get("status") ?? "";
   const appointmentId = Number(searchParams.get("appointmentId") ?? 0);
+  const source = searchParams.get("source") ?? "";
 
   async function handlePay(): Promise<void> {
     if (!appointmentId) {
@@ -18,6 +19,15 @@ export function AppointmentResultPage() {
     try {
       await payAppointment(appointmentId);
       Toast.show("预约单已支付");
+
+      // 如果是图文问诊入口，支付后自动创建问诊单并跳转到聊天
+      if (source === "consult") {
+        const consult = await createConsultFromAppointment(appointmentId);
+        navigate(`/consult/chat?consultId=${consult.id}`, { replace: true });
+        return;
+      }
+
+      navigate(`/appointment/result?appointmentNo=${appointmentNo}&status=PAID&appointmentId=${appointmentId}`, { replace: true });
     } catch {
       Toast.show("预约支付失败");
     }

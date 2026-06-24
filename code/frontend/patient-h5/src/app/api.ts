@@ -128,7 +128,12 @@ export interface CreatedConsult {
   status: string;
   patientName?: string;
   doctorName?: string;
+  doctorId?: number;
   channel?: string;
+  payStatus?: string;
+  appointmentId?: number;
+  feeAmount?: string;
+  remainingSeconds?: number;
   updatedAt?: string;
 }
 
@@ -443,6 +448,13 @@ export async function completeConsult(consultId: number): Promise<CreatedConsult
 export async function extendConsult(consultId: number): Promise<CreatedConsult> {
   console.info("[consult] 延长问诊", consultId);
   const response = await http.post<ApiResult<CreatedConsult>>(`/consult/consults/${consultId}/extend`);
+  return response.data.data;
+}
+
+/** 从已支付预约单创建问诊（幂等：已有关联问诊则直接返回）。 */
+export async function createConsultFromAppointment(appointmentId: number): Promise<CreatedConsult> {
+  console.info("[consult] 从预约单创建问诊", appointmentId);
+  const response = await http.post<ApiResult<CreatedConsult>>(`/consult/consults/from-appointment/${appointmentId}`);
   return response.data.data;
 }
 

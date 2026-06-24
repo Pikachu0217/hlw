@@ -15,6 +15,7 @@ type AppointmentConfirmProps = {
   schedules: ScheduleItem[];
   numberSources: NumberSourceItem[];
   lockedSource: NumberSourceItem | null;
+  source?: string;
   onLockNumberSource: (scheduleId: number) => Promise<void>;
 };
 
@@ -24,6 +25,7 @@ export function AppointmentConfirm({
   schedules,
   numberSources,
   lockedSource,
+  source = "",
   onLockNumberSource
 }: AppointmentConfirmProps) {
   const navigate = useNavigate();
@@ -71,9 +73,10 @@ export function AppointmentConfirm({
         scheduleId: selectedSchedule.id,
         doctorName: doctor.name,
         timeSlot: selectedSchedule.timeSlot || selectedSchedule.slot || doctor.schedule,
-        feeAmount: doctor.consultFee
+        feeAmount: doctor.consultFee,
+        source: source || "PATIENT_H5"
       });
-      navigate(`/appointment/result?appointmentNo=${appointment.appointmentNo}&status=${appointment.status}&appointmentId=${appointment.id}`);
+      navigate(`/appointment/result?appointmentNo=${appointment.appointmentNo}&status=${appointment.status}&appointmentId=${appointment.id}&source=${source}`);
     } catch {
       Toast.show("预约提交失败，请稍后重试");
     }

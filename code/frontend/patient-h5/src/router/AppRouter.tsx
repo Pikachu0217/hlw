@@ -6,7 +6,7 @@ import { AppointmentConfirmPage } from "../pages/appointment/confirm/Appointment
 import { AppointmentListPage } from "../pages/appointment/list/AppointmentListPage";
 import { AppointmentResultPage } from "../pages/appointment/result/AppointmentResultPage";
 import { ConsultChatPage } from "../pages/consult/chat/ConsultChatPage";
-import { ConsultCreatePage } from "../pages/consult/create/ConsultCreatePage";
+import { ConsultListPage } from "../pages/consult/list/ConsultListPage";
 import { DepartmentPage } from "../pages/department/DepartmentPage";
 import { DoctorDetailPage } from "../pages/doctor/detail/DoctorDetailPage";
 import { DoctorListPage } from "../pages/doctor/list/DoctorListPage";
@@ -101,7 +101,7 @@ export function AppRouter() {
         <Route path="appointment/confirm" element={<AppointmentConfirmPage />} />
         <Route path="appointment/list" element={<AppointmentListPage />} />
         <Route path="appointment/result" element={<AppointmentResultPage />} />
-        <Route path="consult/create" element={<ConsultCreatePage />} />
+        <Route path="consult/list" element={<ConsultListPage />} />
         <Route path="consult/chat" element={<ConsultChatPage />} />
         <Route path="prescription/list" element={<PrescriptionListPage />} />
         <Route path="order/list" element={<OrderListPage />} />

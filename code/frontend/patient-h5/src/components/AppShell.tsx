@@ -5,7 +5,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 const tabs = [
   { key: "/", title: "首页", icon: <AppOutline /> },
   { key: "/appointment/list", title: "挂号", icon: <CalendarOutline /> },
-  { key: "/consult/chat", title: "问诊", icon: <MessageOutline /> },
+  { key: "/consult/list", title: "问诊", icon: <MessageOutline /> },
   { key: "/order/list", title: "订单", icon: <UnorderedListOutline /> },
   { key: "/profile", title: "我的", icon: <UserOutline /> }
 ];
