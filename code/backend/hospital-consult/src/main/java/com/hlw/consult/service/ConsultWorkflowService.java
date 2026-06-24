@@ -39,13 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 public class ConsultWorkflowService {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter CONSULT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final long DEFAULT_PATIENT_ID = 1L;
-    private static final long DEFAULT_DOCTOR_ID = 1L;
-    private static final int DEFAULT_DURATION_LIMIT = 30;
+    private static final long DEFAULT_DURATION_LIMIT = 30;
     private static final int EXTEND_MINUTES = 15;
     private static final String DEFAULT_CONSULT_TYPE = "text_and_image_consultation";
-    private static final String DEFAULT_PATIENT_NAME = "赵晓岚";
-    private static final String DEFAULT_DOCTOR_NAME = "陈知衡";
 
     /** 问诊单数据访问组件。 */
     private final ConConsultMapper conConsultMapper;
@@ -80,14 +76,14 @@ public class ConsultWorkflowService {
     public ConsultVO createConsult(CreateConsultRequest request) {
         ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
         InternalPatientResp currentPatient = request.getPatientId() == null ? resolveCurrentPatient() : null;
-        Long patientId = defaultLong(request.getPatientId(), currentPatient == null ? DEFAULT_PATIENT_ID : currentPatient.id());
-        Long doctorId = defaultLong(request.getDoctorId(), DEFAULT_DOCTOR_ID);
+        Long patientId = defaultLong(request.getPatientId(), 0);
+        Long doctorId = defaultLong(request.getDoctorId(), 0);
         String consultType = defaultIfBlank(request.getType(), DEFAULT_CONSULT_TYPE);
-        String patientName = defaultIfBlank(request.getPatientName(), currentPatient == null ? DEFAULT_PATIENT_NAME : currentPatient.patientName());
-        String doctorName = defaultIfBlank(request.getDoctorName(), DEFAULT_DOCTOR_NAME);
+        String patientName = defaultIfBlank(request.getPatientName(), currentPatient == null ? "" : currentPatient.patientName());
+        String doctorName = defaultIfBlank(request.getDoctorName(), "");
         String channel = defaultIfBlank(request.getChannel(), channelName(consultType));
         String chiefComplaint = defaultIfBlank(request.getChiefComplaint(), "");
-        BigDecimal feeAmount = defaultDecimal(request.getFeeAmount(), new BigDecimal("39.90"));
+        BigDecimal feeAmount = defaultDecimal(request.getFeeAmount(), BigDecimal.ZERO);
         log.info("创建问诊单，patientId={}，doctorId={}，consultType={}", patientId, doctorId, consultType);
 
         ConConsultEntity entity = new ConConsultEntity();

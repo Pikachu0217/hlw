@@ -41,14 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class AppointmentWorkflowService {
-    private static final Long DEFAULT_PATIENT_ID = 1L;
-    private static final Long DEFAULT_DOCTOR_ID = 1L;
-    private static final Long DEFAULT_DEPARTMENT_ID = 10L;
-    private static final Long DEFAULT_SCHEDULE_ID = 1L;
-    private static final String DEFAULT_PATIENT_NAME = "赵晓岚";
-    private static final String DEFAULT_DOCTOR_NAME = "陈知衡";
-    private static final String DEFAULT_CLINIC_TIME = "2026-06-13 上午";
-    private static final String DEFAULT_SOURCE = "小程序";
+    private static final String DEFAULT_SOURCE = "PATIENT_H5";
     private static final String DEFAULT_APPOINTMENT_TYPE = "普通门诊";
     private static final String STATUS_PENDING_PAY = AppointmentStatus.PENDING_PAY.dbValue();
     private static final String STATUS_PAID = AppointmentStatus.PAID.dbValue();
@@ -111,8 +104,14 @@ public class AppointmentWorkflowService {
     @Transactional
     public AppointmentVO createAppointment(CreateAppointmentRequest request) {
         ensureBusinessTenantContext("预约模块操作缺少有效租户上下文");
-        Long scheduleId = defaultLong(request.getScheduleId(), DEFAULT_SCHEDULE_ID);
-        Long patientId = defaultLong(request.getPatientId(), DEFAULT_PATIENT_ID);
+        Long scheduleId = request.getScheduleId();
+        if (scheduleId == null || scheduleId <= 0) {
+            throw new BizException(400, "排班编号不能为空");
+        }
+        Long patientId = request.getPatientId();
+        if (patientId == null || patientId <= 0) {
+            throw new BizException(400, "患者编号不能为空");
+        }
         log.info("创建预约单，patientId={}，doctorId={}，scheduleId={}",
             request.getPatientId(), request.getDoctorId(), scheduleId);
 
@@ -129,15 +128,15 @@ public class AppointmentWorkflowService {
         NumberSourceVO numberSource = lockNumberSource(scheduleId);
         AptAppointmentEntity entity = new AptAppointmentEntity();
         entity.setPatientId(patientId);
-        entity.setDoctorId(defaultLong(request.getDoctorId(), DEFAULT_DOCTOR_ID));
-        entity.setDepartmentId(defaultLong(request.getDepartmentId(), DEFAULT_DEPARTMENT_ID));
+        entity.setDoctorId(request.getDoctorId());
+        entity.setDepartmentId(request.getDepartmentId());
         entity.setScheduleId(scheduleId);
         entity.setNumberSourceId(numberSource.getId());
         entity.setAppointmentType(defaultIfBlank(request.getAppointmentType(), DEFAULT_APPOINTMENT_TYPE));
         entity.setAppointmentNo("");
-        entity.setPatientName(defaultIfBlank(request.getPatientName(), DEFAULT_PATIENT_NAME));
-        entity.setDoctorName(defaultIfBlank(request.getDoctorName(), DEFAULT_DOCTOR_NAME));
-        entity.setClinicTime(defaultIfBlank(request.getTimeSlot(), DEFAULT_CLINIC_TIME));
+        entity.setPatientName(defaultIfBlank(request.getPatientName(), ""));
+        entity.setDoctorName(defaultIfBlank(request.getDoctorName(), ""));
+        entity.setClinicTime(defaultIfBlank(request.getTimeSlot(), ""));
         entity.setSource(defaultIfBlank(request.getSource(), DEFAULT_SOURCE));
         entity.setStatus(AppointmentStatus.PENDING_PAY.dbValue());
         entity.setFeeAmount(defaultDecimal(request.getFeeAmount(), new BigDecimal("30")));

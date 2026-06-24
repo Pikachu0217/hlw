@@ -38,12 +38,12 @@ import lombok.extern.slf4j.Slf4j;
 public class PrescriptionWorkflowService {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter PRESCRIPTION_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final long DEFAULT_CONSULT_ID = 1L;
-    private static final long DEFAULT_PATIENT_ID = 1L;
-    private static final long DEFAULT_DOCTOR_ID = 1L;
-    private static final long DEFAULT_PHARMACIST_ID = 0L;
-    private static final String DEFAULT_PATIENT_NAME = "赵晓岚";
-    private static final String DEFAULT_DOCTOR_NAME = "陈知衡";
+    private static final long DEFAULT_CONSULT_ID = 0;
+    private static final long DEFAULT_PATIENT_ID = 0;
+    private static final long DEFAULT_DOCTOR_ID = 0;
+    private static final String DEFAULT_PATIENT_NAME = "";
+    private static final String DEFAULT_DOCTOR_NAME = "";
+    private static final long DEFAULT_PHARMACIST_ID = 0;
     private static final String STATUS_DRAFT = "草稿";
     private static final String STATUS_SUBMITTED = "待审方";
     private static final String STATUS_AUDITED = "待发药";
@@ -197,7 +197,7 @@ public class PrescriptionWorkflowService {
      */
     private void insertItems(Long prescriptionId, List<Long> drugIds) {
         if (drugIds.isEmpty()) {
-            insertItem(prescriptionId, 1L, "接口测试药品");
+            log.warn("处方无药品明细，prescriptionId={}", prescriptionId);
             return;
         }
         for (Long drugId : drugIds) {

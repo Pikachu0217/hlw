@@ -35,10 +35,7 @@ import lombok.extern.slf4j.Slf4j;
 public class OrderWorkflowService {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter ORDER_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
-    private static final long DEFAULT_PATIENT_ID = 1L;
     private static final String DEFAULT_BIZ_TYPE = "APPOINTMENT";
-    private static final String DEFAULT_PATIENT_NAME = "张小满";
-    private static final String DEFAULT_PAY_METHOD = "MOCK_PAY";
     private static final String STATUS_PENDING_PAY = "待支付";
     private static final String STATUS_PAID = "已支付";
 
@@ -73,9 +70,9 @@ public class OrderWorkflowService {
         String bizType = defaultIfBlank(request.getBizType(), defaultIfBlank(request.getBusinessType(), DEFAULT_BIZ_TYPE));
         String businessType = businessTypeName(bizType);
         Long bizId = defaultLong(request.getBizId(), 0L);
-        Long patientId = defaultLong(request.getPatientId(), DEFAULT_PATIENT_ID);
-        String patientName = defaultIfBlank(request.getPatientName(), DEFAULT_PATIENT_NAME);
-        BigDecimal amount = defaultDecimal(request.getAmount(), new BigDecimal("25.00"));
+        Long patientId = defaultLong(request.getPatientId(), 0L);
+        String patientName = defaultIfBlank(request.getPatientName(), "");
+        BigDecimal amount = defaultDecimal(request.getAmount(), BigDecimal.ZERO);
         String createdAt = defaultIfBlank(request.getCreatedAt(), currentDisplayTime());
         log.info("创建订单，bizType={}，bizId={}，patientId={}，amount={}", bizType, bizId, patientId, amount);
 
@@ -106,7 +103,7 @@ public class OrderWorkflowService {
     @Transactional
     public OrderVO pay(Long id, PayOrderRequest request) {
         ensureBusinessTenantContext("订单模块操作缺少有效租户上下文");
-        String payMethod = request == null ? DEFAULT_PAY_METHOD : defaultIfBlank(request.getPayMethod(), DEFAULT_PAY_METHOD);
+        String payMethod = request == null ? "" : defaultIfBlank(request.getPayMethod(), "");
         log.info("订单支付，orderId={}，payMethod={}", id, payMethod);
         OrdOrderEntity order = requireActiveOrder(id);
         if (STATUS_PAID.equals(order.getPayStatus())) {
