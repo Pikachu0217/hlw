@@ -18,4 +18,6 @@ public class SysDictTypeEntity extends BaseEntity {
     private String dictType;
     /** 备注。 */
     private String remark;
+    /** 是否默认数据（0=系统默认不可删除，1=普通数据可删除）。 */
+    private Integer isDefault;
 }

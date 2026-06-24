@@ -30,6 +30,7 @@ public class DictConverter {
         vo.setDictValue(entity.getDictValue());
         vo.setDictSort(DefaultValueUtils.defaultIfNull(entity.getDictSort(), 0));
         vo.setRemark(entity.getRemark());
+        vo.setIsDefault(entity.getIsDefault());
         return vo;
     }
 }

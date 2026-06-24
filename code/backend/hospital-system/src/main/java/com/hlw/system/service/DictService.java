@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
 import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.domain.req.CreateDictReq;
 import com.hlw.system.domain.resp.DictResp;
 import com.hlw.system.entity.SysDictDataEntity;
@@ -13,6 +14,7 @@ import com.hlw.system.mapper.SysDictDataMapper;
 import com.hlw.system.mapper.SysDictTypeMapper;
 import com.hlw.system.service.converter.DictConverter;
 import com.hlw.system.service.support.MybatisTenantHelpers;
+import com.hlw.system.service.support.SystemDefaultDataGuard;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -79,6 +81,7 @@ public class DictService {
         entity.setDictValue(request.getDictValue());
         entity.setDictSort(DefaultValueUtils.defaultIfNull(request.getDictSort(), 0));
         entity.setRemark(request.getRemark());
+        entity.setIsDefault(SystemTenantConstants.NORMAL_DATA_FLAG);
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysDictDataMapper.insert(entity);
@@ -109,8 +112,9 @@ public class DictService {
     @Transactional(rollbackFor = Exception.class)
     public DictResp updateDict(Long id, CreateDictReq request) {
         log.info("更新字典数据，id={}，dictType={}，dictValue={}", id, request.getDictType(), request.getDictValue());
-        SysDictTypeEntity typeEntity = ensureDictType(request);
         SysDictDataEntity entity = requireDictData(id);
+        SystemDefaultDataGuard.ensureCanUpdate(entity.getIsDefault(), "字典数据");
+        SysDictTypeEntity typeEntity = ensureDictType(request);
         entity.setDictType(request.getDictType());
         entity.setDictLabel(request.getDictLabel());
         entity.setDictValue(request.getDictValue());
@@ -129,7 +133,8 @@ public class DictService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteDict(Long id) {
         log.info("删除字典数据，id={}", id);
-        requireDictData(id);
+        SysDictDataEntity entity = requireDictData(id);
+        SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "字典数据");
         sysDictDataMapper.deleteById(id);
     }
 
@@ -143,6 +148,7 @@ public class DictService {
         SysDictTypeEntity existed = findDictType(request.getDictType());
         if (existed != null) {
             if (StringUtils.hasText(request.getDictName()) && !request.getDictName().equals(existed.getDictName())) {
+                SystemDefaultDataGuard.ensureCanUpdate(existed.getIsDefault(), "字典类型");
                 existed.setDictName(request.getDictName());
                 existed.setUpdateTime(LocalDateTime.now());
                 sysDictTypeMapper.updateById(existed);
@@ -153,6 +159,7 @@ public class DictService {
         entity.setDictType(request.getDictType());
         entity.setDictName(DefaultValueUtils.defaultIfBlank(request.getDictName(), request.getDictType()));
         entity.setRemark(request.getRemark());
+        entity.setIsDefault(SystemTenantConstants.NORMAL_DATA_FLAG);
         entity.setCreateTime(LocalDateTime.now());
         entity.setUpdateTime(LocalDateTime.now());
         sysDictTypeMapper.insert(entity);

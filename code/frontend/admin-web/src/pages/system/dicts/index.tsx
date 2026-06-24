@@ -38,6 +38,8 @@ export interface DictRecord {
   dictSort?: number;
   /** 字典备注。 */
   remark?: string;
+  /** 是否默认数据（0=系统默认不可删除，1=普通数据可删除）。 */
+  isDefault?: number;
 }
 
 interface DictTypeGroup {
@@ -49,6 +51,8 @@ interface DictTypeGroup {
   dictName: string;
   /** 字典备注。 */
   remark?: string;
+  /** 是否默认数据（0=系统默认不可删除，1=普通数据可删除）。 */
+  isDefault?: number;
   /** 字典项数量。 */
   count: number;
 }
@@ -98,6 +102,9 @@ function DictsPage() {
         if (!existed.remark && record.remark) {
           existed.remark = record.remark;
         }
+        if (record.isDefault === 0) {
+          existed.isDefault = 0;
+        }
         return;
       }
 
@@ -106,6 +113,7 @@ function DictsPage() {
         dictType: record.dictType,
         dictName: record.dictName || record.dictType,
         remark: record.remark,
+        isDefault: record.isDefault,
         count: 1,
       });
     });
@@ -166,6 +174,10 @@ function DictsPage() {
 
   /** 打开编辑弹窗并回填当前字典项。 */
   function handleOpenEdit(record: DictRecord): void {
+    if (record.isDefault === 0) {
+      message.info('系统默认字典数据不允许修改');
+      return;
+    }
     setEditingRecord(record);
     form.setFieldsValue(record);
     setOpen(true);
@@ -176,6 +188,10 @@ function DictsPage() {
     const targetGroup = group ?? selectedTypeGroup;
     const targetRecord = records.find((record) => record.id === targetGroup?.firstRecordId);
 
+    if (targetGroup?.isDefault === 0) {
+      message.info('系统默认字典不允许修改');
+      return;
+    }
     if (!targetRecord) {
       message.info('请选择要修改的字典');
       return;
@@ -211,6 +227,10 @@ function DictsPage() {
 
   /** 删除指定字典项。 */
   function handleDelete(record: DictRecord): void {
+    if (record.isDefault === 0) {
+      message.info('系统默认字典数据不允许删除');
+      return;
+    }
     Modal.confirm({
       title: '确认删除',
       content: `确定要删除字典项"${record.dictLabel}"吗？`,
@@ -234,6 +254,10 @@ function DictsPage() {
     const targetGroup = group ?? selectedTypeGroup;
     const targetRecords = records.filter((record) => record.dictType === targetGroup?.dictType);
 
+    if (targetGroup?.isDefault === 0) {
+      message.info('系统默认字典不允许删除');
+      return;
+    }
     if (!targetGroup || targetRecords.length === 0) {
       message.info('请选择要删除的字典');
       return;
@@ -328,19 +352,22 @@ function DictsPage() {
         title: '操作',
         key: 'actions',
         width: 210,
-        render: (_: unknown, group: DictTypeGroup) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenTypeEdit(group)}>
-              修改
-            </Button>
-            <Button type="link" size="small" onClick={() => handleOpenDataList(group)}>
-              列表
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDeleteGroup(group)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_: unknown, group: DictTypeGroup) => {
+          const isDefaultDict = group.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenTypeEdit(group)} disabled={isDefaultDict}>
+                修改
+              </Button>
+              <Button type="link" size="small" onClick={() => handleOpenDataList(group)}>
+                列表
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDeleteGroup(group)} disabled={isDefaultDict}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [records, selectedTypeGroup],
@@ -363,16 +390,19 @@ function DictsPage() {
         title: '操作',
         key: 'actions',
         width: 150,
-        render: (_: unknown, record: DictRecord) => (
-          <Space size="small">
-            <Button type="link" size="small" onClick={() => handleOpenEdit(record)}>
-              修改
-            </Button>
-            <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
-              删除
-            </Button>
-          </Space>
-        ),
+        render: (_: unknown, record: DictRecord) => {
+          const isDefaultDictData = record.isDefault === 0;
+          return (
+            <Space size="small">
+              <Button type="link" size="small" onClick={() => handleOpenEdit(record)} disabled={isDefaultDictData}>
+                修改
+              </Button>
+              <Button type="link" size="small" danger onClick={() => handleDelete(record)} disabled={isDefaultDictData}>
+                删除
+              </Button>
+            </Space>
+          );
+        },
       },
     ],
     [],
@@ -433,10 +463,10 @@ function DictsPage() {
                 <Button type="primary" ghost icon={<PlusOutlined />} onClick={() => handleOpenCreate()}>
                   新增
                 </Button>
-                <Button icon={<EditOutlined />} disabled={!selectedTypeGroup} onClick={() => handleOpenTypeEdit()}>
+                <Button icon={<EditOutlined />} disabled={!selectedTypeGroup || selectedTypeGroup.isDefault === 0} onClick={() => handleOpenTypeEdit()}>
                   修改
                 </Button>
-                <Button danger icon={<DeleteOutlined />} disabled={!selectedTypeGroup} onClick={() => handleDeleteGroup()}>
+                <Button danger icon={<DeleteOutlined />} disabled={!selectedTypeGroup || selectedTypeGroup.isDefault === 0} onClick={() => handleDeleteGroup()}>
                   删除
                 </Button>
                 <Button icon={<DownloadOutlined />} onClick={handleExportTypes}>
@@ -514,10 +544,10 @@ function DictsPage() {
                 <Button type="primary" ghost icon={<PlusOutlined />} onClick={() => handleOpenCreate(activeGroup)}>
                   新增
                 </Button>
-                <Button icon={<EditOutlined />} disabled={!selectedRecord} onClick={() => selectedRecord && handleOpenEdit(selectedRecord)}>
+                <Button icon={<EditOutlined />} disabled={!selectedRecord || selectedRecord.isDefault === 0} onClick={() => selectedRecord && handleOpenEdit(selectedRecord)}>
                   修改
                 </Button>
-                <Button danger icon={<DeleteOutlined />} disabled={!selectedRecord} onClick={() => selectedRecord && handleDelete(selectedRecord)}>
+                <Button danger icon={<DeleteOutlined />} disabled={!selectedRecord || selectedRecord.isDefault === 0} onClick={() => selectedRecord && handleDelete(selectedRecord)}>
                   删除
                 </Button>
                 <Button icon={<DownloadOutlined />} onClick={handleExportData}>
