@@ -70,6 +70,8 @@ public class DoctorTenantContextService {
     private final SystemUserFeignClient systemUserFeignClient;
     /** 系统部门内部客户端。 */
     private final SystemDeptFeignClient systemDeptFeignClient;
+    /** 挂号费策略服务。 */
+    private final AppointmentFeePolicyService appointmentFeePolicyService;
 
     /**
      * 查询科室列表。
@@ -155,6 +157,27 @@ public class DoctorTenantContextService {
         return doctorUsers.stream()
             .sorted(Comparator.comparing(InternalUserResp::getId))
             .map(user -> toDoctorVO(user, extensionMap.get(user.getUserId())))
+            .toList();
+    }
+
+    /**
+     * 查询医生科室绑定列表。
+     *
+     * @return 医生科室绑定展示列表
+     */
+    public List<DoctorDepartmentBindingVO> listDoctorDepartmentBindings() {
+        Long tenantId = currentBusinessTenantId("查询医生科室绑定缺少有效租户上下文");
+        log.info("查询医生科室绑定列表，tenantId={}", tenantId);
+        Map<Long, String> doctorNameMap = docDoctorMapper.selectList(activeDoctorWrapper())
+            .stream()
+            .collect(Collectors.toMap(DocDoctorEntity::getId, this::resolveDoctorName, (current, next) -> current));
+        Map<Long, String> departmentNameMap = docDepartmentMapper.selectList(activeDepartmentWrapper())
+            .stream()
+            .collect(Collectors.toMap(this::resolveDeptId, entity -> defaultIfBlank(entity.getDepartmentName(), entity.getName()), (current, next) -> current));
+        return docDoctorDepartmentMapper.selectList(activeDoctorDepartmentWrapper())
+            .stream()
+            .sorted(Comparator.comparing(DocDoctorDepartmentEntity::getDoctorId).thenComparing(DocDoctorDepartmentEntity::getDeptId))
+            .map(entity -> toDoctorDepartmentBindingVO(entity, doctorNameMap.get(entity.getDoctorId()), departmentNameMap.get(entity.getDeptId())))
             .toList();
     }
 
@@ -247,16 +270,17 @@ public class DoctorTenantContextService {
      */
     @Transactional
     public DoctorDepartmentBindingVO bindDoctorDepartment(Long doctorId, BindDoctorDepartmentRequest request) {
-        ensureBusinessTenantContext("医生模块操作缺少有效租户上下文");
-        log.info("绑定医生科室，doctorId={}，deptId={}", doctorId, request.getDeptId());
+        Long tenantId = currentBusinessTenantId("医生模块操作缺少有效租户上下文");
+        log.info("绑定医生科室，tenantId={}，doctorId={}，deptId={}", tenantId, doctorId, request.getDeptId());
         requireActiveDoctor(doctorId);
-        requireActiveDepartment(request.getDeptId());
+        ensureDepartmentExtension(request.getDeptId(), tenantId);
         DocDoctorDepartmentEntity relation = docDoctorDepartmentMapper.selectOne(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
             .eq(DocDoctorDepartmentEntity::getDoctorId, doctorId)
             .eq(DocDoctorDepartmentEntity::getDeptId, request.getDeptId())
             .last("limit 1"));
         if (relation == null) {
             relation = new DocDoctorDepartmentEntity();
+            relation.setTenantId(tenantId);
             relation.setDoctorId(doctorId);
             relation.setDeptId(request.getDeptId());
             relation.setIsFree(boolToInt(request.getFree(), 0));
@@ -306,10 +330,13 @@ public class DoctorTenantContextService {
         Map<Long, String> doctorNameMap = docDoctorMapper.selectList(activeDoctorWrapper())
             .stream()
             .collect(Collectors.toMap(DocDoctorEntity::getId, doctor -> defaultIfBlank(doctor.getDoctorName(), doctor.getName())));
+        Map<Long, String> departmentNameMap = docDepartmentMapper.selectList(activeDepartmentWrapper())
+            .stream()
+            .collect(Collectors.toMap(this::resolveDeptId, entity -> defaultIfBlank(entity.getDepartmentName(), entity.getName()), (current, next) -> current));
         return docScheduleMapper.selectList(activeScheduleWrapper())
             .stream()
             .sorted(Comparator.comparing(DocScheduleEntity::getId))
-            .map(entity -> toScheduleVO(entity, doctorNameMap.get(entity.getDoctorId())))
+            .map(entity -> toScheduleVO(entity, doctorNameMap.get(entity.getDoctorId()), departmentNameMap.get(entity.getDeptId())))
             .toList();
     }
 
@@ -321,21 +348,25 @@ public class DoctorTenantContextService {
      */
     @Transactional
     public ScheduleVO createSchedule(CreateScheduleRequest request) {
-        ensureBusinessTenantContext("医生模块操作缺少有效租户上下文");
-        log.info("创建医生排班，doctorId={}，slot={}，scheduleDate={}",
-            request.getDoctorId(), request.getSlot(), request.getScheduleDate());
+        Long tenantId = currentBusinessTenantId("医生模块操作缺少有效租户上下文");
+        log.info("创建医生排班，tenantId={}，doctorId={}，deptId={}，slot={}，scheduleDate={}",
+            tenantId, request.getDoctorId(), request.getDeptId(), request.getSlot(), request.getScheduleDate());
         DocDoctorEntity doctor = requireActiveDoctor(request.getDoctorId());
+        DocDepartmentEntity department = ensureDepartmentExtension(request.getDeptId(), tenantId);
+        requireDoctorDepartmentBinding(request.getDoctorId(), request.getDeptId());
         DocScheduleEntity entity = new DocScheduleEntity();
+        entity.setTenantId(tenantId);
         entity.setDoctorId(request.getDoctorId());
-        entity.setSlot(request.getSlot());
+        entity.setDeptId(request.getDeptId());
         entity.setScheduleDate(parseDate(defaultIfBlank(request.getScheduleDate(), LocalDate.now().format(DATE_FORMATTER))));
         entity.setTimeSlot(defaultIfBlank(request.getTimeSlot(), request.getSlot()));
+        entity.setSlot(defaultIfBlank(request.getSlot(), entity.getScheduleDate().format(DATE_FORMATTER) + " " + request.getTimeSlot()));
         entity.setTotalNumber(defaultInt(request.getTotalNumber(), 30));
         entity.setRemainNumber(defaultInt(request.getRemainNumber(), entity.getTotalNumber()));
         docScheduleMapper.insert(entity);
         doctor.setScheduleDesc(entity.getSlot());
         docDoctorMapper.updateById(doctor);
-        return toScheduleVO(entity, defaultIfBlank(doctor.getDoctorName(), doctor.getName()));
+        return toScheduleVO(entity, defaultIfBlank(doctor.getDoctorName(), doctor.getName()), defaultIfBlank(department.getDepartmentName(), department.getName()));
     }
 
     /**
@@ -445,6 +476,51 @@ public class DoctorTenantContextService {
     }
 
     /**
+     * 确保科室扩展信息存在。
+     *
+     * @param deptId 系统部门编号
+     * @param tenantId 租户编号
+     * @return 科室扩展实体
+     */
+    private DocDepartmentEntity ensureDepartmentExtension(Long deptId, Long tenantId) {
+        DocDepartmentEntity existed = findDepartmentExtensionByDeptId(deptId);
+        if (existed != null) {
+            return existed;
+        }
+        InternalDeptResp dept = readFeignData(systemDeptFeignClient.detail(deptId, tenantId), "查询系统科室失败");
+        if (dept == null || !Objects.equals(dept.getIsDepartment(), 1)) {
+            log.warn("自动补齐科室扩展失败，系统部门不是科室，tenantId={}，deptId={}", tenantId, deptId);
+            throw new BizException(400, "系统部门不是科室");
+        }
+        DocDepartmentEntity entity = new DocDepartmentEntity();
+        entity.setDeptId(deptId);
+        entity.setTenantId(tenantId);
+        entity.setDoctorCount(0);
+        CreateDepartmentRequest request = new CreateDepartmentRequest();
+        request.setName(dept.getDeptName());
+        fillDepartmentExtension(entity, dept, request);
+        docDepartmentMapper.insert(entity);
+        log.info("自动补齐科室扩展，tenantId={}，deptId={}，name={}", tenantId, deptId, dept.getDeptName());
+        return entity;
+    }
+
+    /**
+     * 校验医生科室绑定关系存在。
+     *
+     * @param doctorId 医生编号
+     * @param deptId 科室编号
+     */
+    private void requireDoctorDepartmentBinding(Long doctorId, Long deptId) {
+        Long count = docDoctorDepartmentMapper.selectCount(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
+            .eq(DocDoctorDepartmentEntity::getDoctorId, doctorId)
+            .eq(DocDoctorDepartmentEntity::getDeptId, deptId));
+        if (count == null || count == 0L) {
+            log.warn("医生科室绑定不存在，doctorId={}，deptId={}", doctorId, deptId);
+            throw new BizException(400, "医生未绑定该科室");
+        }
+    }
+
+    /**
      * 按系统部门编号查询科室扩展信息。
      *
      * @param deptId 系统部门编号
@@ -482,8 +558,8 @@ public class DoctorTenantContextService {
      * @param request 科室扩展请求
      */
     private void fillDepartmentExtension(DocDepartmentEntity entity, InternalDeptResp dept, CreateDepartmentRequest request) {
-        entity.setName(defaultIfBlank(request.getName(), dept.getDeptName()));
-        entity.setDepartmentName(defaultIfBlank(request.getName(), dept.getDeptName()));
+        entity.setName(dept.getDeptName());
+        entity.setDepartmentName(dept.getDeptName());
         entity.setParentId(defaultLong(dept.getParentId(), 0L));
         entity.setSort(defaultInt(request.getSort(), defaultInt(dept.getOrderNum(), 0)));
         entity.setQueueDesc(defaultIfBlank(request.getQueue(), "当前等候 0 人"));
@@ -499,13 +575,13 @@ public class DoctorTenantContextService {
      * @param request 医生扩展请求
      */
     private void fillDoctorExtension(DocDoctorEntity entity, InternalUserResp user, CreateDoctorRequest request) {
-        String displayName = defaultIfBlank(request.getName(), user.getRealName());
+        String displayName = defaultIfBlank(user.getRealName(), request.getName());
         entity.setName(displayName);
         entity.setDoctorName(displayName);
         entity.setTitle(defaultIfBlank(request.getTitle(), defaultIfBlank(entity.getTitle(), "医师")));
         entity.setDepartment(defaultIfBlank(request.getDepartment(), defaultIfBlank(entity.getDepartment(), user.getDeptName())));
         entity.setSpecialty(defaultIfBlank(request.getSpecialty(), defaultIfBlank(entity.getSpecialty(), DEFAULT_SPECIALTY)));
-        entity.setConsultFee(defaultDecimal(request.getConsultFee(), defaultDecimal(entity.getConsultFee(), BigDecimal.ZERO)));
+        entity.setConsultFee(appointmentFeePolicyService.resolveByTitle(entity.getTitle()));
         entity.setConsultStatus(defaultIfBlank(request.getConsultStatus(), defaultIfBlank(entity.getConsultStatus(), DEFAULT_CONSULT_STATUS)));
         entity.setStatus(defaultIfBlank(request.getStatus(), resolveDoctorDisplayStatus(entity.getConsultStatus())));
         entity.setScheduleDesc(defaultIfBlank(request.getSchedule(), defaultIfBlank(entity.getScheduleDesc(), DEFAULT_SCHEDULE)));
@@ -746,10 +822,25 @@ public class DoctorTenantContextService {
      * @return 绑定展示对象
      */
     private DoctorDepartmentBindingVO toDoctorDepartmentBindingVO(DocDoctorDepartmentEntity entity) {
+        return toDoctorDepartmentBindingVO(entity, null, null);
+    }
+
+    /**
+     * 转换医生科室绑定展示对象。
+     *
+     * @param entity 医生科室关系实体
+     * @param doctorName 医生姓名
+     * @param departmentName 科室名称
+     * @return 绑定展示对象
+     */
+    private DoctorDepartmentBindingVO toDoctorDepartmentBindingVO(DocDoctorDepartmentEntity entity, String doctorName, String departmentName) {
         DoctorDepartmentBindingVO vo = new DoctorDepartmentBindingVO();
         vo.setId(entity.getId());
         vo.setDoctorId(entity.getDoctorId());
+        vo.setDoctorName(defaultIfBlank(doctorName, ""));
         vo.setDeptId(entity.getDeptId());
+        vo.setDepartmentName(defaultIfBlank(departmentName, ""));
+        vo.setLabel(defaultIfBlank(doctorName, "") + "(" + defaultIfBlank(departmentName, "") + ")");
         vo.setFree(Objects.equals(entity.getIsFree(), 1));
         vo.setAppointmentFee(defaultDecimal(entity.getAppointmentFee(), BigDecimal.ZERO));
         return vo;
@@ -770,13 +861,16 @@ public class DoctorTenantContextService {
      *
      * @param entity 排班实体
      * @param doctorName 医生姓名
+     * @param departmentName 科室名称
      * @return 排班展示对象
      */
-    private ScheduleVO toScheduleVO(DocScheduleEntity entity, String doctorName) {
+    private ScheduleVO toScheduleVO(DocScheduleEntity entity, String doctorName, String departmentName) {
         ScheduleVO vo = new ScheduleVO();
         vo.setId(entity.getId());
         vo.setDoctorId(entity.getDoctorId());
+        vo.setDeptId(entity.getDeptId());
         vo.setDoctorName(defaultIfBlank(doctorName, ""));
+        vo.setDepartmentName(defaultIfBlank(departmentName, ""));
         vo.setSlot(entity.getSlot());
         vo.setScheduleDate(entity.getScheduleDate() == null ? "" : entity.getScheduleDate().format(DATE_FORMATTER));
         vo.setTimeSlot(entity.getTimeSlot());

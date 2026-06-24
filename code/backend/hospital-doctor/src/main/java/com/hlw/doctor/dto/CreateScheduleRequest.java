@@ -14,6 +14,9 @@ public class CreateScheduleRequest {
     /** 医生编号。 */
     @NotNull(message = "医生编号不能为空")
     private Long doctorId;
+    /** 科室编号。 */
+    @NotNull(message = "科室编号不能为空")
+    private Long deptId;
     /** 出诊时段。 */
     @NotBlank(message = "排班时段不能为空")
     private String slot;

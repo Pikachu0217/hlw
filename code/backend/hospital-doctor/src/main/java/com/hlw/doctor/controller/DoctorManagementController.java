@@ -99,6 +99,17 @@ public class DoctorManagementController {
     }
 
     /**
+     * 查询医生科室绑定列表。
+     *
+     * @return 医生科室绑定列表
+     */
+    @GetMapping("/doctor-department-bindings")
+    public R<List<DoctorDepartmentBindingVO>> doctorDepartmentBindings() {
+        log.info("查询医生科室绑定列表");
+        return R.ok(doctorTenantContextService.listDoctorDepartmentBindings());
+    }
+
+    /**
      * 查询医生详情。
      *
      * @param id 医生账号业务编号
@@ -159,6 +170,7 @@ public class DoctorManagementController {
         @PathVariable Long id,
         @Valid @RequestBody BindDoctorDepartmentRequest request
     ) {
+        log.info("绑定医生科室，doctorId={}，deptId={}", id, request.getDeptId());
         return R.ok(doctorTenantContextService.bindDoctorDepartment(id, request));
     }
 
@@ -169,6 +181,7 @@ public class DoctorManagementController {
      */
     @GetMapping("/schedules")
     public R<List<ScheduleVO>> schedules() {
+        log.info("查询排班列表");
         return R.ok(doctorTenantContextService.listSchedules());
     }
 
@@ -180,6 +193,8 @@ public class DoctorManagementController {
      */
     @PostMapping("/schedules")
     public R<ScheduleVO> createSchedule(@Valid @RequestBody CreateScheduleRequest request) {
+        log.info("创建医生排班，doctorId={}，deptId={}，scheduleDate={}，timeSlot={}",
+            request.getDoctorId(), request.getDeptId(), request.getScheduleDate(), request.getTimeSlot());
         return R.ok(doctorTenantContextService.createSchedule(request));
     }
 

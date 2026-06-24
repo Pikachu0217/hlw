@@ -1,6 +1,7 @@
 package com.hlw.doctor.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
@@ -24,6 +25,7 @@ public class DocDoctorDepartmentEntity {
     /** 医生编号。 */
     private Long doctorId;
     /** 科室编号。 */
+    @TableField("dept_id")
     private Long deptId;
     /** 是否免挂号费。 */
     private Integer isFree;

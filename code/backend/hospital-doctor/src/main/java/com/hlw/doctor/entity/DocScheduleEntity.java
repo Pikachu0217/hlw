@@ -1,6 +1,7 @@
 package com.hlw.doctor.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
@@ -23,6 +24,9 @@ public class DocScheduleEntity {
     private Long tenantId;
     /** 医生编号。 */
     private Long doctorId;
+    /** 科室编号。 */
+    @TableField("dept_id")
+    private Long deptId;
     /** 出诊时段。 */
     private String slot;
     /** 排班日期。 */

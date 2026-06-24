@@ -15,8 +15,14 @@ public class DoctorDepartmentBindingVO {
     private Long id;
     /** 医生编号。 */
     private Long doctorId;
+    /** 医生姓名。 */
+    private String doctorName;
     /** 科室编号。 */
     private Long deptId;
+    /** 科室名称。 */
+    private String departmentName;
+    /** 医生科室展示名称。 */
+    private String label;
     /** 是否免挂号费。 */
     private Boolean free;
     /** 挂号费用。 */

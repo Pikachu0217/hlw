@@ -1,23 +1,16 @@
 package com.hlw.doctor.service;
 
 import com.hlw.doctor.dto.ResolveAppointmentFeeRequest;
+import com.hlw.doctor.enums.DoctorJobTitleFeeEnum;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 /**
  * 挂号费策略服务。
  */
 @Service
 public class AppointmentFeePolicyService {
-    private static final Map<String, BigDecimal> TITLE_DEFAULTS = Map.of(
-        "主任医师", new BigDecimal("50.00"),
-        "副主任医师", new BigDecimal("30.00"),
-        "主治医师", new BigDecimal("20.00"),
-        "住院医师", new BigDecimal("10.00")
-    );
-
     /**
      * 根据科室、医生和职称优先级计算挂号费。
      *
@@ -31,6 +24,16 @@ public class AppointmentFeePolicyService {
         if (request.getDoctorFee() != null) {
             return request.getDoctorFee();
         }
-        return TITLE_DEFAULTS.getOrDefault(request.getTitle(), BigDecimal.ZERO);
+        return DoctorJobTitleFeeEnum.resolveFee(request.getTitle());
+    }
+
+    /**
+     * 根据医生职称计算默认问诊费用。
+     *
+     * @param title 医生职称
+     * @return 默认问诊费用
+     */
+    public BigDecimal resolveByTitle(String title) {
+        return DoctorJobTitleFeeEnum.resolveFee(title);
     }
 }
