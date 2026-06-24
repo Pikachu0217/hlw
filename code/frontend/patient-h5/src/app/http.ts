@@ -7,16 +7,20 @@ export const http = axios.create({
   timeout: 10000
 });
 
+const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/phone-code", "/auth/phone-login"];
+
 http.interceptors.request.use((config) => {
   const token = useSessionStore.getState().token;
   const tenantId = useSessionStore.getState().tenantId;
+  const requestUrl = config.url ?? "";
+  const publicAuthRequest = PUBLIC_AUTH_PATHS.some((path) => requestUrl.endsWith(path));
 
   if (tenantId) {
     config.headers = AxiosHeaders.from(config.headers);
     config.headers.set(TENANT_HEADER, tenantId);
   }
 
-  if (token) {
+  if (token && !publicAuthRequest) {
     config.headers = AxiosHeaders.from(config.headers);
     config.headers.set(AUTHORIZATION_HEADER, `${AUTHORIZATION_TOKEN_PREFIX} ${token}`);
   }

@@ -25,6 +25,7 @@ export function LoginPage() {
   const setToken = useSessionStore((state) => state.setToken);
   const setPatientName = useSessionStore((state) => state.setPatientName);
   const setPhone = useSessionStore((state) => state.setPhone);
+  const setTenant = useSessionStore((state) => state.setTenant);
   const setVerified = useSessionStore((state) => state.setVerified);
   const tenantId = useSessionStore((state) => state.tenantId);
   const tenantName = useSessionStore((state) => state.tenantName);
@@ -67,6 +68,7 @@ export function LoginPage() {
     try {
       const result = await phoneLogin(values.phone, values.smsCode, tenantId);
       setToken(result.token);
+      setTenant(String(result.tenantId), tenantName);
       setPhone(values.phone);
       setPatientName(result.realName);
       try {

@@ -12,7 +12,7 @@ function asList<T>(value: T[] | null | undefined): T[] {
 
 export interface LoginResult {
   token: string;
-  tenantId: number;
+  tenantId: string;
   username: string;
   realName: string;
   userType: string;
@@ -21,7 +21,7 @@ export interface LoginResult {
 /** 发送手机验证码。 */
 export async function sendPhoneCode(phone: string, tenantId?: string): Promise<void> {
   console.info("[auth] 发送验证码", phone);
-  await http.post<ApiResult<null>>("/auth/phone-code", { phone, tenantId: tenantId ? Number(tenantId) : undefined });
+  await http.post<ApiResult<null>>("/auth/phone-code", { phone, tenantId: tenantId || undefined });
 }
 
 /** 手机号+验证码登录。 */
@@ -30,7 +30,7 @@ export async function phoneLogin(phone: string, smsCode: string, tenantId?: stri
   const response = await http.post<ApiResult<LoginResult>>("/auth/phone-login", {
     phone,
     smsCode,
-    tenantId: tenantId ? Number(tenantId) : undefined
+    tenantId: tenantId || undefined
   });
   return response.data.data;
 }
@@ -38,7 +38,7 @@ export async function phoneLogin(phone: string, smsCode: string, tenantId?: stri
 /** 切换当前登录租户。 */
 export async function switchTenant(tenantId: string): Promise<LoginResult> {
   console.info("[auth] 切换登录租户", tenantId);
-  const response = await http.post<ApiResult<LoginResult>>("/auth/switch-tenant", { tenantId: Number(tenantId) });
+  const response = await http.post<ApiResult<LoginResult>>("/auth/switch-tenant", { tenantId });
   return response.data.data;
 }
 
@@ -324,9 +324,11 @@ export async function fetchDepartments(): Promise<DepartmentItem[]> {
   return asList(response.data.data);
 }
 
-export async function fetchPatientDoctors(): Promise<PatientDoctor[]> {
-  console.info("[patient] 查询医生列表");
-  const response = await http.get<ApiResult<BackendPatientDoctor[]>>("/doctor/doctors");
+export async function fetchPatientDoctors(deptId?: string): Promise<PatientDoctor[]> {
+  console.info("[patient] 查询医生列表", deptId);
+  const response = await http.get<ApiResult<BackendPatientDoctor[]>>("/doctor/doctors", {
+    params: deptId ? { deptId } : undefined
+  });
 
   return asList(response.data.data).map((doctor) => ({
     id: doctor.id,

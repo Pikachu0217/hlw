@@ -111,7 +111,7 @@ public class AuthService {
         String token = tokenIssuer.issue(user);
         loginAuditService.recordLoginSuccess(user, token, clientIp, userAgent);
         log.info("用户登录认证成功，userId={}，tenantId={}", user.id(), user.tenantId());
-        return new LoginResultResp(token, user.tenantId(), user.username(), user.realName(), user.userType());
+        return new LoginResultResp(token, String.valueOf(user.tenantId()), user.username(), user.realName(), user.userType());
     }
 
     /**
@@ -248,10 +248,11 @@ public class AuthService {
             }
             log.info("自动注册成功，userId={}，phone={}", user.id(), phone);
         }
+        ensurePatientLoginUser(user, tenantId, phone, "患者端手机号登录");
         String token = tokenIssuer.issue(user);
         loginAuditService.recordLoginSuccess(user, token, clientIp, userAgent);
         log.info("手机号登录成功，userId={}，tenantId={}，phone={}", user.id(), user.tenantId(), phone);
-        return new LoginResultResp(token, user.tenantId(), user.username(), user.realName(), user.userType());
+        return new LoginResultResp(token, String.valueOf(user.tenantId()), user.username(), user.realName(), user.userType());
     }
 
     /**
@@ -299,11 +300,7 @@ public class AuthService {
             patientFeignClient.createOrGetByUser(new CreatePatientFeignReq(targetTenantId, created.getUserId(), currentUser.getPhone()));
             targetUser = userRepository.findByTenantIdAndPhone(targetTenantId, currentUser.getPhone());
         } else {
-            if (!PATIENT_USER_TYPE.equalsIgnoreCase(targetUser.userType())) {
-                log.warn("切换租户失败，目标租户手机号不是患者账号，targetTenantId={}，phone={}，userType={}",
-                    targetTenantId, currentUser.getPhone(), targetUser.userType());
-                throw new BizException(403, "目标医院手机号已绑定非患者账号");
-            }
+            ensurePatientLoginUser(targetUser, targetTenantId, currentUser.getPhone(), "切换登录租户");
             patientFeignClient.createOrGetByUser(new CreatePatientFeignReq(targetTenantId, targetUser.userId(), currentUser.getPhone()));
         }
 
@@ -315,7 +312,23 @@ public class AuthService {
         String token = tokenIssuer.issue(targetUser);
         loginAuditService.recordLoginSuccess(targetUser, token, clientIp, userAgent);
         log.info("切换登录租户成功，targetTenantId={}，userId={}，phone={}", targetTenantId, targetUser.id(), currentUser.getPhone());
-        return new LoginResultResp(token, targetUser.tenantId(), targetUser.username(), targetUser.realName(), targetUser.userType());
+        return new LoginResultResp(token, String.valueOf(targetUser.tenantId()), targetUser.username(), targetUser.realName(), targetUser.userType());
+    }
+
+    /**
+     * 校验手机号对应账号是否为患者账号。
+     *
+     * @param user 登录账号
+     * @param tenantId 租户编号
+     * @param phone 手机号
+     * @param scene 业务场景
+     */
+    private void ensurePatientLoginUser(LoginUserResp user, Long tenantId, String phone, String scene) {
+        if (user != null && !PATIENT_USER_TYPE.equalsIgnoreCase(user.userType())) {
+            log.warn("{}失败，手机号已绑定非患者账号，tenantId={}，phone={}，userType={}",
+                scene, tenantId, phone, user.userType());
+            throw new BizException(403, "目标医院手机号已绑定非患者账号");
+        }
     }
 
     /**

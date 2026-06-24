@@ -36,7 +36,7 @@ export function HospitalPage() {
       const result = await switchTenant(hospital.tenantId);
       setToken(result.token);
       setPatientName(result.realName);
-      setTenant(hospital.tenantId, hospital.companyName);
+      setTenant(String(result.tenantId), hospital.companyName);
       Toast.show(`已切换到${hospital.companyName}`);
       navigate("/", { replace: true });
     } catch {

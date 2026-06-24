@@ -9,7 +9,7 @@ describe("AppointmentConfirm", () => {
       <MemoryRouter>
         <AppointmentConfirm
           doctor={{
-            id: 1,
+            id: "1",
             name: "李医生",
             title: "主任医师",
             department: "儿科",
