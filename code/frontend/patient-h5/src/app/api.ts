@@ -380,6 +380,21 @@ export async function resolveAppointmentFee(title?: string, doctorFee?: string):
   return String(response.data.data ?? "0.00");
 }
 
+/** 字典数据项（来自系统字典表）。 */
+export interface DictItem {
+  /** 字典标签。 */
+  dictLabel: string;
+  /** 字典键值。 */
+  dictValue: string;
+}
+
+/** 根据字典类型查询字典数据列表。 */
+export async function fetchDictByType(dictType: string): Promise<DictItem[]> {
+  console.info("[system] 查询字典数据", dictType);
+  const response = await http.get<ApiResult<DictItem[]>>(`/system/dict/type/${dictType}`);
+  return response.data.data ?? [];
+}
+
 export async function fetchConsults(): Promise<CreatedConsult[]> {
   console.info("[consult] 查询问诊单列表");
   const response = await http.get<ApiResult<CreatedConsult[]>>("/consult/consults");

@@ -18,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
  * 字典管理控制器。
  */
@@ -89,5 +91,17 @@ public class DictController {
         log.info("删除字典数据，id={}", id);
         dictService.deleteDict(id);
         return R.ok(null);
+    }
+
+    /**
+     * 根据字典类型查询字典数据列表。
+     *
+     * @param dictType 字典类型
+     * @return 字典数据列表，按排序升序
+     */
+    @GetMapping("/type/{dictType}")
+    public R<List<DictResp>> listByType(@PathVariable String dictType) {
+        log.info("查询字典数据，dictType={}", dictType);
+        return R.ok(dictService.listDictsByType(dictType));
     }
 }

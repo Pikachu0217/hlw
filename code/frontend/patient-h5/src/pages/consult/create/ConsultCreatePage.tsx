@@ -1,7 +1,7 @@
-import { Button, Form, Input, Picker, TextArea, Toast } from "antd-mobile";
+import { Button, Form, Picker, TextArea, Toast } from "antd-mobile";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { createConsult, fetchPatientDoctorDetail, type PatientDoctor } from "../../../app/api";
+import { createConsult, fetchDictByType, fetchPatientDoctorDetail, type DictItem, type PatientDoctor } from "../../../app/api";
 import { SectionCard } from "../../../components/SectionCard";
 
 interface ConsultFormValues {
@@ -15,6 +15,21 @@ export function ConsultCreatePage() {
   const [form] = Form.useForm<ConsultFormValues>();
   const doctorId = searchParams.get("doctorId") ?? "";
   const [doctor, setDoctor] = useState<PatientDoctor | null>(null);
+  const [consultTypes, setConsultTypes] = useState<DictItem[]>([]);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  /** 当前选中的问诊类型中文标签（用于展示）。 */
+  const [selectedLabel, setSelectedLabel] = useState("");
+
+  /** 字典数据加载后，设置问诊类型默认值。 */
+  useEffect(() => {
+    fetchDictByType("consultation_type").then((items) => {
+      setConsultTypes(items);
+      if (items.length > 0) {
+        form.setFieldsValue({ consultType: [items[0].dictValue] });
+        setSelectedLabel(items[0].dictLabel);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -51,21 +66,37 @@ export function ConsultCreatePage() {
   }
 
   return (
-    <SectionCard title="发起问诊" description="填写病情描述后即可进入图文问诊房间。">
+    <SectionCard title="发起问诊" description="填写病情描述后即可进入问诊房间。">
       {doctor ? <div className="detail-copy">接诊医生：{doctor.name} · 问诊费 {doctor.consultFee} 元</div> : null}
       <Form form={form} layout="horizontal" footer={<Button color="primary" block onClick={handleCreateConsult}>开始问诊</Button>}>
-        <Form.Item label="问诊类型" name="consultType" rules={[{ required: true, message: "请选择问诊类型" }]}>
-          <Picker columns={[[{ label: "图文问诊", value: "IMAGE_TEXT" }, { label: "复诊续方", value: "FOLLOW_UP" }]]}>
-            {(items) => {
-              const label = items?.[0]?.label;
-              return <Input readOnly value={typeof label === "string" ? label : ""} placeholder="请选择问诊类型" />;
-            }}
-          </Picker>
+        <Form.Item
+          label="问诊类型"
+          name="consultType"
+          rules={[{ required: true, message: "请选择问诊类型" }]}
+          onClick={() => setPickerVisible(true)}
+        >
+          <span style={{ color: selectedLabel ? undefined : "#ccc" }}>
+            {selectedLabel || "请选择问诊类型"}
+          </span>
         </Form.Item>
         <Form.Item label="主诉" name="chiefComplaint" rules={[{ required: true, message: "请输入主诉" }]}>
           <TextArea rows={4} placeholder="请输入主要症状和持续时间" />
         </Form.Item>
       </Form>
+
+      <Picker
+        columns={[consultTypes.map((item) => ({ label: item.dictLabel, value: item.dictValue }))]}
+        visible={pickerVisible}
+        onClose={() => setPickerVisible(false)}
+        onConfirm={(value) => {
+          form.setFieldsValue({ consultType: value as string[] });
+          // 根据选中的值找到中文标签
+          const v = (value as string[])[0];
+          const item = consultTypes.find((t) => t.dictValue === v);
+          setSelectedLabel(item?.dictLabel ?? v);
+          setPickerVisible(false);
+        }}
+      />
     </SectionCard>
   );
 }

@@ -198,4 +198,23 @@ public class DictService {
                 .eq(SysDictDataEntity::getId, id)
                 .last("limit 1")), "字典数据不存在");
     }
+
+    /**
+     * 根据字典类型查询字典数据列表。
+     *
+     * @param dictType 字典类型
+     * @return 字典数据列表，按 dictSort 升序
+     */
+    @Transactional(readOnly = true)
+    public List<DictResp> listDictsByType(String dictType) {
+        log.info("查询字典数据，dictType={}", dictType);
+        List<SysDictDataEntity> list = sysDictDataMapper.selectList(
+            new LambdaQueryWrapper<SysDictDataEntity>()
+                .eq(SysDictDataEntity::getDictType, dictType)
+                .orderByAsc(SysDictDataEntity::getDictSort));
+        SysDictTypeEntity typeEntity = findDictType(dictType);
+        return list.stream()
+            .map(data -> dictConverter.toDictVO(data, typeEntity))
+            .toList();
+    }
 }
