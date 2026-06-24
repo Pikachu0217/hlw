@@ -1,21 +1,21 @@
 hlw:
   nacos:
-    server-addr: 192.168.124.238:8848
+    server-addr: 127.0.0.1:8848
     namespace: public
     group: DEFAULT_GROUP
     username: nacos
     password: nacos
   datasource:
-    url: jdbc:mysql://192.168.124.238:23308/hospital_consult?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    url: jdbc:mysql://127.0.0.1:23308/hospital_consult?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
     username: root
     password: root
   redis:
-    host: 192.168.124.238
+    host: 127.0.0.1
     port: 6379
     password: ""
     database: 0
   rabbitmq:
-    host: 192.168.124.238
+    host: 127.0.0.1
     port: 5672
     username: guest
     password: guest
