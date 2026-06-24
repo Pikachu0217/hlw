@@ -42,7 +42,11 @@ spring:
         - id: hospital-consult-local
           uri: http://127.0.0.1:19500
           predicates:
-            - Path=/consult/**,/ws/consult/**
+            - Path=/consult/**
+        - id: hospital-consult-ws-local
+          uri: ws://127.0.0.1:19500
+          predicates:
+            - Path=/ws/consult/**
         - id: hospital-prescription-local
           uri: http://127.0.0.1:19700
           predicates:

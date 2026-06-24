@@ -5,6 +5,8 @@ import com.hlw.common.core.constants.CommonConstants;
 import com.hlw.gateway.config.GatewayAuthProperties;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.util.StringUtils;
@@ -17,7 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * 租户请求头网关过滤器，负责基于登录令牌设置可信租户头。
+ * 优先级高于 WebSocketRoutingFilter，确保 WebSocket 升级请求也经过令牌验证。
  */
+@Order(Ordered.HIGHEST_PRECEDENCE + 100)
 @Slf4j
 public class TenantHeaderGatewayFilter implements GlobalFilter {
 
@@ -64,7 +68,7 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
             exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
             return exchange.getResponse().setComplete();
         }
-        String token = request.getHeaders().getFirst(authTokenProperties.getTokenName());
+        String token = resolveRequestToken(request);
         boolean publicPath = isPublicPath(request);
 
         ServerHttpRequest cleaned = request.mutate()
@@ -114,6 +118,22 @@ public class TenantHeaderGatewayFilter implements GlobalFilter {
      */
     private Long resolveTenantId(String token) {
         return tokenTenantResolver.resolveTenantId(token);
+    }
+
+    /**
+     * 解析请求登录令牌。
+     * <p>普通 HTTP 请求从 Authorization 头读取；浏览器 WebSocket 握手无法设置自定义请求头时，
+     * 允许从 query 参数 token 读取。</p>
+     *
+     * @param request 当前请求
+     * @return 登录令牌
+     */
+    private String resolveRequestToken(ServerHttpRequest request) {
+        String token = request.getHeaders().getFirst(authTokenProperties.getTokenName());
+        if (StringUtils.hasText(token)) {
+            return token;
+        }
+        return request.getQueryParams().getFirst("token");
     }
 
     /**

@@ -58,7 +58,11 @@ spring:
         - id: hospital-consult
           uri: lb://hospital-consult
           predicates:
-            - Path=/consult/**,/ws/consult/**
+            - Path=/consult/**
+        - id: hospital-consult-ws
+          uri: lb:ws://hospital-consult
+          predicates:
+            - Path=/ws/consult/**
         - id: hospital-prescription
           uri: lb://hospital-prescription
           predicates:
