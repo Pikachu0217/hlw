@@ -50,3 +50,6 @@ resources/reports/api-test/
 # Local env
 .env.local
 .env.*.local
+
+# reasonix 相关
+.reasonix/
