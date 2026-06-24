@@ -42,10 +42,17 @@ public class ConsultWebSocketPermissionService {
             log.warn("问诊 WebSocket 租户不匹配，consultId={}，consultTenantId={}，loginTenantId={}", consultId, consult.getTenantId(), principal.getTenantId());
             throw new BizException(403, "无权连接该问诊");
         }
+        // 患者端连接需校验支付状态
         InternalPatientResp patient = resolvePatient(principal);
         if (patient != null && consult.getPatientId().equals(patient.id())) {
+            String payStatus = consult.getPayStatus();
+            if (payStatus == null || !"PAID".equalsIgnoreCase(payStatus)) {
+                log.warn("患者 WebSocket 支付状态未通过，consultId={}，payStatus={}", consultId, payStatus);
+                throw new BizException(403, "问诊单未支付，无法连接");
+            }
             return new Participant(patient.id(), ConsultParticipantType.PATIENT);
         }
+        // 医生端连接不需要校验支付状态
         InternalDoctorResp doctor = resolveDoctor(principal);
         if (doctor != null && consult.getDoctorId().equals(doctor.id())) {
             return new Participant(doctor.id(), ConsultParticipantType.DOCTOR);
