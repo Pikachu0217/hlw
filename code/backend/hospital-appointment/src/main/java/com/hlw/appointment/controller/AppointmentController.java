@@ -3,6 +3,7 @@ package com.hlw.appointment.controller;
 import com.hlw.appointment.dto.CreateAppointmentRequest;
 import com.hlw.appointment.dto.CreateReleaseConfigRequest;
 import com.hlw.appointment.dto.GrabAppointmentRequest;
+import com.hlw.appointment.dto.InternalCreateReleaseConfigRequest;
 import com.hlw.appointment.service.AppointmentWorkflowService;
 import com.hlw.appointment.domain.resp.AppointmentVO;
 import com.hlw.appointment.domain.resp.NumberSourceVO;
@@ -124,6 +125,18 @@ public class AppointmentController {
      */
     @PostMapping("/release-configs")
     public R<ReleaseConfigVO> createReleaseConfig(@Valid @RequestBody CreateReleaseConfigRequest request) {
+        return R.ok(appointmentWorkflowService.createReleaseConfig(request));
+    }
+
+    /**
+     * 内部接口：根据排班编号自动创建放号配置和号源（供 doctor 模块 Feign 调用）。
+     *
+     * @param request 内部请求
+     * @return 创建结果
+     */
+    @PostMapping("/internal/release-configs")
+    public R<ReleaseConfigVO> createInternalReleaseConfig(@RequestBody InternalCreateReleaseConfigRequest request) {
+        log.info("内部接口创建放号配置，scheduleId={}，releaseCount={}", request.getScheduleId(), request.getReleaseCount());
         return R.ok(appointmentWorkflowService.createReleaseConfig(request));
     }
 }

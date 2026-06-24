@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.hlw.appointment.dto.CreateAppointmentRequest;
 import com.hlw.appointment.dto.CreateReleaseConfigRequest;
+import com.hlw.appointment.dto.InternalCreateReleaseConfigRequest;
 import com.hlw.appointment.entity.AptAppointmentEntity;
 import com.hlw.appointment.entity.AptNumberSourceEntity;
 import com.hlw.appointment.entity.AptReleaseConfigEntity;
@@ -264,6 +265,25 @@ public class AppointmentWorkflowService {
         entity.setStatus(defaultIfBlank(request.getStatus(), DEFAULT_RELEASE_STATUS));
         aptReleaseConfigMapper.insert(entity);
         releaseNumberSources(request.getScheduleId(), releaseCount);
+        return toReleaseConfigVO(entity);
+    }
+
+    /**
+     * 创建放号配置并释放号源（内部接口），使用当前时间作为放号时间。
+     *
+     * @param request 内部请求
+     * @return 创建后的配置
+     */
+    @Transactional
+    public ReleaseConfigVO createReleaseConfig(InternalCreateReleaseConfigRequest request) {
+        log.info("内部创建放号配置，scheduleId={}，releaseCount={}", request.getScheduleId(), request.getReleaseCount());
+        AptReleaseConfigEntity entity = new AptReleaseConfigEntity();
+        entity.setScheduleId(request.getScheduleId());
+        entity.setReleaseTime(LocalDateTime.now());
+        entity.setReleaseCount(request.getReleaseCount());
+        entity.setStatus(DEFAULT_RELEASE_STATUS);
+        aptReleaseConfigMapper.insert(entity);
+        releaseNumberSources(request.getScheduleId(), request.getReleaseCount());
         return toReleaseConfigVO(entity);
     }
 
