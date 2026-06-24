@@ -39,6 +39,9 @@ export function ConsultChatPage() {
   }, [consultId]);
 
   useEffect(() => {
+    let cancelled = false;
+    let connectTimer: number | undefined;
+
     socketRef.current?.close();
     socketRef.current = null;
 
@@ -46,15 +49,34 @@ export function ConsultChatPage() {
       return undefined;
     }
 
-    const socket = new WebSocket(resolveConsultWsUrl(consultId));
-    socketRef.current = socket;
-    socket.onmessage = (event) => {
-      const payload = JSON.parse(event.data) as ConsultMessageItem;
-      setMessages((items) => [...items, payload]);
-    };
-    socket.onerror = () => Toast.show("问诊连接异常，请稍后重试");
+    connectTimer = window.setTimeout(() => {
+      if (cancelled) {
+        return;
+      }
 
-    return () => socket.close();
+      const socket = new WebSocket(resolveConsultWsUrl(consultId));
+      socketRef.current = socket;
+      socket.onmessage = (event) => {
+        const payload = JSON.parse(event.data) as ConsultMessageItem;
+        setMessages((items) => [...items, payload]);
+      };
+      socket.onopen = () => console.info("[consult-ws] 问诊连接已建立", consultId);
+      socket.onclose = (event) => console.warn("[consult-ws] 问诊连接已关闭", consultId, event.code, event.reason);
+      socket.onerror = () => {
+        if (!cancelled) {
+          Toast.show("问诊连接异常，请稍后重试");
+        }
+      };
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      if (connectTimer !== undefined) {
+        window.clearTimeout(connectTimer);
+      }
+      socketRef.current?.close();
+      socketRef.current = null;
+    };
   }, [consultId]);
 
   function sendMessage(contentType: "TEXT" | "IMAGE", content: string): void {
@@ -130,10 +152,17 @@ export function ConsultChatPage() {
 
 function resolveConsultWsUrl(consultId: number): string {
   const token = useSessionStore.getState().token;
-  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
-  const baseUrl = apiBaseUrl.startsWith("http") ? apiBaseUrl : `${window.location.origin}${apiBaseUrl}`;
+  const apiBaseUrl = import.meta.env.VITE_WS_BASE_URL ?? import.meta.env.VITE_API_BASE_URL ?? defaultWsBaseUrl();
+  const baseUrl = apiBaseUrl.startsWith("http") || apiBaseUrl.startsWith("ws") ? apiBaseUrl : `${window.location.origin}${apiBaseUrl}`;
   const wsUrl = new URL(`/ws/consult/${consultId}`, baseUrl);
   wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
   wsUrl.searchParams.set("token", token.replace(`${AUTHORIZATION_TOKEN_PREFIX} `, ""));
   return wsUrl.toString();
+}
+
+function defaultWsBaseUrl(): string {
+  if (window.location.hostname === "localhost" && window.location.port === "13300") {
+    return "http://localhost:19000";
+  }
+  return "/api";
 }
