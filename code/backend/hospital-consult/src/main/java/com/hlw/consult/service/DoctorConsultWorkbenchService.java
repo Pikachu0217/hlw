@@ -121,7 +121,7 @@ public class DoctorConsultWorkbenchService {
         vo.setPatientName(entity.getPatientName());
         vo.setDoctorId(entity.getDoctorId());
         vo.setDoctorName(entity.getDoctorName());
-        vo.setStatus(entity.getStatus());
+        vo.setStatus(ConsultDisplayStatus.labelOf(entity.getStatus()));
         vo.setChannel(entity.getChannel());
         vo.setUpdatedAt(entity.getUpdatedAt());
         vo.setRemainingSeconds(entity.getRemainingSeconds());

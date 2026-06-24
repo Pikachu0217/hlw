@@ -201,7 +201,6 @@ public class ConsultWorkflowService {
         message.setSenderType(ConsultParticipantType.PATIENT);
         message.setContent(chiefComplaint);
         message.setContentType(ConsultMessageType.TEXT);
-        message.setReadFlag(false);
         message.setIsRead(0);
         conMessageMapper.insert(message);
     }
@@ -276,7 +275,7 @@ public class ConsultWorkflowService {
         vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));
         vo.setDoctorName(defaultIfBlank(entity.getDoctorName(), ""));
         vo.setChannel(defaultIfBlank(entity.getChannel(), channelName(entity.getConsultType())));
-        vo.setStatus(defaultIfBlank(entity.getStatus(), ConsultDisplayStatus.WAITING));
+        vo.setStatus(ConsultDisplayStatus.labelOf(defaultIfBlank(entity.getStatus(), ConsultDisplayStatus.WAITING)));
         vo.setUpdatedAt(defaultIfBlank(entity.getUpdatedAt(), ""));
         return vo;
     }
