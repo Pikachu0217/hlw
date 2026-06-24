@@ -363,9 +363,9 @@ export interface CreateHealthRecordPayload {
 }
 
 // 查询模块列表并保留统一日志输出，方便前后端联调排查。
-async function fetchModuleRecords<T>(url: string, moduleName: string): Promise<T[]> {
-  console.info(`[admin-module] 查询${moduleName}列表`, url);
-  const response = await apiClient.get<ApiResult<T[]>>(url);
+async function fetchModuleRecords<T>(url: string, moduleName: string, params?: Record<string, unknown>): Promise<T[]> {
+  console.info(`[admin-module] 查询${moduleName}列表`, url, params);
+  const response = await apiClient.get<ApiResult<T[]>>(url, { params });
   return response.data.data;
 }
 
@@ -396,8 +396,9 @@ export function fetchTenants(): Promise<TenantRecord[]> {
 }
 
 // 查询登录前可选择的租户选项。
-export function fetchTenantOptions(): Promise<TenantOptionRecord[]> {
-  return fetchModuleRecords<TenantOptionRecord>('/system/tenant/options', '租户选项');
+export function fetchTenantOptions(includeDefault = false): Promise<TenantOptionRecord[]> {
+  const params = includeDefault ? { includeDefault: true } : undefined;
+  return fetchModuleRecords<TenantOptionRecord>('/system/tenant/options', '租户选项', params);
 }
 
 // 创建租户。

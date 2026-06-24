@@ -28,7 +28,7 @@ function LoginPage() {
     async function loadTenants(): Promise<void> {
       setTenantLoading(true);
       try {
-        const tenantRecords = await fetchTenantOptions();
+        const tenantRecords = await fetchTenantOptions(true);
         if (ignore) {
           return;
         }

@@ -82,14 +82,19 @@ public class TenantService {
     /**
      * 查询登录前可选择的租户选项。
      *
+     * @param includeDefault 是否包含系统默认租户
      * @return 租户选项列表
      */
     @Transactional(readOnly = true)
-    public List<TenantOptionResp> listTenantOptions() {
-        log.info("查询登录前租户选项");
-        return sysTenantMapper.selectList(new LambdaQueryWrapper<SysTenantEntity>()
-                .eq(SysTenantEntity::getStatus, "0")
-                .orderByAsc(SysTenantEntity::getId))
+    public List<TenantOptionResp> listTenantOptions(boolean includeDefault) {
+        log.info("查询登录前租户选项，includeDefault={}", includeDefault);
+        LambdaQueryWrapper<SysTenantEntity> wrapper = new LambdaQueryWrapper<SysTenantEntity>()
+            .eq(SysTenantEntity::getStatus, SystemTenantConstants.STATUS_NORMAL)
+            .orderByAsc(SysTenantEntity::getId);
+        if (!includeDefault) {
+            wrapper.eq(SysTenantEntity::getIsDefault, SystemTenantConstants.NORMAL_DATA_FLAG);
+        }
+        return sysTenantMapper.selectList(wrapper)
             .stream()
             .map(this::toTenantOption)
             .toList();

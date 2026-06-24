@@ -8,25 +8,32 @@ import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.security.PasswordEncoder;
 import com.hlw.system.constants.SystemTenantConstants;
 import com.hlw.system.entity.SysDeptEntity;
+import com.hlw.system.entity.SysDictDataEntity;
+import com.hlw.system.entity.SysDictTypeEntity;
 import com.hlw.system.entity.SysMenuEntity;
 import com.hlw.system.entity.SysPostEntity;
 import com.hlw.system.entity.SysRoleEntity;
 import com.hlw.system.entity.SysRoleMenuEntity;
 import com.hlw.system.entity.SysTenantEntity;
+import com.hlw.system.entity.SysTenantPackageEntity;
 import com.hlw.system.entity.SysTenantPackageMenuEntity;
 import com.hlw.system.entity.SysUserEntity;
 import com.hlw.system.entity.SysUserPostEntity;
 import com.hlw.system.entity.SysUserRoleEntity;
 import com.hlw.system.mapper.SysDeptMapper;
+import com.hlw.system.mapper.SysDictDataMapper;
+import com.hlw.system.mapper.SysDictTypeMapper;
 import com.hlw.system.mapper.SysMenuMapper;
 import com.hlw.system.mapper.SysPostMapper;
 import com.hlw.system.mapper.SysRoleMapper;
 import com.hlw.system.mapper.SysRoleMenuMapper;
+import com.hlw.system.mapper.SysTenantPackageMapper;
 import com.hlw.system.mapper.SysTenantPackageMenuMapper;
 import com.hlw.system.mapper.SysUserMapper;
 import com.hlw.system.mapper.SysUserPostMapper;
 import com.hlw.system.mapper.SysUserRoleMapper;
 import com.hlw.system.service.support.MybatisTenantHelpers;
+import com.hlw.system.service.support.SystemDefaultDataGuard;
 import com.hlw.system.service.support.UserIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,10 +62,16 @@ import java.util.stream.Collectors;
 public class TenantBootstrapService {
     /** 菜单数据访问组件。 */
     private final SysMenuMapper sysMenuMapper;
+    /** 租户套餐数据访问组件。 */
+    private final SysTenantPackageMapper sysTenantPackageMapper;
     /** 租户套餐菜单关系数据访问组件。 */
     private final SysTenantPackageMenuMapper sysTenantPackageMenuMapper;
     /** 部门数据访问组件。 */
     private final SysDeptMapper sysDeptMapper;
+    /** 字典类型数据访问组件。 */
+    private final SysDictTypeMapper sysDictTypeMapper;
+    /** 字典数据访问组件。 */
+    private final SysDictDataMapper sysDictDataMapper;
     /** 岗位数据访问组件。 */
     private final SysPostMapper sysPostMapper;
     /** 角色数据访问组件。 */
@@ -110,6 +123,7 @@ public class TenantBootstrapService {
         SysDeptEntity tenantDept = upsertTenantDept(tenant, adminUser);
         SysPostEntity tenantPost = upsertTenantPost(tenant.getTenantId());
         bindAdminOrganization(tenant.getTenantId(), adminUser, tenantDept, tenantPost);
+        syncDefaultDicts(tenant.getTenantId());
         List<SysMenuEntity> templateMenus = loadPackageTemplateMenus(tenant.getPackageId());
         Map<Long, SysMenuEntity> tenantMenuMap = copyPackageMenus(tenant.getTenantId(), templateMenus);
         SysRoleEntity adminRole = upsertRole(tenant.getTenantId(),
@@ -127,6 +141,92 @@ public class TenantBootstrapService {
         }
         log.info("租户权限数据{}完成，tenantId={}，deptId={}，postId={}，menuCount={}，adminRoleId={}，userRoleId={}，adminUserId={}",
             actionName, tenant.getTenantId(), tenantDept.getId(), tenantPost.getId(), tenantMenuMap.size(), adminRole.getId(), userRole.getId(), adminUser.getUserId());
+    }
+
+    /**
+     * 同步平台默认字典到租户。
+     *
+     * @param tenantId 租户编号
+     */
+    private void syncDefaultDicts(String tenantId) {
+        ignoreTenantLine(() -> {
+            List<SysDictTypeEntity> typeTemplates = sysDictTypeMapper.selectList(new LambdaQueryWrapper<SysDictTypeEntity>()
+                .eq(SysDictTypeEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
+                .eq(SysDictTypeEntity::getIsDefault, SystemTenantConstants.SYSTEM_DEFAULT_DATA_FLAG));
+            for (SysDictTypeEntity template : typeTemplates) {
+                upsertTenantDictType(tenantId, template);
+            }
+
+            List<SysDictDataEntity> dataTemplates = sysDictDataMapper.selectList(new LambdaQueryWrapper<SysDictDataEntity>()
+                .eq(SysDictDataEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
+                .eq(SysDictDataEntity::getIsDefault, SystemTenantConstants.SYSTEM_DEFAULT_DATA_FLAG));
+            for (SysDictDataEntity template : dataTemplates) {
+                upsertTenantDictData(tenantId, template);
+            }
+            log.info("同步租户默认字典完成，tenantId={}，typeCount={}，dataCount={}", tenantId, typeTemplates.size(), dataTemplates.size());
+            return null;
+        });
+    }
+
+    /**
+     * 创建或更新租户字典类型。
+     *
+     * @param tenantId 租户编号
+     * @param template 平台字典类型模板
+     */
+    private void upsertTenantDictType(String tenantId, SysDictTypeEntity template) {
+        SysDictTypeEntity entity = sysDictTypeMapper.selectOne(new LambdaQueryWrapper<SysDictTypeEntity>()
+            .eq(SysDictTypeEntity::getTenantId, tenantId)
+            .eq(SysDictTypeEntity::getDictType, template.getDictType())
+            .last("limit 1"));
+        boolean create = entity == null;
+        if (create) {
+            entity = new SysDictTypeEntity();
+            entity.setTenantId(tenantId);
+            entity.setDictType(template.getDictType());
+            entity.setCreateTime(LocalDateTime.now());
+        }
+        entity.setDictName(template.getDictName());
+        entity.setRemark(template.getRemark());
+        entity.setIsDefault(SystemTenantConstants.SYSTEM_DEFAULT_DATA_FLAG);
+        entity.setUpdateTime(LocalDateTime.now());
+        if (create) {
+            sysDictTypeMapper.insert(entity);
+            return;
+        }
+        sysDictTypeMapper.updateById(entity);
+    }
+
+    /**
+     * 创建或更新租户字典数据。
+     *
+     * @param tenantId 租户编号
+     * @param template 平台字典数据模板
+     */
+    private void upsertTenantDictData(String tenantId, SysDictDataEntity template) {
+        SysDictDataEntity entity = sysDictDataMapper.selectOne(new LambdaQueryWrapper<SysDictDataEntity>()
+            .eq(SysDictDataEntity::getTenantId, tenantId)
+            .eq(SysDictDataEntity::getDictType, template.getDictType())
+            .eq(SysDictDataEntity::getDictValue, template.getDictValue())
+            .last("limit 1"));
+        boolean create = entity == null;
+        if (create) {
+            entity = new SysDictDataEntity();
+            entity.setTenantId(tenantId);
+            entity.setDictType(template.getDictType());
+            entity.setDictValue(template.getDictValue());
+            entity.setCreateTime(LocalDateTime.now());
+        }
+        entity.setDictSort(template.getDictSort());
+        entity.setDictLabel(template.getDictLabel());
+        entity.setRemark(template.getRemark());
+        entity.setIsDefault(SystemTenantConstants.SYSTEM_DEFAULT_DATA_FLAG);
+        entity.setUpdateTime(LocalDateTime.now());
+        if (create) {
+            sysDictDataMapper.insert(entity);
+            return;
+        }
+        sysDictDataMapper.updateById(entity);
     }
 
     /**
@@ -434,16 +534,19 @@ public class TenantBootstrapService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
-            if (menuIds.isEmpty()) {
+            List<SysMenuEntity> allPlatformMenus = loadAllPlatformMenus();
+            List<Long> effectiveMenuIds = resolveEffectivePackageMenuIds(packageId, menuIds, allPlatformMenus);
+            if (effectiveMenuIds.isEmpty()) {
                 log.warn("租户套餐未绑定菜单，packageId={}", packageId);
                 return List.of();
             }
-            List<SysMenuEntity> templates = sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
-                .eq(SysMenuEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
-                .in(SysMenuEntity::getId, appendMissingParentMenuIds(menuIds)));
-            if (templates.size() < menuIds.size()) {
+            Set<Long> templateIds = new HashSet<>(appendMissingParentMenuIds(effectiveMenuIds));
+            List<SysMenuEntity> templates = allPlatformMenus.stream()
+                .filter(menu -> templateIds.contains(menu.getId()))
+                .toList();
+            if (templates.size() < effectiveMenuIds.size()) {
                 log.warn("租户套餐存在无效菜单模板，packageId={}，packageMenuIds={}，validCount={}",
-                    packageId, menuIds, templates.size());
+                    packageId, effectiveMenuIds, templates.size());
             }
             Map<Long, SysMenuEntity> templateMap = templates.stream()
                 .collect(Collectors.toMap(SysMenuEntity::getId, Function.identity(), (left, right) -> left));
@@ -453,6 +556,53 @@ public class TenantBootstrapService {
                     .thenComparing(SysMenuEntity::getId))
                 .toList();
         });
+    }
+
+    /**
+     * 加载平台租户全部菜单模板。
+     *
+     * @return 平台菜单模板列表
+     */
+    private List<SysMenuEntity> loadAllPlatformMenus() {
+        return sysMenuMapper.selectList(new LambdaQueryWrapper<SysMenuEntity>()
+            .eq(SysMenuEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID));
+    }
+
+    /**
+     * 解析套餐实际用于租户初始化的菜单编号。
+     *
+     * @param packageId 套餐编号
+     * @param menuIds 套餐已绑定菜单编号
+     * @param allPlatformMenus 平台菜单模板列表
+     * @return 实际菜单编号列表
+     */
+    private List<Long> resolveEffectivePackageMenuIds(Long packageId, List<Long> menuIds, List<SysMenuEntity> allPlatformMenus) {
+        if (isDefaultPackage(packageId) && menuIds.size() < allPlatformMenus.size()) {
+            log.warn("默认套餐菜单绑定不完整，自动使用全部平台菜单初始化租户，packageId={}，bindCount={}，platformMenuCount={}",
+                packageId, menuIds.size(), allPlatformMenus.size());
+            return allPlatformMenus.stream()
+                .map(SysMenuEntity::getId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        }
+        return menuIds;
+    }
+
+    /**
+     * 判断套餐是否为默认套餐。
+     *
+     * @param packageId 套餐编号
+     * @return true 表示默认套餐
+     */
+    private boolean isDefaultPackage(Long packageId) {
+        SysTenantPackageEntity packageEntity = sysTenantPackageMapper.selectOne(new LambdaQueryWrapper<SysTenantPackageEntity>()
+            .eq(SysTenantPackageEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
+            .eq(SysTenantPackageEntity::getId, packageId)
+            .last("limit 1"));
+        return packageEntity != null
+            && (SystemDefaultDataGuard.isSystemDefault(packageEntity.getIsDefault())
+                || "默认套餐".equals(packageEntity.getPackageName()));
     }
 
     /**

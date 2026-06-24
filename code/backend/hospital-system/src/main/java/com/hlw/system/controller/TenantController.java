@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -36,12 +37,13 @@ public class TenantController {
     /**
      * 查询登录前可选择的租户选项。
      *
+     * @param includeDefault 是否包含系统默认租户
      * @return 租户选项列表
      */
     @GetMapping("/options")
-    public R<List<TenantOptionResp>> options() {
-        log.info("查询登录前租户选项");
-        return R.ok(tenantService.listTenantOptions());
+    public R<List<TenantOptionResp>> options(@RequestParam(defaultValue = "false") boolean includeDefault) {
+        log.info("查询登录前租户选项，includeDefault={}", includeDefault);
+        return R.ok(tenantService.listTenantOptions(includeDefault));
     }
 
     /**
