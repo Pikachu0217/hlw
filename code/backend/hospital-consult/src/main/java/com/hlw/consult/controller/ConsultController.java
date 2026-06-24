@@ -117,6 +117,18 @@ public class ConsultController {
     }
 
     /**
+     * 从已支付预约单创建问诊。
+     *
+     * @param appointmentId 预约单编号
+     * @return 问诊单
+     */
+    @PostMapping("/consults/from-appointment/{appointmentId}")
+    public R<ConsultVO> createConsultFromAppointment(@PathVariable Long appointmentId) {
+        log.info("从预约单创建问诊，appointmentId={}", appointmentId);
+        return R.ok(consultWorkflowService.createConsultFromAppointment(appointmentId));
+    }
+
+    /**
      * 查询问诊消息。
      *
      * @param id 问诊编号

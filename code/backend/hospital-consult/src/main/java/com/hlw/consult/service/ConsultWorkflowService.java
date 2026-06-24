@@ -107,6 +107,54 @@ public class ConsultWorkflowService {
     }
 
     /**
+     * 从已支付预约单创建问诊，幂等（已存在关联问诊时直接返回）。
+     *
+     * @param appointmentId 预约单编号
+     * @return 问诊单
+     */
+    @Transactional
+    public ConsultVO createConsultFromAppointment(Long appointmentId) {
+        ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
+        log.info("从预约单创建问诊，appointmentId={}", appointmentId);
+
+        // 幂等：已存在关联问诊时直接返回
+        ConConsultEntity existing = conConsultMapper.selectOne(
+            new LambdaQueryWrapper<ConConsultEntity>()
+                .eq(ConConsultEntity::getAppointmentId, appointmentId)
+                .last("limit 1")
+        );
+        if (existing != null) {
+            log.info("预约单已关联问诊单，consultId={}", existing.getId());
+            return toConsultVO(existing);
+        }
+
+        InternalPatientResp currentPatient = resolveCurrentPatient();
+        Long patientId = currentPatient == null ? DEFAULT_PATIENT_ID : currentPatient.id();
+        String patientName = currentPatient == null ? DEFAULT_PATIENT_NAME : currentPatient.patientName();
+
+        ConConsultEntity entity = new ConConsultEntity();
+        entity.setPatientId(patientId);
+        entity.setDoctorId(DEFAULT_DOCTOR_ID);
+        entity.setAppointmentId(appointmentId);
+        entity.setConsultType(DEFAULT_CONSULT_TYPE);
+        entity.setConsultNo("");
+        entity.setPatientName(patientName);
+        entity.setDoctorName(DEFAULT_DOCTOR_NAME);
+        entity.setChannel(channelName(DEFAULT_CONSULT_TYPE));
+        entity.setStatus(ConsultDisplayStatus.WAITING);
+        entity.setPayStatus("PAID");
+        entity.setFeeAmount(new BigDecimal("39.90"));
+        entity.setDurationLimit(DEFAULT_DURATION_LIMIT);
+        entity.setRemainingSeconds(DEFAULT_DURATION_LIMIT * 60);
+        entity.setUpdatedAt(currentDisplayTime());
+        conConsultMapper.insert(entity);
+        entity.setConsultNo(resolveConsultNo(entity.getId()));
+        conConsultMapper.updateById(entity);
+        log.info("已从预约单创建问诊，consultId={}，appointmentId={}", entity.getId(), appointmentId);
+        return toConsultVO(entity);
+    }
+
+    /**
      * 医生接单问诊。
      *
      * @param id 问诊编号
@@ -274,8 +322,13 @@ public class ConsultWorkflowService {
         vo.setConsultNo(defaultIfBlank(entity.getConsultNo(), resolveConsultNo(entity.getId())));
         vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));
         vo.setDoctorName(defaultIfBlank(entity.getDoctorName(), ""));
+        vo.setDoctorId(entity.getDoctorId());
         vo.setChannel(defaultIfBlank(entity.getChannel(), channelName(entity.getConsultType())));
         vo.setStatus(ConsultDisplayStatus.labelOf(defaultIfBlank(entity.getStatus(), ConsultDisplayStatus.WAITING)));
+        vo.setPayStatus(defaultIfBlank(entity.getPayStatus(), "UNPAID"));
+        vo.setAppointmentId(entity.getAppointmentId());
+        vo.setFeeAmount(entity.getFeeAmount() == null ? "0.00" : entity.getFeeAmount().toPlainString());
+        vo.setRemainingSeconds(entity.getRemainingSeconds());
         vo.setUpdatedAt(defaultIfBlank(entity.getUpdatedAt(), ""));
         return vo;
     }

@@ -25,6 +25,8 @@ public class ConConsultEntity {
     private Long patientId;
     /** 医生编号。 */
     private Long doctorId;
+    /** 关联预约单编号。 */
+    private Long appointmentId;
     /** 问诊类型。 */
     private String consultType;
     /** 问诊单号。 */
@@ -37,6 +39,8 @@ public class ConConsultEntity {
     private String channel;
     /** 问诊状态。 */
     private String status;
+    /** 支付状态。 */
+    private String payStatus;
     /** 问诊费用。 */
     private BigDecimal feeAmount;
     /** 问诊时长上限分钟。 */
