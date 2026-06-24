@@ -72,17 +72,17 @@ public class ConsultWebSocketHandshakeInterceptor implements HandshakeIntercepto
     ) {
         Long consultId = resolveConsultId(request.getURI());
         TokenPrincipal principal = resolvePrincipal(request);
-        String senderType;
+        ConsultWebSocketPermissionService.Participant participant;
         TokenPrincipalContext.set(principal);
         try {
-            senderType = permissionService.resolveSenderType(consultId, principal);
+            participant = permissionService.resolveParticipant(consultId, principal);
         } finally {
             TokenPrincipalContext.clear();
         }
         attributes.put(CONSULT_ID_ATTRIBUTE, consultId);
-        attributes.put(SENDER_ID_ATTRIBUTE, principal.getBusinessUserId());
-        attributes.put(SENDER_TYPE_ATTRIBUTE, senderType);
-        log.info("问诊 WebSocket 握手通过，consultId={}，senderId={}，senderType={}", consultId, principal.getBusinessUserId(), senderType);
+        attributes.put(SENDER_ID_ATTRIBUTE, participant.senderId());
+        attributes.put(SENDER_TYPE_ATTRIBUTE, participant.senderType());
+        log.info("问诊 WebSocket 握手通过，consultId={}，senderId={}，senderType={}", consultId, participant.senderId(), participant.senderType());
         return true;
     }
 

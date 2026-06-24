@@ -57,7 +57,7 @@ public class MybatisConsultMessageRepository implements ConsultMessageRepository
             entity.getSenderType(),
             entity.getContent(),
             entity.getContentType(),
-            Boolean.TRUE.equals(entity.getReadFlag()),
+            isRead(entity),
             entity.getCreateTime()
         );
     }
@@ -82,9 +82,19 @@ public class MybatisConsultMessageRepository implements ConsultMessageRepository
                 entity.getSenderType(),
                 entity.getContent(),
                 entity.getContentType(),
-                Boolean.TRUE.equals(entity.getReadFlag()),
+                isRead(entity),
                 entity.getCreateTime()
             ))
             .toList();
+    }
+
+    /**
+     * 判断消息是否已读。
+     *
+     * @param entity 消息实体
+     * @return 是否已读
+     */
+    private boolean isRead(ConMessageEntity entity) {
+        return Boolean.TRUE.equals(entity.getReadFlag()) || (entity.getIsRead() != null && entity.getIsRead() != 0);
     }
 }

@@ -1,6 +1,7 @@
 package com.hlw.consult.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
@@ -30,9 +31,11 @@ public class ConMessageEntity {
     private String content;
     /** 消息内容类型。 */
     private String contentType;
-    /** 已读标识。 */
+    /** 已读标识，非数据库字段，兼容业务布尔语义。 */
+    @TableField(exist = false)
     private Boolean readFlag;
     /** 兼容旧表已读标识。 */
+    @TableField("is_read")
     private Integer isRead;
     /** 创建时间。 */
     private LocalDateTime createTime;

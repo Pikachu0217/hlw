@@ -34,9 +34,9 @@ public class ConsultWebSocketPermissionService {
      *
      * @param consultId 问诊编号
      * @param principal 登录主体
-     * @return 发送人类型
+     * @return 发送人信息
      */
-    public String resolveSenderType(Long consultId, TokenPrincipal principal) {
+    public Participant resolveParticipant(Long consultId, TokenPrincipal principal) {
         ConConsultEntity consult = requireConsult(consultId);
         if (!consult.getTenantId().equals(principal.getTenantId())) {
             log.warn("问诊 WebSocket 租户不匹配，consultId={}，consultTenantId={}，loginTenantId={}", consultId, consult.getTenantId(), principal.getTenantId());
@@ -44,14 +44,23 @@ public class ConsultWebSocketPermissionService {
         }
         InternalPatientResp patient = resolvePatient(principal);
         if (patient != null && consult.getPatientId().equals(patient.id())) {
-            return ConsultParticipantType.PATIENT;
+            return new Participant(patient.id(), ConsultParticipantType.PATIENT);
         }
         InternalDoctorResp doctor = resolveDoctor(principal);
         if (doctor != null && consult.getDoctorId().equals(doctor.id())) {
-            return ConsultParticipantType.DOCTOR;
+            return new Participant(doctor.id(), ConsultParticipantType.DOCTOR);
         }
         log.warn("问诊 WebSocket 参与人校验失败，consultId={}，userId={}", consultId, principal.getBusinessUserId());
         throw new BizException(403, "无权连接该问诊");
+    }
+
+    /**
+     * 问诊参与人信息。
+     *
+     * @param senderId 发送人编号
+     * @param senderType 发送人类型
+     */
+    public record Participant(Long senderId, String senderType) {
     }
 
     /**
