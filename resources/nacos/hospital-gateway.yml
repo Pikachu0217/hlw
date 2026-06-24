@@ -1,0 +1,44 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: hospital-auth
+          uri: lb://hospital-auth
+          predicates:
+            - Path=/auth/**
+        - id: hospital-system
+          uri: lb://hospital-system
+          predicates:
+            - Path=/system/**
+        - id: hospital-doctor
+          uri: lb://hospital-doctor
+          predicates:
+            - Path=/doctor/**
+        - id: hospital-patient
+          uri: lb://hospital-patient
+          predicates:
+            - Path=/patient/**
+        - id: hospital-appointment
+          uri: lb://hospital-appointment
+          predicates:
+            - Path=/appointment/**
+        - id: hospital-consult
+          uri: lb://hospital-consult
+          predicates:
+            - Path=/consult/**
+        - id: hospital-consult-ws
+          uri: lb:ws://hospital-consult
+          predicates:
+            - Path=/ws/consult/**
+        - id: hospital-prescription
+          uri: lb://hospital-prescription
+          predicates:
+            - Path=/prescription/**
+        - id: hospital-drug
+          uri: lb://hospital-drug
+          predicates:
+            - Path=/drug/**
+        - id: hospital-order
+          uri: lb://hospital-order
+          predicates:
+            - Path=/order/**
