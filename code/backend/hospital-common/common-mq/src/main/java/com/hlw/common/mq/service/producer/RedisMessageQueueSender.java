@@ -1,7 +1,6 @@
 package com.hlw.common.mq.service.producer;
 
 import com.hlw.common.redis.service.RedisService;
-import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -18,8 +17,8 @@ public class RedisMessageQueueSender<T, P> extends AbstractMessageQueueSender<T,
     @Autowired
     private RedisService redisService;
 
-    @Resource
-    private StringRedisTemplate redisTemplate;
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     protected boolean doSend(String queue, T message) {
@@ -31,7 +30,7 @@ public class RedisMessageQueueSender<T, P> extends AbstractMessageQueueSender<T,
     @Override
     protected boolean broadSend(String channel, T message) {
         String messageValue = super.serializeMessage(message);
-        redisTemplate.convertAndSend(channel, messageValue);
+        stringRedisTemplate.convertAndSend(channel, messageValue);
         return true;
     }
 
