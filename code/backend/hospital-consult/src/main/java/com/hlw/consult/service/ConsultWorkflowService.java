@@ -5,7 +5,9 @@ import com.hlw.common.core.domain.R;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.common.core.util.DefaultValueUtils;
+import com.hlw.consult.client.AppointmentFeignClient;
 import com.hlw.consult.client.PatientFeignClient;
+import com.hlw.consult.client.resp.InternalAppointmentResp;
 import com.hlw.consult.client.resp.InternalPatientResp;
 import com.hlw.consult.dto.AcceptConsultRequest;
 import com.hlw.consult.dto.CreateConsultRequest;
@@ -41,7 +43,7 @@ public class ConsultWorkflowService {
     private static final long DEFAULT_DOCTOR_ID = 1L;
     private static final int DEFAULT_DURATION_LIMIT = 30;
     private static final int EXTEND_MINUTES = 15;
-    private static final String DEFAULT_CONSULT_TYPE = "IMAGE_TEXT";
+    private static final String DEFAULT_CONSULT_TYPE = "text_and_image_consultation";
     private static final String DEFAULT_PATIENT_NAME = "赵晓岚";
     private static final String DEFAULT_DOCTOR_NAME = "陈知衡";
 
@@ -51,6 +53,8 @@ public class ConsultWorkflowService {
     private final ConMessageMapper conMessageMapper;
     /** 患者服务内部客户端。 */
     private final PatientFeignClient patientFeignClient;
+    /** 预约服务内部客户端。 */
+    private final AppointmentFeignClient appointmentFeignClient;
 
     /**
      * 查询问诊单列表。
@@ -128,22 +132,35 @@ public class ConsultWorkflowService {
             return toConsultVO(existing);
         }
 
-        InternalPatientResp currentPatient = resolveCurrentPatient();
-        Long patientId = currentPatient == null ? DEFAULT_PATIENT_ID : currentPatient.id();
-        String patientName = currentPatient == null ? DEFAULT_PATIENT_NAME : currentPatient.patientName();
+        // 查询预约单，获取医生、患者和费用信息
+        R<InternalAppointmentResp> aptResponse = appointmentFeignClient.getAppointment(appointmentId);
+        InternalAppointmentResp appointment = (aptResponse == null || aptResponse.code() != 200 || aptResponse.data() == null)
+            ? null : aptResponse.data();
+        if (appointment == null) {
+            log.warn("预约单不存在或查询失败，appointmentId={}", appointmentId);
+            throw new BizException(404, "预约单不存在");
+        }
+        Long doctorId = appointment.doctorId();
+        String doctorName = appointment.doctorName();
+        Long patientId = appointment.patientId();
+        String patientName = appointment.patientName();
+        String feeAmount = appointment.feeAmount();
+
+        log.info("从预约单创建问诊，appointmentId={}，patientId={}，patientName={}，doctorId={}，doctorName={}，feeAmount={}",
+            appointmentId, patientId, patientName, doctorId, doctorName, feeAmount);
 
         ConConsultEntity entity = new ConConsultEntity();
         entity.setPatientId(patientId);
-        entity.setDoctorId(DEFAULT_DOCTOR_ID);
+        entity.setDoctorId(doctorId);
         entity.setAppointmentId(appointmentId);
         entity.setConsultType(DEFAULT_CONSULT_TYPE);
         entity.setConsultNo("");
         entity.setPatientName(patientName);
-        entity.setDoctorName(DEFAULT_DOCTOR_NAME);
+        entity.setDoctorName(doctorName);
         entity.setChannel(channelName(DEFAULT_CONSULT_TYPE));
         entity.setStatus(ConsultDisplayStatus.WAITING);
         entity.setPayStatus("PAID");
-        entity.setFeeAmount(new BigDecimal("39.90"));
+        entity.setFeeAmount(new BigDecimal(feeAmount));
         entity.setDurationLimit(DEFAULT_DURATION_LIMIT);
         entity.setRemainingSeconds(DEFAULT_DURATION_LIMIT * 60);
         entity.setUpdatedAt(currentDisplayTime());

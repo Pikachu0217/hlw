@@ -86,12 +86,12 @@ export function ConsultChat({
     }
   }, [messages]);
 
-  /** 快捷回复短语。 */
+  /** 患者快捷输入语。 */
   const quickReplies = [
-    "请描述症状持续时间",
-    "是否有药物过敏史？",
-    "请上传检查报告",
-    "建议线下就诊"
+    "我有发热、咳嗽的症状",
+    "持续3天了",
+    "没有药物过敏史",
+    "需要开点药吗？"
   ];
 
   function handleQuickReply(text: string): void {

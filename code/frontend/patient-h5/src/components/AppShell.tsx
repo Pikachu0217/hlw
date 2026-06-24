@@ -1,11 +1,10 @@
 import { NavBar, TabBar } from "antd-mobile";
-import { AppOutline, CalendarOutline, MessageOutline, UnorderedListOutline, UserOutline } from "antd-mobile-icons";
+import { AppOutline, CalendarOutline, UnorderedListOutline, UserOutline } from "antd-mobile-icons";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 const tabs = [
   { key: "/", title: "首页", icon: <AppOutline /> },
-  { key: "/appointment/list", title: "挂号", icon: <CalendarOutline /> },
-  { key: "/consult/list", title: "问诊", icon: <MessageOutline /> },
+  { key: "/consult-flow", title: "预约问诊", icon: <CalendarOutline /> },
   { key: "/order/list", title: "订单", icon: <UnorderedListOutline /> },
   { key: "/profile", title: "我的", icon: <UserOutline /> }
 ];

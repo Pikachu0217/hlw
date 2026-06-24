@@ -5,7 +5,7 @@ import { SectionCard } from "../../components/SectionCard";
 const services = [
   { text: "选择医院", path: "/hospital" },
   { text: "科室导诊", path: "/department" },
-  { text: "预约挂号", path: "/appointment/list" },
+  { text: "预约问诊", path: "/consult-flow" },
   { text: "图文问诊", path: "/department" },
   { text: "我的处方", path: "/prescription/list" },
   { text: "我的订单", path: "/order/list" }

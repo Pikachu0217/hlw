@@ -54,7 +54,7 @@ export function ConsultCreatePage() {
 
   async function handleCreateConsult(): Promise<void> {
     const values = await form.validateFields();
-    const consultType = values.consultType?.[0] ?? "IMAGE_TEXT";
+    const consultType = values.consultType?.[0] ?? "text_and_image_consultation";
     const chiefComplaint = values.chiefComplaint ?? "";
 
     try {

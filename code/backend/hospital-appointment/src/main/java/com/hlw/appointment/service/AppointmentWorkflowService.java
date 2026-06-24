@@ -12,6 +12,7 @@ import com.hlw.appointment.mapper.AptAppointmentMapper;
 import com.hlw.appointment.mapper.AptNumberSourceMapper;
 import com.hlw.appointment.mapper.AptReleaseConfigMapper;
 import com.hlw.appointment.domain.resp.AppointmentVO;
+import com.hlw.appointment.domain.resp.InternalAppointmentResp;
 import com.hlw.appointment.domain.resp.NumberSourceVO;
 import com.hlw.appointment.domain.resp.ReleaseConfigVO;
 import com.hlw.common.core.exception.BizException;
@@ -405,6 +406,25 @@ public class AppointmentWorkflowService {
         vo.setStatus(defaultIfBlank(entity.getStatus(), STATUS_PENDING_PAY));
         vo.setFeeAmount(defaultDecimal(entity.getFeeAmount(), BigDecimal.ZERO).toPlainString());
         return vo;
+    }
+
+    /**
+     * 内部查询预约单基本信息（供 consult 模块 Feign 调用）。
+     *
+     * @param id 预约单编号
+     * @return 预约单内部响应
+     */
+    public InternalAppointmentResp getInternalAppointment(Long id) {
+        log.info("内部查询预约单，appointmentId={}", id);
+        AptAppointmentEntity entity = requireActiveAppointment(id);
+        return new InternalAppointmentResp(
+            entity.getId(),
+            entity.getPatientId(),
+            entity.getDoctorId(),
+            defaultIfBlank(entity.getPatientName(), ""),
+            defaultIfBlank(entity.getDoctorName(), ""),
+            defaultDecimal(entity.getFeeAmount(), BigDecimal.ZERO).toPlainString()
+        );
     }
 
     /**

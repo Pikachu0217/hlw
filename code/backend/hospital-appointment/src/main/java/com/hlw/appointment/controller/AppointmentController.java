@@ -6,6 +6,7 @@ import com.hlw.appointment.dto.GrabAppointmentRequest;
 import com.hlw.appointment.dto.InternalCreateReleaseConfigRequest;
 import com.hlw.appointment.service.AppointmentWorkflowService;
 import com.hlw.appointment.domain.resp.AppointmentVO;
+import com.hlw.appointment.domain.resp.InternalAppointmentResp;
 import com.hlw.appointment.domain.resp.NumberSourceVO;
 import com.hlw.appointment.domain.resp.ReleaseConfigVO;
 import com.hlw.common.core.domain.R;
@@ -138,5 +139,17 @@ public class AppointmentController {
     public R<ReleaseConfigVO> createInternalReleaseConfig(@RequestBody InternalCreateReleaseConfigRequest request) {
         log.info("内部接口创建放号配置，scheduleId={}，releaseCount={}", request.getScheduleId(), request.getReleaseCount());
         return R.ok(appointmentWorkflowService.createReleaseConfig(request));
+    }
+
+    /**
+     * 内部接口：根据预约单编号查询预约单基本信息（供 consult 模块 Feign 调用）。
+     *
+     * @param id 预约单编号
+     * @return 预约单内部响应
+     */
+    @GetMapping("/internal/appointments/{id}")
+    public R<InternalAppointmentResp> getInternalAppointment(@PathVariable Long id) {
+        log.info("内部接口查询预约单，appointmentId={}", id);
+        return R.ok(appointmentWorkflowService.getInternalAppointment(id));
     }
 }

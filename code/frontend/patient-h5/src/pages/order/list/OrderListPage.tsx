@@ -1,17 +1,16 @@
-import { Button, Form, Input, List, Picker, Space, SpinLoading, Tag, Toast } from "antd-mobile";
+import { List, Space, SpinLoading, Tag, Toast } from "antd-mobile";
 import { useEffect, useState } from "react";
-import { createOrder, fetchOrders, fetchPatientProfile, payOrder, type OrderItem } from "../../../app/api";
+import { fetchOrders, type OrderItem } from "../../../app/api";
 import { SectionCard } from "../../../components/SectionCard";
 
-interface OrderFormValues {
-  businessType?: string[];
-  amount?: string;
-}
-
+/**
+ * 患者订单列表页。
+ * 订单是平台支付交易流水记录，涵盖挂号费、问诊费和药品配送费的支付凭证。
+ * 当您支付预约挂号、图文问诊或购买药品时，系统会自动生成对应的订单记录。
+ */
 export function OrderListPage() {
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [form] = Form.useForm<OrderFormValues>();
 
   useEffect(() => {
     void loadOrders();
@@ -22,76 +21,50 @@ export function OrderListPage() {
 
     try {
       setOrders(await fetchOrders());
+    } catch {
+      Toast.show("订单列表加载失败");
+      setOrders([]);
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleCreateOrder(): Promise<void> {
-    const values = await form.validateFields();
-    try {
-      const profile = await fetchPatientProfile();
-      await createOrder({
-        bizType: values.businessType?.[0] ?? "CONSULT",
-        patientId: profile.id,
-        patientName: profile.patientName,
-        amount: values.amount ?? "0.00",
-        createdAt: new Date().toLocaleString()
-      });
-      form.resetFields();
-      Toast.show("订单已创建");
-      await loadOrders();
-    } catch {
-      Toast.show("订单创建失败");
-    }
-  }
-
-  async function handlePay(orderId: number, payMethod: string): Promise<void> {
-    try {
-      await payOrder(orderId, payMethod);
-      Toast.show("订单已支付");
-      await loadOrders();
-    } catch {
-      Toast.show("订单支付失败");
-    }
+  /** 订单类型中文映射。 */
+  function businessTypeLabel(bizType?: string): string {
+    const map: Record<string, string> = {
+      "门诊预约": "挂号费",
+      "图文咨询": "问诊费",
+      "处方购药": "药品费",
+      "药品配送": "配送费"
+    };
+    return map[bizType || ""] || bizType || "其他";
   }
 
   return (
-    <SectionCard title="我的订单" description="聚合预约挂号、问诊费和药品配送订单。">
-      <Form
-        form={form}
-        layout="horizontal"
-        className="order-create-form"
-        footer={<Button color="primary" block onClick={handleCreateOrder}>创建订单</Button>}
-      >
-        <Form.Item label="业务类型" name="businessType" rules={[{ required: true, message: "请选择业务类型" }]}>
-          <Picker columns={[[{ label: "问诊订单", value: "CONSULT" }, { label: "挂号订单", value: "APPOINTMENT" }, { label: "药品订单", value: "DRUG" }]]}>
-            {(items) => <Input readOnly value={typeof items?.[0]?.label === "string" ? items[0].label : ""} placeholder="请选择业务类型" />}
-          </Picker>
-        </Form.Item>
-        <Form.Item label="金额" name="amount" rules={[{ required: true, message: "请输入金额" }]}>
-          <Input type="number" placeholder="请输入订单金额" />
-        </Form.Item>
-      </Form>
-      {loading ? <SpinLoading /> : null}
+    <SectionCard title="我的订单" description="挂号费、问诊费和药品配送费的支付记录。">
+      {loading ? <SpinLoading style={{ display: "block", margin: "20px auto" }} /> : null}
+
       <List>
+        {orders.length === 0 && !loading ? (
+          <List.Item>
+            <div style={{ textAlign: "center", color: "#94a3b8", padding: "20px 0" }}>暂无订单记录</div>
+          </List.Item>
+        ) : null}
+
         {orders.map((order) => (
           <List.Item
             key={order.id}
             description={
               <Space>
-                <Tag color={order.payStatus.includes("已") ? "success" : "warning"}>{order.payStatus}</Tag>
-                <span>{order.businessType}</span>
-                <Button size="mini" onClick={() => handlePay(order.id, "WECHAT")}>
-                  微信支付
-                </Button>
-                <Button size="mini" onClick={() => handlePay(order.id, "ALI_PAY")}>
-                  支付宝
-                </Button>
+                <span>{order.amount}</span>
+                <Tag color={order.payStatus === "已支付" ? "success" : "warning"}>{order.payStatus}</Tag>
               </Space>
             }
           >
-            {order.orderNo}
+            <Space>
+              <span>{order.orderNo}</span>
+              <Tag color="primary" fill="outline">{businessTypeLabel(order.businessType)}</Tag>
+            </Space>
           </List.Item>
         ))}
       </List>
