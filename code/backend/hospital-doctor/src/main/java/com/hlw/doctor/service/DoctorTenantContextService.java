@@ -414,12 +414,25 @@ public class DoctorTenantContextService {
         DocDoctorEntity doctor = requireActiveDoctor(request.getDoctorId());
         DocDepartmentEntity department = ensureDepartmentExtension(request.getDeptId(), tenantId);
         requireDoctorDepartmentBinding(request.getDoctorId(), request.getDeptId());
+
+        // 校验：同一医生同一时间段不能重复排班
+        LocalDate scheduleDate = parseDate(defaultIfBlank(request.getScheduleDate(), LocalDate.now().format(DATE_FORMATTER)));
+        String timeSlot = defaultIfBlank(request.getTimeSlot(), request.getSlot());
+        long existingCount = docScheduleMapper.selectCount(new LambdaQueryWrapper<DocScheduleEntity>()
+            .eq(DocScheduleEntity::getDoctorId, request.getDoctorId())
+            .eq(DocScheduleEntity::getScheduleDate, scheduleDate)
+            .eq(DocScheduleEntity::getTimeSlot, timeSlot));
+        if (existingCount > 0) {
+            log.warn("该医生在此时间段已有排班，doctorId={}，scheduleDate={}，timeSlot={}", request.getDoctorId(), scheduleDate, timeSlot);
+            throw new BizException(409, "该医生在此时间段已有排班，请勿重复创建");
+        }
+
         DocScheduleEntity entity = new DocScheduleEntity();
         entity.setTenantId(tenantId);
         entity.setDoctorId(request.getDoctorId());
         entity.setDeptId(request.getDeptId());
-        entity.setScheduleDate(parseDate(defaultIfBlank(request.getScheduleDate(), LocalDate.now().format(DATE_FORMATTER))));
-        entity.setTimeSlot(defaultIfBlank(request.getTimeSlot(), request.getSlot()));
+        entity.setScheduleDate(scheduleDate);
+        entity.setTimeSlot(timeSlot);
         entity.setSlot(defaultIfBlank(request.getSlot(), entity.getScheduleDate().format(DATE_FORMATTER) + " " + request.getTimeSlot()));
         entity.setTotalNumber(defaultInt(request.getTotalNumber(), 30));
         entity.setRemainNumber(defaultInt(request.getRemainNumber(), entity.getTotalNumber()));

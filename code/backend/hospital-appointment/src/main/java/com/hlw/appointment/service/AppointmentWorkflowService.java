@@ -112,11 +112,23 @@ public class AppointmentWorkflowService {
     public AppointmentVO createAppointment(CreateAppointmentRequest request) {
         ensureBusinessTenantContext("预约模块操作缺少有效租户上下文");
         Long scheduleId = defaultLong(request.getScheduleId(), DEFAULT_SCHEDULE_ID);
+        Long patientId = defaultLong(request.getPatientId(), DEFAULT_PATIENT_ID);
         log.info("创建预约单，patientId={}，doctorId={}，scheduleId={}",
             request.getPatientId(), request.getDoctorId(), scheduleId);
+
+        // 校验：同一患者同一排班时间段不能重复挂号（已取消或已完成的不算）
+        long existingAppointmentCount = aptAppointmentMapper.selectCount(new LambdaQueryWrapper<AptAppointmentEntity>()
+            .eq(AptAppointmentEntity::getPatientId, patientId)
+            .eq(AptAppointmentEntity::getScheduleId, scheduleId)
+            .notIn(AptAppointmentEntity::getStatus, AppointmentStatus.CANCELLED.dbValue(), AppointmentStatus.COMPLETED.dbValue()));
+        if (existingAppointmentCount > 0) {
+            log.warn("该患者在此时间段已有预约记录，patientId={}，scheduleId={}", patientId, scheduleId);
+            throw new BizException(409, "您在此时间段已有预约记录，请勿重复挂号");
+        }
+
         NumberSourceVO numberSource = lockNumberSource(scheduleId);
         AptAppointmentEntity entity = new AptAppointmentEntity();
-        entity.setPatientId(defaultLong(request.getPatientId(), DEFAULT_PATIENT_ID));
+        entity.setPatientId(patientId);
         entity.setDoctorId(defaultLong(request.getDoctorId(), DEFAULT_DOCTOR_ID));
         entity.setDepartmentId(defaultLong(request.getDepartmentId(), DEFAULT_DEPARTMENT_ID));
         entity.setScheduleId(scheduleId);
