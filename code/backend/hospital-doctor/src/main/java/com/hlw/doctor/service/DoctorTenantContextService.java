@@ -7,6 +7,8 @@ import com.hlw.common.core.domain.system.resp.InternalUserResp;
 import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.security.TokenPrincipal;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
+import com.hlw.doctor.client.AppointmentFeignClient;
+import com.hlw.doctor.client.InternalCreateReleaseConfigRequest;
 import com.hlw.doctor.client.SystemDeptFeignClient;
 import com.hlw.doctor.client.SystemUserFeignClient;
 import com.hlw.doctor.dto.BindDoctorDepartmentRequest;
@@ -73,6 +75,8 @@ public class DoctorTenantContextService {
     private final SystemDeptFeignClient systemDeptFeignClient;
     /** 挂号费策略服务。 */
     private final AppointmentFeePolicyService appointmentFeePolicyService;
+    /** 预约服务内部客户端。 */
+    private final AppointmentFeignClient appointmentFeignClient;
 
     /**
      * 查询科室列表。
@@ -354,14 +358,42 @@ public class DoctorTenantContextService {
      * @return 排班展示列表
      */
     public List<ScheduleVO> listSchedules() {
-        log.info("查询排班列表");
+        return listSchedules(null, null, null);
+    }
+
+    /**
+     * 查询排班列表，支持按日期、医生和科室筛选。
+     *
+     * @param scheduleDate 排班日期（yyyy-MM-dd，可选）
+     * @param doctorId 医生编号（可选）
+     * @param deptId 科室编号（可选）
+     * @return 排班展示列表
+     */
+    public List<ScheduleVO> listSchedules(String scheduleDate, Long doctorId, Long deptId) {
+        log.info("查询排班列表，scheduleDate={}，doctorId={}，deptId={}", scheduleDate, doctorId, deptId);
         Map<Long, String> doctorNameMap = docDoctorMapper.selectList(activeDoctorWrapper())
             .stream()
             .collect(Collectors.toMap(DocDoctorEntity::getId, doctor -> defaultIfBlank(doctor.getDoctorName(), doctor.getName())));
         Map<Long, String> departmentNameMap = docDepartmentMapper.selectList(activeDepartmentWrapper())
             .stream()
             .collect(Collectors.toMap(this::resolveDeptId, entity -> defaultIfBlank(entity.getDepartmentName(), entity.getName()), (current, next) -> current));
-        return docScheduleMapper.selectList(activeScheduleWrapper())
+
+        LambdaQueryWrapper<DocScheduleEntity> wrapper = activeScheduleWrapper();
+        if (scheduleDate != null && !scheduleDate.isBlank()) {
+            try {
+                wrapper.eq(DocScheduleEntity::getScheduleDate, LocalDate.parse(scheduleDate, DATE_FORMATTER));
+            } catch (Exception e) {
+                log.warn("排班日期参数格式无效，忽略筛选，scheduleDate={}", scheduleDate);
+            }
+        }
+        if (doctorId != null && doctorId > 0) {
+            wrapper.eq(DocScheduleEntity::getDoctorId, doctorId);
+        }
+        if (deptId != null && deptId > 0) {
+            wrapper.eq(DocScheduleEntity::getDeptId, deptId);
+        }
+
+        return docScheduleMapper.selectList(wrapper)
             .stream()
             .sorted(Comparator.comparing(DocScheduleEntity::getId))
             .map(entity -> toScheduleVO(entity, doctorNameMap.get(entity.getDoctorId()), departmentNameMap.get(entity.getDeptId())))
@@ -394,6 +426,18 @@ public class DoctorTenantContextService {
         docScheduleMapper.insert(entity);
         doctor.setScheduleDesc(entity.getSlot());
         docDoctorMapper.updateById(doctor);
+
+        // 联动创建放号配置和号源（hospital_appointment 库）
+        try {
+            InternalCreateReleaseConfigRequest releaseRequest = new InternalCreateReleaseConfigRequest();
+            releaseRequest.setScheduleId(entity.getId());
+            releaseRequest.setReleaseCount(entity.getTotalNumber());
+            appointmentFeignClient.createReleaseConfig(releaseRequest);
+            log.info("排班创建成功并已生成号源，scheduleId={}，releaseCount={}", entity.getId(), entity.getTotalNumber());
+        } catch (RuntimeException e) {
+            log.warn("排班创建成功但生成号源失败，scheduleId={}，可手动重试", entity.getId(), e);
+        }
+
         return toScheduleVO(entity, defaultIfBlank(doctor.getDoctorName(), doctor.getName()), defaultIfBlank(department.getDepartmentName(), department.getName()));
     }
 

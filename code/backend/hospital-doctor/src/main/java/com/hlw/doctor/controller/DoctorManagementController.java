@@ -182,9 +182,13 @@ public class DoctorManagementController {
      * @return 排班列表
      */
     @GetMapping("/schedules")
-    public R<List<ScheduleVO>> schedules() {
-        log.info("查询排班列表");
-        return R.ok(doctorTenantContextService.listSchedules());
+    public R<List<ScheduleVO>> schedules(
+        @RequestParam(required = false) String scheduleDate,
+        @RequestParam(required = false) Long doctorId,
+        @RequestParam(required = false) Long deptId
+    ) {
+        log.info("查询排班列表，scheduleDate={}，doctorId={}，deptId={}", scheduleDate, doctorId, deptId);
+        return R.ok(doctorTenantContextService.listSchedules(scheduleDate, doctorId, deptId));
     }
 
     /**
