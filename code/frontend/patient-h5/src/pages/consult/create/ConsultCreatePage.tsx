@@ -13,7 +13,7 @@ export function ConsultCreatePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [form] = Form.useForm<ConsultFormValues>();
-  const doctorId = Number(searchParams.get("doctorId") ?? 0);
+  const doctorId = searchParams.get("doctorId") ?? "";
   const [doctor, setDoctor] = useState<PatientDoctor | null>(null);
 
   useEffect(() => {

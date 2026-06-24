@@ -1,6 +1,6 @@
 import axios, { AxiosHeaders } from "axios";
 import { useSessionStore } from "../store/sessionStore";
-import { AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN_PREFIX } from "./auth-header";
+import { AUTHORIZATION_HEADER, AUTHORIZATION_TOKEN_PREFIX, TENANT_HEADER } from "./auth-header";
 
 export const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? "/api",
@@ -9,6 +9,12 @@ export const http = axios.create({
 
 http.interceptors.request.use((config) => {
   const token = useSessionStore.getState().token;
+  const tenantId = useSessionStore.getState().tenantId;
+
+  if (tenantId) {
+    config.headers = AxiosHeaders.from(config.headers);
+    config.headers.set(TENANT_HEADER, tenantId);
+  }
 
   if (token) {
     config.headers = AxiosHeaders.from(config.headers);

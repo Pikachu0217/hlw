@@ -152,7 +152,7 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 
 - 登录页可在未登录状态通过 `GET /system/tenant/options` 读取所有启用租户的最小选项信息，用于选择管理端登录租户。
 - 登录接口 `POST /auth/login` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，再结合 `username` 和 `password` 通过 Feign 查询 `hospital-system` 的 `sys_user.password` 中的 BCrypt 哈希，成功后返回 `username`、`realName` 和 `userType`，默认初始化平台账号为 `hlw_admin / 123456`，租户编号为 `0`。
-- 患者端手机号登录：`POST /auth/phone-code` 以手机号为 key 将固定验证码 `1234` 写入 Redis（TTL=300s）；`POST /auth/phone-login` 从 Redis 校验验证码后查询 `sys_user.phone` 匹配患者用户，签发 JWT 返回。
+- 患者端手机号登录：`POST /auth/phone-code` 优先读取网关透传的可信租户头，缺少请求头时读取请求体中的 `tenantId`，按 `tenantId + phone` 将固定验证码 `1234` 写入 Redis（TTL=300s）；`POST /auth/phone-login` 从 Redis 校验所选租户下的验证码后查询 `sys_user.phone` 匹配患者用户，签发 JWT 返回；已登录患者切换医院时调用 `POST /auth/switch-tenant`，后端校验当前账号为患者账号，按当前手机号在目标租户查找或创建患者账号与患者档案，并签发目标租户新 JWT。
 - `sys_user.user_type` 仅标识统一账号的主身份和默认登录入口，例如后台系统用户、医生、患者或药师；医生档案、患者档案和健康档案仍分别落在 `doc_doctor`、`pat_patient`、`pat_health_record` 业务表中，后台菜单权限继续由 `sys_user_role`、`sys_role`、`sys_role_menu` 管理。
 - 后台用户新增接口未传 `password` 时，后端使用 `SystemTenantConstants.DEFAULT_TENANT_ADMIN_PASSWORD` 作为初始密码并写入 BCrypt 哈希。
 - 登录成功后返回 JWT，JWT 中包含 `userId`、`tenantId` 和 `userType`，签名密钥统一由 `HLW_JWT_SECRET` 注入。
@@ -180,7 +180,7 @@ HLW_GATEWAY_DB_PASSWORD=root
 
 `resources/sql/001-mysql8-baseline.sql` 是当前 MySQL 8 初始化脚本，兼作现有领域设计基线和本地联调用脚本；每个表和字段必须补充中文 `COMMENT`。
 
-MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护，`resources/sql/002-mysql8-system-base-entity.sql` 统一系统模块基础字段，`resources/sql/003-mysql8-sys-menu-tenant-package-bootstrap.sql` 为 `sys_menu` 补充 `source_menu_id` 和租户套餐初始化所需索引，`resources/sql/006-mysql8-add-menu-is-default-field.sql` 为菜单补充默认数据保护字段，`resources/sql/008-mysql8-use-sys-user-id-for-doctor-patient.sql` 将医生与患者档案的用户关联统一迁移为 `sys_user.id`，`resources/sql/009-mysql8-complete-doctor-display-fields.sql` 补齐医生列表展示字段并统一接诊状态枚举，`resources/sql/010-mysql8-add-sys-dept-is-department.sql` 为系统部门补充科室标记。后续每次修改 schema 时新增一份独立 SQL 执行文件。
+MySQL 8 切换脚本从 `resources/sql/001-mysql8-baseline.sql` 开始按顺序维护，`resources/sql/002-mysql8-system-base-entity.sql` 统一系统模块基础字段，`resources/sql/003-mysql8-sys-menu-tenant-package-bootstrap.sql` 为 `sys_menu` 补充 `source_menu_id` 和租户套餐初始化所需索引，`resources/sql/006-mysql8-add-menu-is-default-field.sql` 为菜单补充默认数据保护字段，`resources/sql/008-mysql8-use-sys-user-id-for-doctor-patient.sql` 将医生与患者档案的用户关联统一迁移为 `sys_user.user_id` 字符串，`resources/sql/009-mysql8-complete-doctor-display-fields.sql` 补齐医生列表展示字段并统一接诊状态枚举，`resources/sql/010-mysql8-add-sys-dept-is-department.sql` 为系统部门补充科室标记，`resources/sql/011-mysql8-fix-doctor-patient-user-id-string.sql` 修复已执行旧版迁移的库，将医生与患者档案用户关联从数字主键恢复为用户业务编号。后续每次修改 schema 时新增一份独立 SQL 执行文件。
 
 ## 构建与测试
 
@@ -417,6 +417,7 @@ PRD 规划端口：
 POST /auth/login
 POST /auth/phone-code
 POST /auth/phone-login
+POST /auth/switch-tenant
 GET /auth/detail
 POST /auth/logout
 GET /system/getInfo
@@ -520,7 +521,7 @@ POST /doctor/schedules
 POST /doctor/appointment-fee/resolve
 ```
 
-医生管理列表来源于系统基础数据：医生资源列表通过内部 Feign 查询 `sys_user.user_type=doctor` 的账号，再合并 `doc_doctor` 线上扩展属性；科室资源列表通过内部 Feign 查询 `sys_dept.is_department=1` 的部门，再合并 `doc_department` 线上扩展属性。`doc_doctor.user_id` 统一保存 `sys_user.id` 数字主键，`doc_department.dept_id` 统一保存 `sys_dept.id`，医生和科室扩展属性通过 `PUT /doctor/doctors/{id}`、`PUT /doctor/departments/{id}` 维护；医生状态变更、医生科室绑定、排班和挂号费计算继续由医生模块收口。
+医生管理列表来源于系统基础数据：医生资源列表通过内部 Feign 查询 `sys_user.user_type=doctor` 的账号，再合并 `doc_doctor` 线上扩展属性；科室资源列表通过内部 Feign 查询 `sys_dept.is_department=1` 的部门，再合并 `doc_department` 线上扩展属性。`doc_doctor.user_id` 统一保存 `sys_user.user_id` 字符串，`doc_department.dept_id` 统一保存 `sys_dept.id`，医生和科室扩展属性通过 `PUT /doctor/doctors/{id}`、`PUT /doctor/departments/{id}` 维护，其中医生接口路径参数 `{id}` 为 `sys_user.user_id`；医生状态变更、医生科室绑定、排班和挂号费计算继续由医生模块收口。
 
 患者与健康档案接口：
 
@@ -532,7 +533,7 @@ GET /patient/health-records
 POST /patient/health-records
 ```
 
-患者基础档案已接入 `pat_patient` 表，`pat_patient.user_id` 统一保存 `sys_user.id` 数字主键，用于从统一账号定位患者档案；`pat_health_record.patient_id` 统一保存 `pat_patient.id` 患者档案主键；`GET /patient/profile` 和 `PUT /patient/profile` 均读取或更新首位患者示例档案，并保持手机号脱敏返回。患者健康档案管理已接入 `pat_health_record` 表，`POST /patient/health-records` 会校验患者存在并落库档案标题与摘要。
+患者基础档案已接入 `pat_patient` 表，`pat_patient.user_id` 统一保存 `sys_user.user_id` 字符串，用于从统一账号定位患者档案；`pat_health_record.patient_id` 统一保存 `pat_patient.id` 患者档案主键；`GET /patient/profile` 和 `PUT /patient/profile` 均读取或更新当前登录用户绑定的患者档案，并保持手机号脱敏返回。患者健康档案管理已接入 `pat_health_record` 表，`POST /patient/health-records` 会校验患者存在并落库档案标题与摘要。
 
 预约挂号接口：
 

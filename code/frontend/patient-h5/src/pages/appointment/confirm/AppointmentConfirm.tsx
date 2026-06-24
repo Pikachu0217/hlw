@@ -67,7 +67,7 @@ export function AppointmentConfirm({
       const appointment = await createAppointment({
         patientId: patient?.id,
         patientName: patient?.patientName,
-        doctorId: doctor.doctorId ?? doctor.id,
+        doctorId: doctor.doctorId,
         scheduleId: selectedSchedule.id,
         doctorName: doctor.name,
         timeSlot: selectedSchedule.timeSlot || selectedSchedule.slot || doctor.schedule,

@@ -16,7 +16,7 @@ import { AppointmentConfirm } from "./AppointmentConfirm";
 
 export function AppointmentConfirmPage() {
   const [searchParams] = useSearchParams();
-  const doctorId = Number(searchParams.get("doctorId") ?? 1);
+  const doctorId = searchParams.get("doctorId") ?? "";
   const [doctor, setDoctor] = useState<PatientDoctor | null>(null);
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
@@ -29,7 +29,7 @@ export function AppointmentConfirmPage() {
     Promise.all([fetchPatientDoctorDetail(doctorId), fetchPatientProfile(), fetchSchedules(), fetchNumberSources()]).then(
       ([doctorRecord, profileRecord, scheduleRecords, sourceRecords]) => {
         if (!ignore) {
-          const matchedDoctorIds = [doctorRecord.id, doctorRecord.doctorId].filter(Boolean);
+          const matchedDoctorIds = [doctorRecord.doctorId].filter(Boolean);
           setDoctor(doctorRecord);
           setProfile(profileRecord);
           setSchedules(scheduleRecords.filter((schedule) => matchedDoctorIds.includes(schedule.doctorId)));

@@ -82,6 +82,9 @@ export function AppRouter() {
         }
       />
 
+      {/* 医院选择页 — 登录前后均可访问，用于确定患者端租户 */}
+      <Route path="/hospital" element={<HospitalPage />} />
+
       {/* 主应用 — 已登录已实名 */}
       <Route
         path="/"
@@ -92,7 +95,6 @@ export function AppRouter() {
         }
       >
         <Route index element={<HomePage />} />
-        <Route path="hospital" element={<HospitalPage />} />
         <Route path="department" element={<DepartmentPage />} />
         <Route path="doctor/list" element={<DoctorListPage />} />
         <Route path="doctor/detail" element={<DoctorDetailPage />} />

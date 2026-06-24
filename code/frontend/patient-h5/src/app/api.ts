@@ -6,6 +6,10 @@ interface ApiResult<T> {
   data: T;
 }
 
+function asList<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 export interface LoginResult {
   token: string;
   tenantId: number;
@@ -15,21 +19,32 @@ export interface LoginResult {
 }
 
 /** 发送手机验证码。 */
-export async function sendPhoneCode(phone: string): Promise<void> {
+export async function sendPhoneCode(phone: string, tenantId?: string): Promise<void> {
   console.info("[auth] 发送验证码", phone);
-  await http.post<ApiResult<null>>("/auth/phone-code", { phone });
+  await http.post<ApiResult<null>>("/auth/phone-code", { phone, tenantId: tenantId ? Number(tenantId) : undefined });
 }
 
 /** 手机号+验证码登录。 */
-export async function phoneLogin(phone: string, smsCode: string): Promise<LoginResult> {
+export async function phoneLogin(phone: string, smsCode: string, tenantId?: string): Promise<LoginResult> {
   console.info("[auth] 手机号登录", phone);
-  const response = await http.post<ApiResult<LoginResult>>("/auth/phone-login", { phone, smsCode });
+  const response = await http.post<ApiResult<LoginResult>>("/auth/phone-login", {
+    phone,
+    smsCode,
+    tenantId: tenantId ? Number(tenantId) : undefined
+  });
+  return response.data.data;
+}
+
+/** 切换当前登录租户。 */
+export async function switchTenant(tenantId: string): Promise<LoginResult> {
+  console.info("[auth] 切换登录租户", tenantId);
+  const response = await http.post<ApiResult<LoginResult>>("/auth/switch-tenant", { tenantId: Number(tenantId) });
   return response.data.data;
 }
 
 export interface PatientProfile {
   id: number;
-  userId?: number;
+  userId?: string;
   patientName: string;
   name?: string;
   phone?: string;
@@ -53,6 +68,8 @@ export interface HospitalItem {
   status: string;
 }
 
+let hospitalOptionsRequest: Promise<HospitalItem[]> | null = null;
+
 export interface DepartmentItem {
   id: number;
   name: string;
@@ -61,9 +78,9 @@ export interface DepartmentItem {
 }
 
 export interface PatientDoctor {
-  id: number;
+  id: string;
   doctorId?: number;
-  userId?: number;
+  userId?: string;
   name: string;
   title: string;
   department: string;
@@ -76,9 +93,9 @@ export interface PatientDoctor {
 }
 
 interface BackendPatientDoctor {
-  id: number;
+  id: string;
   doctorId?: number;
-  userId?: number;
+  userId?: string;
   name: string;
   title: string;
   department: string;
@@ -248,7 +265,7 @@ export async function updatePatientProfile(payload: UpdatePatientProfilePayload)
 export async function fetchPatients(): Promise<PatientProfile[]> {
   console.info("[patient] 查询就诊人列表");
   const response = await http.get<ApiResult<PatientProfile[]>>("/patient/patients");
-  return response.data.data.map((profile) => ({
+  return asList(response.data.data).map((profile) => ({
     ...profile,
     name: profile.name ?? profile.patientName
   }));
@@ -279,7 +296,7 @@ export async function fetchHealthRecords(patientId?: number): Promise<HealthReco
   const response = await http.get<ApiResult<HealthRecordItem[]>>("/patient/health-records", {
     params: patientId ? { patientId } : undefined
   });
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function createHealthRecord(payload: CreateHealthRecordPayload): Promise<HealthRecordItem> {
@@ -290,21 +307,28 @@ export async function createHealthRecord(payload: CreateHealthRecordPayload): Pr
 
 export async function fetchHospitals(): Promise<HospitalItem[]> {
   console.info("[patient] 查询医院租户列表");
-  const response = await http.get<ApiResult<HospitalItem[]>>("/system/tenant/options");
-  return response.data.data;
+  if (!hospitalOptionsRequest) {
+    hospitalOptionsRequest = http
+      .get<ApiResult<HospitalItem[]>>("/system/tenant/options")
+      .then((response) => asList(response.data.data))
+      .finally(() => {
+        hospitalOptionsRequest = null;
+      });
+  }
+  return hospitalOptionsRequest;
 }
 
 export async function fetchDepartments(): Promise<DepartmentItem[]> {
   console.info("[patient] 查询科室列表");
   const response = await http.get<ApiResult<DepartmentItem[]>>("/doctor/departments");
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function fetchPatientDoctors(): Promise<PatientDoctor[]> {
   console.info("[patient] 查询医生列表");
   const response = await http.get<ApiResult<BackendPatientDoctor[]>>("/doctor/doctors");
 
-  return response.data.data.map((doctor) => ({
+  return asList(response.data.data).map((doctor) => ({
     id: doctor.id,
     doctorId: doctor.doctorId,
     userId: doctor.userId,
@@ -320,7 +344,7 @@ export async function fetchPatientDoctors(): Promise<PatientDoctor[]> {
   }));
 }
 
-export async function fetchPatientDoctorDetail(doctorId: number): Promise<PatientDoctor> {
+export async function fetchPatientDoctorDetail(doctorId: string): Promise<PatientDoctor> {
   console.info("[patient] 查询医生详情", doctorId);
   const response = await http.get<ApiResult<BackendPatientDoctor>>(`/doctor/doctors/${doctorId}`);
   const doctor = response.data.data;
@@ -344,7 +368,7 @@ export async function fetchPatientDoctorDetail(doctorId: number): Promise<Patien
 export async function fetchSchedules(): Promise<ScheduleItem[]> {
   console.info("[doctor] 查询医生排班列表");
   const response = await http.get<ApiResult<ScheduleItem[]>>("/doctor/schedules");
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function resolveAppointmentFee(title?: string, doctorFee?: string): Promise<string> {
@@ -371,7 +395,7 @@ export async function createConsult(
   const response = await http.post<ApiResult<CreatedConsult>>("/consult/consults", {
     type,
     chiefComplaint,
-    doctorId: doctor?.doctorId ?? doctor?.id,
+    doctorId: doctor?.doctorId,
     doctorName: doctor?.name,
     channel: "PATIENT_H5",
     feeAmount: doctor?.consultFee
@@ -385,7 +409,7 @@ export async function fetchConsultMessages(consultId: number): Promise<ConsultMe
     `/consult/consults/${consultId}/messages`
   );
 
-  return response.data.data.map((message, index) => ({
+  return asList(response.data.data).map((message, index) => ({
     id: message.id ?? index + 1,
     content: message.content,
     contentType: message.contentType,
@@ -429,7 +453,7 @@ export async function createAppointment(payload: {
 export async function fetchAppointments(): Promise<AppointmentItem[]> {
   console.info("[appointment] 查询预约列表");
   const response = await http.get<ApiResult<AppointmentItem[]>>("/appointment/appointments");
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function payAppointment(appointmentId: number): Promise<AppointmentItem> {
@@ -453,7 +477,7 @@ export async function grabAppointment(appointmentId: number, doctorId: number): 
 export async function fetchNumberSources(): Promise<NumberSourceItem[]> {
   console.info("[appointment] 查询号源列表");
   const response = await http.get<ApiResult<NumberSourceItem[]>>("/appointment/number-sources");
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function lockNumberSource(scheduleId: number): Promise<NumberSourceItem> {
@@ -465,25 +489,25 @@ export async function lockNumberSource(scheduleId: number): Promise<NumberSource
 export async function fetchPrescriptions(): Promise<PrescriptionItem[]> {
   console.info("[prescription] 查询处方列表");
   const response = await http.get<ApiResult<PrescriptionItem[]>>("/prescription/prescriptions");
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function fetchDrugs(): Promise<DrugItem[]> {
   console.info("[drug] 查询药品列表");
   const response = await http.get<ApiResult<DrugItem[]>>("/drug/drugs");
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function fetchStocks(): Promise<StockItem[]> {
   console.info("[drug] 查询库存列表");
   const response = await http.get<ApiResult<StockItem[]>>("/drug/stocks");
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function fetchOrders(): Promise<OrderItem[]> {
   console.info("[order] 查询订单列表");
   const response = await http.get<ApiResult<OrderItem[]>>("/order/orders");
-  return response.data.data;
+  return asList(response.data.data);
 }
 
 export async function createOrder(payload: CreateOrderPayload): Promise<OrderItem> {

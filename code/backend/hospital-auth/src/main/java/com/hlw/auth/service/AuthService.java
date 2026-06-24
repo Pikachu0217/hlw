@@ -7,6 +7,7 @@ import com.hlw.auth.domain.req.CreatePatientUserFeignReq;
 import com.hlw.auth.domain.req.LoginReq;
 import com.hlw.auth.domain.req.PhoneCodeReq;
 import com.hlw.auth.domain.req.PhoneLoginReq;
+import com.hlw.auth.domain.req.SwitchTenantReq;
 import com.hlw.auth.domain.resp.LoginResultResp;
 import com.hlw.auth.domain.resp.LoginUserResp;
 import com.hlw.auth.domain.resp.UserDetailResp;
@@ -39,6 +40,8 @@ import java.util.Date;
 @Service
 @Slf4j
 public class AuthService {
+    private static final String PATIENT_USER_TYPE = "patient";
+
     private final UserRepository userRepository;
     private final UserFeignClient userFeignClient;
     private final PatientFeignClient patientFeignClient;
@@ -182,11 +185,12 @@ public class AuthService {
      */
     public void sendPhoneCode(PhoneCodeReq phoneCodeReq) {
         String phone = phoneCodeReq.phone();
-        log.info("发送手机验证码，phone={}", phone);
+        Long tenantId = requireLoginTenantId(phoneCodeReq.tenantId());
+        log.info("发送手机验证码，tenantId={}，phone={}", tenantId, phone);
         String code = "1234";
-        String key = RedisKeyEnum.getKey(RedisKeyEnum.AUTH_PHONE_CODE, phone);
+        String key = RedisKeyEnum.getKey(RedisKeyEnum.AUTH_PHONE_CODE, tenantId, phone);
         redisService.set(key, code, Duration.ofMillis(RedisKeyEnum.AUTH_PHONE_CODE.getTimeoutMillis()));
-        log.info("手机验证码已存入 Redis，phone={}，code={}", phone, code);
+        log.info("手机验证码已存入 Redis，tenantId={}，phone={}，code={}", tenantId, phone, code);
     }
 
     /**
@@ -207,7 +211,8 @@ public class AuthService {
         log.info("手机号登录开始，phone={}", phone);
 
         // 从 Redis 获取验证码
-        String key = RedisKeyEnum.getKey(RedisKeyEnum.AUTH_PHONE_CODE, phone);
+        Long tenantId = requireLoginTenantId(phoneLoginReq.tenantId());
+        String key = RedisKeyEnum.getKey(RedisKeyEnum.AUTH_PHONE_CODE, tenantId, phone);
         String cachedCode = redisService.get(key);
         if (cachedCode == null) {
             log.warn("手机号登录失败，验证码已过期，phone={}", phone);
@@ -220,7 +225,6 @@ public class AuthService {
         // 验证码匹配后删除 key，防止重复使用
         redisService.delete(key);
 
-        Long tenantId = 100L;
         LoginUserResp user = userRepository.findByTenantIdAndPhone(tenantId, phone);
         if (user == null) {
             log.info("手机号未注册，自动注册 phone={}", phone);
@@ -248,6 +252,70 @@ public class AuthService {
         loginAuditService.recordLoginSuccess(user, token, clientIp, userAgent);
         log.info("手机号登录成功，userId={}，tenantId={}，phone={}", user.id(), user.tenantId(), phone);
         return new LoginResultResp(token, user.tenantId(), user.username(), user.realName(), user.userType());
+    }
+
+    /**
+     * 切换当前登录用户租户并签发目标租户令牌。
+     *
+     * @param switchTenantReq 切换租户请求
+     * @param clientIp        客户端 IP
+     * @param userAgent       客户端标识
+     * @return 登录结果
+     */
+    public LoginResultResp switchTenant(SwitchTenantReq switchTenantReq, String clientIp, String userAgent) {
+        if (switchTenantReq == null) {
+            log.warn("切换租户失败，请求参数为空");
+            throw new BizException(HttpStatusEnum.LOGIN_PARAMETERS_CANNOT_BE_NULL);
+        }
+        Long targetTenantId = requireLoginTenantId(switchTenantReq.tenantId());
+        TokenPrincipal principal = TokenPrincipalContext.get();
+        if (principal == null || principal.getUserId() == null || principal.getTenantId() == null) {
+            log.warn("切换租户失败，登录上下文为空");
+            throw new BizException(401, "当前登录用户无效");
+        }
+        log.info("切换登录租户开始，currentTenantId={}，targetTenantId={}，userId={}",
+            principal.getTenantId(), targetTenantId, principal.getUserId());
+
+        UserDetailResp currentUser = userRepository.findProfileById(principal.getUserId(), principal.getTenantId());
+        if (currentUser == null || !StringUtils.hasText(currentUser.getPhone())) {
+            log.warn("切换租户失败，当前登录用户手机号为空，userId={}，tenantId={}", principal.getUserId(), principal.getTenantId());
+            throw new BizException(400, "当前登录用户缺少手机号，无法切换医院");
+        }
+        if (!PATIENT_USER_TYPE.equalsIgnoreCase(currentUser.getUserType())) {
+            log.warn("切换租户失败，当前账号不是患者账号，userId={}，userType={}", principal.getUserId(), currentUser.getUserType());
+            throw new BizException(403, "仅患者账号支持切换医院");
+        }
+
+        LoginUserResp targetUser = userRepository.findByTenantIdAndPhone(targetTenantId, currentUser.getPhone());
+        if (targetUser == null) {
+            log.info("目标租户患者账号不存在，自动创建，targetTenantId={}，phone={}", targetTenantId, currentUser.getPhone());
+            String userName = "p_" + currentUser.getPhone();
+            R<InternalUserResp> createResp = userFeignClient.createPatientUser(new CreatePatientUserFeignReq(targetTenantId, userName, currentUser.getPhone()));
+            if (createResp == null || createResp.code() != 200 || createResp.data() == null) {
+                log.warn("切换租户自动创建用户失败，targetTenantId={}，phone={}", targetTenantId, currentUser.getPhone());
+                throw new BizException(500, "切换医院失败，无法创建目标医院患者账号");
+            }
+            InternalUserResp created = createResp.data();
+            patientFeignClient.createOrGetByUser(new CreatePatientFeignReq(targetTenantId, created.getUserId(), currentUser.getPhone()));
+            targetUser = userRepository.findByTenantIdAndPhone(targetTenantId, currentUser.getPhone());
+        } else {
+            if (!PATIENT_USER_TYPE.equalsIgnoreCase(targetUser.userType())) {
+                log.warn("切换租户失败，目标租户手机号不是患者账号，targetTenantId={}，phone={}，userType={}",
+                    targetTenantId, currentUser.getPhone(), targetUser.userType());
+                throw new BizException(403, "目标医院手机号已绑定非患者账号");
+            }
+            patientFeignClient.createOrGetByUser(new CreatePatientFeignReq(targetTenantId, targetUser.userId(), currentUser.getPhone()));
+        }
+
+        if (targetUser == null) {
+            log.warn("切换租户失败，目标租户用户仍不存在，targetTenantId={}，phone={}", targetTenantId, currentUser.getPhone());
+            throw new BizException(HttpStatusEnum.LOGIN_USER_DOES_NOT_EXIST);
+        }
+
+        String token = tokenIssuer.issue(targetUser);
+        loginAuditService.recordLoginSuccess(targetUser, token, clientIp, userAgent);
+        log.info("切换登录租户成功，targetTenantId={}，userId={}，phone={}", targetTenantId, targetUser.id(), currentUser.getPhone());
+        return new LoginResultResp(token, targetUser.tenantId(), targetUser.username(), targetUser.realName(), targetUser.userType());
     }
 
     /**

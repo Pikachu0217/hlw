@@ -26,6 +26,8 @@ export function LoginPage() {
   const setPatientName = useSessionStore((state) => state.setPatientName);
   const setPhone = useSessionStore((state) => state.setPhone);
   const setVerified = useSessionStore((state) => state.setVerified);
+  const tenantId = useSessionStore((state) => state.tenantId);
+  const tenantName = useSessionStore((state) => state.tenantName);
   const [form] = Form.useForm<LoginFormValues>();
   const [sending, setSending] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -40,7 +42,7 @@ export function LoginPage() {
     }
     setSending(true);
     try {
-      await sendPhoneCode(phone);
+      await sendPhoneCode(phone, tenantId);
       Toast.show("验证码已发送（固定 1234）");
       setCountdown(60);
       const timer = setInterval(() => {
@@ -63,7 +65,7 @@ export function LoginPage() {
   async function handleLogin(values: LoginFormValues): Promise<void> {
     setSubmitting(true);
     try {
-      const result = await phoneLogin(values.phone, values.smsCode);
+      const result = await phoneLogin(values.phone, values.smsCode, tenantId);
       setToken(result.token);
       setPhone(values.phone);
       setPatientName(result.realName);
@@ -97,7 +99,7 @@ export function LoginPage() {
       <div className="login-card">
         <div className="login-card-header">
           <h2 className="login-card-title">手机号登录</h2>
-          <p className="login-card-subtitle">请输入手机号获取验证码</p>
+          <p className="login-card-subtitle">当前医院：{tenantName || `租户 ${tenantId}`}，请输入手机号获取验证码</p>
         </div>
 
         <Form

@@ -566,6 +566,8 @@ run_all_cases() {
 
   # 认证模块接口。
   run_case "查询登录用户资料" "GET" "/auth/detail"
+  record_skip_case "切换患者登录租户" "POST" "/auth/switch-tenant" "{\"tenantId\":100}" "该接口要求患者端 token；默认接口测试账号为后台账号，避免误创建患者档案"
+  record_skip_case "切换患者登录租户参数校验" "POST" "/auth/switch-tenant" "{}" "该接口要求患者端 token；默认接口测试账号为后台账号，参数校验随患者端用例执行"
 
   # 系统管理接口。
   run_case "查询登录用户信息" "GET" "/system/getInfo"

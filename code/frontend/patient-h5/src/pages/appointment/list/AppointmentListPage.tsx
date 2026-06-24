@@ -26,6 +26,10 @@ export function AppointmentListPage() {
       const [appointmentRecords, doctorRecords] = await Promise.all([fetchAppointments(), fetchPatientDoctors()]);
       setAppointments(appointmentRecords);
       setDoctors(doctorRecords);
+    } catch {
+      Toast.show("预约列表加载失败");
+      setAppointments([]);
+      setDoctors([]);
     } finally {
       setLoading(false);
     }
@@ -52,7 +56,7 @@ export function AppointmentListPage() {
   }
 
   async function handleGrab(appointmentId: number): Promise<void> {
-    const doctorId = doctors[0]?.doctorId ?? doctors[0]?.id;
+    const doctorId = doctors.find((doctor) => doctor.doctorId)?.doctorId;
     if (!doctorId) {
       Toast.show("暂无可用医生");
       return;
@@ -67,17 +71,23 @@ export function AppointmentListPage() {
     }
   }
 
+  function resolveStatus(appointment: AppointmentItem): string {
+    return appointment.status || "待处理";
+  }
+
+  const appointmentList = Array.isArray(appointments) ? appointments : [];
+
   return (
     <SectionCard title="我的预约" description="查看预约单，并执行支付、签到和便民门诊抢单。">
       {loading ? <SpinLoading /> : null}
       <List>
-        {appointments.map((appointment) => (
+        {appointmentList.map((appointment) => (
           <List.Item
             key={appointment.id}
             description={
               <Space direction="vertical" block>
-                <span>{appointment.doctorName} · {appointment.clinicTime}</span>
-                <span>{appointment.source} · {appointment.feeAmount ?? "0.00"} 元</span>
+                <span>{appointment.doctorName || "待分配医生"} · {appointment.clinicTime || "待确认时间"}</span>
+                <span>{appointment.source || "患者端"} · {appointment.feeAmount ?? "0.00"} 元</span>
                 <Space wrap>
                   <Button size="mini" color="primary" onClick={() => handlePay(appointment.id)}>
                     支付
@@ -91,9 +101,9 @@ export function AppointmentListPage() {
                 </Space>
               </Space>
             }
-            extra={<Tag color={appointment.status.includes("已") ? "success" : "warning"}>{appointment.status}</Tag>}
+            extra={<Tag color={resolveStatus(appointment).includes("已") ? "success" : "warning"}>{resolveStatus(appointment)}</Tag>}
           >
-            {appointment.appointmentNo || appointment.patientName}
+            {appointment.appointmentNo || appointment.patientName || "预约单"}
           </List.Item>
         ))}
       </List>

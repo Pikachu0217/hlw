@@ -59,13 +59,14 @@
 
 ### 登录与实名认证流程
 
-1. 未登录用户访问任意页面 → 自动跳转 `/login` 登录页
-2. 输入手机号，点击「获取验证码」→ 调用 `POST /auth/phone-code`，验证码固定 `1234` 存入 Redis
-3. 输入验证码，点击「登录」→ 调用 `POST /auth/phone-login`，从 Redis 校验验证码后签发 JWT
-4. 登录成功后查询 `GET /patient/profile`：
+1. 未登录用户访问任意页面 → 自动跳转 `/login` 登录页；已登录用户可在 `/hospital` 选择医院租户
+2. `/hospital` 调用 `GET /system/tenant/options` 展示医院列表；未登录时点击可用医院会保存 `tenantId` 并进入登录页，已登录时点击其他医院会调用 `POST /auth/switch-tenant` 换取目标租户新 JWT，无需重新输入验证码
+3. 输入手机号，点击「获取验证码」→ 调用 `POST /auth/phone-code`，按所选租户和手机号将固定验证码 `1234` 存入 Redis
+4. 输入验证码，点击「登录」→ 调用 `POST /auth/phone-login`，从 Redis 校验所选租户下的验证码后签发 JWT
+5. 登录成功后查询 `GET /patient/profile`：
    - 若 `idCard` 为空 → 跳转 `/real-name-auth` 实名认证页
    - 若 `idCard` 已有值 → 直接进入首页
-5. 实名认证页填写真实姓名 + 身份证号，调用 `PUT /patient/profile` 更新，完成后进入首页
+6. 实名认证页填写真实姓名 + 身份证号，调用 `PUT /patient/profile` 更新，完成后进入首页
 
 ## 工作区结构
 
@@ -153,6 +154,7 @@ FRONTEND_APPS="admin-web" SKIP_BACKEND=1 ./resources/scripts/service.sh start
 `patient-h5` 的请求封装集中在 `src/app/api.ts`，当前已接入患者端页面需要的后端接口：
 
 - 手机号认证：`POST /auth/phone-code`、`POST /auth/phone-login`
+- 医院切换：`POST /auth/switch-tenant`
 - 患者档案：`GET /patient/profile`、`PUT /patient/profile`、`GET /patient/patients`、`GET /patient/patients/{id}`、`PUT /patient/patients/{id}`、`GET /patient/health-records`、`POST /patient/health-records`
 - 医院与医生：`GET /system/tenant/options`、`GET /doctor/departments`、`GET /doctor/doctors`、`GET /doctor/doctors/{id}`、`GET /doctor/schedules`、`POST /doctor/appointment-fee/resolve`
 - 预约挂号：`GET /appointment/appointments`、`POST /appointment/appointments`、`POST /appointment/appointments/{id}/pay`、`POST /appointment/appointments/{id}/check-in`、`POST /appointment/appointments/{id}/grab`、`GET /appointment/number-sources`、`POST /appointment/number-sources/{scheduleId}/lock`

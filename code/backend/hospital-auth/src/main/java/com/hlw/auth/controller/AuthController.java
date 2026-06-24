@@ -3,6 +3,7 @@ package com.hlw.auth.controller;
 import com.hlw.auth.domain.req.LoginReq;
 import com.hlw.auth.domain.req.PhoneCodeReq;
 import com.hlw.auth.domain.req.PhoneLoginReq;
+import com.hlw.auth.domain.req.SwitchTenantReq;
 import com.hlw.auth.domain.resp.LoginResultResp;
 import com.hlw.auth.domain.resp.UserDetailResp;
 import com.hlw.auth.service.AuthService;
@@ -62,13 +63,18 @@ public class AuthController {
     /**
      * 发送手机验证码。
      *
+     * @param request HTTP 请求对象
      * @param phoneCodeReq 手机号请求体
      * @return 空响应
      */
     @PostMapping("/phone-code")
-    public R<Void> sendPhoneCode(@Valid @RequestBody PhoneCodeReq phoneCodeReq) {
-        log.info("发送手机验证码请求进入认证控制器，phone={}", phoneCodeReq.phone());
-        authService.sendPhoneCode(phoneCodeReq);
+    public R<Void> sendPhoneCode(HttpServletRequest request, @Valid @RequestBody PhoneCodeReq phoneCodeReq) {
+        Long tenantId = AuthTokenResolver.resolveLoginTenantId(
+                request.getHeader(authTokenProperties.getTenantHeaderName()),
+                phoneCodeReq.tenantId()
+        );
+        log.info("发送手机验证码请求进入认证控制器，tenantId={}，phone={}", tenantId, phoneCodeReq.phone());
+        authService.sendPhoneCode(phoneCodeReq.withTenantId(tenantId));
         return R.ok(null);
     }
 
@@ -84,8 +90,28 @@ public class AuthController {
             HttpServletRequest request,
             @Valid @RequestBody PhoneLoginReq phoneLoginReq
     ) {
-        log.info("手机号登录请求进入认证控制器，phone={}", phoneLoginReq.phone());
-        return R.ok(authService.phoneLogin(phoneLoginReq, resolveClientIp(request), request.getHeader("User-Agent")));
+        Long tenantId = AuthTokenResolver.resolveLoginTenantId(
+                request.getHeader(authTokenProperties.getTenantHeaderName()),
+                phoneLoginReq.tenantId()
+        );
+        log.info("手机号登录请求进入认证控制器，tenantId={}，phone={}", tenantId, phoneLoginReq.phone());
+        return R.ok(authService.phoneLogin(phoneLoginReq.withTenantId(tenantId), resolveClientIp(request), request.getHeader("User-Agent")));
+    }
+
+    /**
+     * 切换当前登录用户租户并签发新令牌。
+     *
+     * @param request HTTP 请求对象
+     * @param switchTenantReq 切换租户请求体
+     * @return 登录结果
+     */
+    @PostMapping("/switch-tenant")
+    public R<LoginResultResp> switchTenant(
+            HttpServletRequest request,
+            @Valid @RequestBody SwitchTenantReq switchTenantReq
+    ) {
+        log.info("切换登录租户请求进入认证控制器，targetTenantId={}", switchTenantReq.tenantId());
+        return R.ok(authService.switchTenant(switchTenantReq, resolveClientIp(request), request.getHeader("User-Agent")));
     }
 
     /**
