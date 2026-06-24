@@ -1,4 +1,4 @@
-import { Button, Card, Empty, Input, List, Space, Tag, Typography, message } from 'antd';
+import { App, Button, Card, Empty, Input, List, Space, Tag, Typography } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   acceptConsult,
@@ -26,6 +26,7 @@ export interface ConsultRecord {
 const ACTIVE_STATUS = ['待接单', '咨询中', '已延长'];
 
 function ConsultPage() {
+  const { message } = App.useApp();
   const [records, setRecords] = useState<DoctorConsultWorkbenchRecord[]>([]);
   const [messages, setMessages] = useState<ConsultMessageRecord[]>([]);
   const [activeConsultId, setActiveConsultId] = useState<number>();
