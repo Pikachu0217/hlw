@@ -1,21 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Button, Space, Toast } from "antd-mobile";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Toast } from "antd-mobile";
 import { completeConsult, extendConsult, fetchConsultMessages, type ConsultMessageItem } from "../../../app/api";
 import { AUTHORIZATION_TOKEN_PREFIX } from "../../../app/auth-header";
-import { SectionCard } from "../../../components/SectionCard";
 import { useSessionStore } from "../../../store/sessionStore";
 import { ConsultChat } from "./ConsultChat";
 
 export function ConsultChatPage() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const consultId = Number(searchParams.get("consultId") ?? 0);
   const [messages, setMessages] = useState<ConsultMessageItem[]>([]);
   const [textMessage, setTextMessage] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [doctorName, setDoctorName] = useState("医生");
   const remainingSeconds = Number(searchParams.get("remainingSeconds") ?? 0);
   const socketRef = useRef<WebSocket | null>(null);
 
+  // 加载历史消息
   useEffect(() => {
     let ignore = false;
 
@@ -30,6 +31,11 @@ export function ConsultChatPage() {
       .then((records) => {
         if (!ignore) {
           setMessages(records);
+          // 从消息记录中提取医生姓名
+          const doctorMsg = records.find((m) => m.senderType === "DOCTOR");
+          if (doctorMsg) {
+            setDoctorName("医生");
+          }
         }
       });
 
@@ -38,6 +44,7 @@ export function ConsultChatPage() {
     };
   }, [consultId]);
 
+  // WebSocket 连接
   useEffect(() => {
     let cancelled = false;
     let connectTimer: number | undefined;
@@ -57,8 +64,12 @@ export function ConsultChatPage() {
       const socket = new WebSocket(resolveConsultWsUrl(consultId));
       socketRef.current = socket;
       socket.onmessage = (event) => {
-        const payload = JSON.parse(event.data) as ConsultMessageItem;
-        setMessages((items) => [...items, payload]);
+        try {
+          const payload = JSON.parse(event.data) as ConsultMessageItem;
+          setMessages((items) => [...items, payload]);
+        } catch {
+          console.warn("[consult-ws] 消息解析失败", event.data);
+        }
       };
       socket.onopen = () => console.info("[consult-ws] 问诊连接已建立", consultId);
       socket.onclose = (event) => console.warn("[consult-ws] 问诊连接已关闭", consultId, event.code, event.reason);
@@ -79,10 +90,11 @@ export function ConsultChatPage() {
     };
   }, [consultId]);
 
+  /** 发送消息。 */
   function sendMessage(contentType: "TEXT" | "IMAGE", content: string): void {
     const trimmedContent = content.trim();
     if (!trimmedContent) {
-      Toast.show(contentType === "TEXT" ? "请输入消息内容" : "请输入图片地址");
+      Toast.show(contentType === "TEXT" ? "请输入消息内容" : "请上传图片");
       return;
     }
     if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
@@ -92,8 +104,6 @@ export function ConsultChatPage() {
     socketRef.current.send(JSON.stringify({ contentType, content: trimmedContent }));
     if (contentType === "TEXT") {
       setTextMessage("");
-    } else {
-      setImageUrl("");
     }
   }
 
@@ -102,7 +112,6 @@ export function ConsultChatPage() {
       Toast.show("缺少问诊编号");
       return;
     }
-
     try {
       await extendConsult(consultId);
       Toast.show("问诊时长已延长");
@@ -116,38 +125,78 @@ export function ConsultChatPage() {
       Toast.show("缺少问诊编号");
       return;
     }
-
     try {
       await completeConsult(consultId);
       Toast.show("问诊已完成");
+      navigate("/consult/list", { replace: true });
     } catch {
       Toast.show("完成问诊失败");
     }
   }
 
+  /** 上传图片（模拟）。 */
+  function handleSendImage(): void {
+    // 实际项目中应调用文件选择器，此处发送占位图片
+    sendMessage("IMAGE", "https://via.placeholder.com/300x200?text=report");
+  }
+
   return (
-    <SectionCard title="问诊聊天" description="支持文字和图片 URL 的实时问诊沟通。">
-      <Space block className="consult-action-bar">
-        <Button size="small" onClick={handleExtend}>
-          延长问诊
-        </Button>
-        <Button size="small" color="primary" onClick={handleComplete}>
-          完成问诊
-        </Button>
-      </Space>
+    <div className="consult-chat-page">
+      {/* 顶部渐变背景栏 */}
+      <header className="chat-page-header">
+        <div className="chat-page-nav">
+          <span className="chat-page-back" onClick={() => navigate(-1)}>‹ 返回</span>
+          <strong>图文问诊</strong>
+          <span className="chat-page-record" onClick={() => navigate("/consult/list")}>记录</span>
+        </div>
+
+        {/* 医生信息 */}
+        <div className="chat-page-doctor">
+          <div className="chat-page-avatar">医</div>
+          <div>
+            <div className="chat-page-doctor-name">{doctorName}</div>
+            <div className="chat-page-doctor-sub">医生 · 在线</div>
+          </div>
+        </div>
+
+        {/* 状态卡 */}
+        <div className="chat-page-status-card">
+          <span>问诊中</span>
+          <span>剩余 {formatRemaining(remainingSeconds)}</span>
+        </div>
+      </header>
+
+      {/* 温馨提示 */}
+      <div className="chat-page-notice">
+        温馨提示：图文问诊仅支持文字和图片沟通，如出现胸痛、呼吸困难等紧急情况，请立即线下就医。
+      </div>
+
+      {/* 聊天主体 */}
       <ConsultChat
+        doctorName={doctorName}
         remainingSeconds={remainingSeconds}
         messages={messages}
         textMessage={textMessage}
-        imageUrl={imageUrl}
         canSend={Boolean(consultId)}
         onTextChange={setTextMessage}
-        onImageUrlChange={setImageUrl}
         onSendText={() => sendMessage("TEXT", textMessage)}
-        onSendImage={() => sendMessage("IMAGE", imageUrl)}
+        onSendImage={handleSendImage}
       />
-    </SectionCard>
+
+      {/* 底部操作栏 */}
+      <div className="chat-page-actions">
+        <button className="chat-action-btn" onClick={handleExtend}>延长问诊</button>
+        <button className="chat-action-btn chat-action-btn--primary" onClick={handleComplete}>结束问诊</button>
+      </div>
+    </div>
   );
+}
+
+function formatRemaining(totalSeconds: number): string {
+  if (totalSeconds <= 0) return "00:00";
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 function resolveConsultWsUrl(consultId: number): string {

@@ -395,3 +395,364 @@ body {
 .login-form .adm-form-item-label {
   display: none;
 }
+
+/* ========== 问诊聊天页（类微信风格） ========== */
+.consult-chat-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f5f7fa;
+  position: relative;
+}
+
+/* --- 顶部渐变头栏 --- */
+.chat-page-header {
+  background: linear-gradient(135deg, #1677ff, #12b981);
+  color: #fff;
+  padding: 14px 16px 18px;
+  border-radius: 0 0 22px 22px;
+  flex-shrink: 0;
+}
+
+.chat-page-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  margin-bottom: 16px;
+}
+
+.chat-page-back,
+.chat-page-record {
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.chat-page-back:hover,
+.chat-page-record:hover {
+  opacity: 1;
+}
+
+.chat-page-doctor {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.chat-page-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.chat-page-doctor-name {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.chat-page-doctor-sub {
+  margin-top: 4px;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.chat-page-status-card {
+  margin-top: 14px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+/* --- 温馨提示 --- */
+.chat-page-notice {
+  margin: 12px 12px 0;
+  background: #fff7ed;
+  color: #9a3412;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+/* --- 聊天容器（消息列表 + 输入区） --- */
+.chat-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* --- 顶部状态栏（"问诊中 · 剩余 xx:xx"） --- */
+.chat-status-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 6px;
+  font-size: 13px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.chat-status-tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #eaf3ff;
+  color: #1677ff;
+  font-weight: 600;
+}
+
+.chat-status-time {
+  color: #94a3b8;
+}
+
+/* --- 消息列表 --- */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 14px 14px;
+  background: #f8fafc;
+}
+
+/* 时间分隔线 */
+.chat-time {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 12px;
+  margin: 6px 0 16px;
+}
+
+/* 单条消息容器 */
+.chat-msg {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.chat-msg--left {
+  justify-content: flex-start;
+}
+
+.chat-msg--right {
+  justify-content: flex-end;
+}
+
+/* 头像 */
+.chat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+
+.chat-avatar--doctor {
+  background: #dbeafe;
+  color: #1677ff;
+}
+
+.chat-avatar--patient {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* 消息气泡 */
+.chat-bubble {
+  max-width: 72%;
+  padding: 11px 13px;
+  border-radius: 14px;
+  line-height: 1.55;
+  font-size: 14px;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.chat-bubble--left {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  color: #1f2937;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+  border-top-left-radius: 4px;
+}
+
+.chat-bubble--right {
+  background: #e8f3ff;
+  border: 1px solid #cfe6ff;
+  color: #1f2937;
+  border-top-right-radius: 4px;
+}
+
+/* 图片消息卡片 */
+.chat-img-card {
+  width: 150px;
+  height: 104px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #e0f2fe, #f8fafc);
+  border: 1px dashed #93c5fd;
+  display: grid;
+  place-items: center;
+  color: #1677ff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* --- 底部输入区 --- */
+.chat-composer {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -4px 18px rgba(15, 23, 42, 0.06);
+}
+
+/* 快捷回复 */
+.chat-quick-replies {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.chat-quick-tag {
+  font-size: 12px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.chat-quick-tag:active {
+  background: #e2e8f0;
+}
+
+/* 工具按钮行 */
+.chat-tools {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.chat-tool-btn {
+  border: 0;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #334155;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chat-tool-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chat-tool-btn:not(:disabled):active {
+  background: #e2e8f0;
+}
+
+/* 输入行 */
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.chat-textarea {
+  flex: 1;
+  height: 44px;
+  max-height: 88px;
+  resize: none;
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  padding: 11px 12px;
+  outline: none;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.chat-textarea:focus {
+  border-color: #1677ff;
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+}
+
+.chat-textarea:disabled {
+  background: #f8fafc;
+  cursor: not-allowed;
+}
+
+.chat-send-btn {
+  width: 62px;
+  height: 42px;
+  border: 0;
+  border-radius: 14px;
+  background: #1677ff;
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.chat-send-btn:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.chat-send-btn:not(:disabled):active {
+  background: #1d4ed8;
+}
+
+/* --- 底部操作栏（延长 / 结束） --- */
+.chat-page-actions {
+  display: flex;
+  gap: 10px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.chat-action-btn {
+  flex: 1;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.chat-action-btn:active {
+  background: #e2e8f0;
+}
+
+.chat-action-btn--primary {
+  background: #1677ff;
+  color: #fff;
+}
+
+.chat-action-btn--primary:active {
+  background: #1d4ed8;
+}
