@@ -35,7 +35,11 @@ export function DepartmentPage() {
       {loading ? <SpinLoading /> : null}
       <List>
         {departments.map((department) => (
-          <List.Item key={department.id} extra={<Tag color="warning">{department.queue}</Tag>} onClick={() => navigate("/doctor/list")}>
+          <List.Item
+            key={department.id}
+            extra={<Tag color="warning">{department.queue}</Tag>}
+            onClick={() => navigate(`/doctor/list?deptId=${department.id}&departmentName=${encodeURIComponent(department.name)}`)}
+          >
             {department.name}
           </List.Item>
         ))}
