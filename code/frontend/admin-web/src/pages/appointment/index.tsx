@@ -31,6 +31,7 @@ import {
 } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
+import { appointmentStatusColor, numberSourceStatusColor } from '@/utils/status-color';
 
 export interface AppointmentRecord {
   id: number;
@@ -419,40 +420,6 @@ function AppointmentPage() {
       </Modal>
     </>
   );
-}
-
-function appointmentStatusColor(status: string): string {
-  switch (status) {
-    case '待支付':
-      return 'gold';
-    case '已支付':
-      return 'blue';
-    case '已签到':
-      return 'green';
-    case '已接单':
-      return 'cyan';
-    case '已完成':
-      return 'default';
-    case '已取消':
-      return 'red';
-    default:
-      return 'processing';
-  }
-}
-
-function numberSourceStatusColor(status: string): string {
-  switch (status) {
-    case 'AVAILABLE':
-      return 'green';
-    case 'LOCKED':
-      return 'gold';
-    case 'USED':
-      return 'blue';
-    case 'RELEASED':
-      return 'default';
-    default:
-      return 'processing';
-  }
 }
 
 export default AppointmentPage;

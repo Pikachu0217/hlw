@@ -10,6 +10,7 @@ import {
 } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
+import { prescriptionStatusColor as statusColor } from '@/utils/status-color';
 
 export interface PrescriptionRecord {
   id: number;
@@ -210,23 +211,6 @@ function PrescriptionPage() {
       </Modal>
     </>
   );
-}
-
-function statusColor(status: string): string {
-  switch (status) {
-    case '草稿':
-      return 'default';
-    case '待审方':
-      return 'gold';
-    case '待发药':
-      return 'green';
-    case '已驳回':
-      return 'red';
-    case '已发药':
-      return 'blue';
-    default:
-      return 'processing';
-  }
 }
 
 export default PrescriptionPage;

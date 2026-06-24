@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createOrder, fetchOrders, payOrder } from '@/api/modules';
 import ModulePage from '@/components/ModulePage';
 import { useModuleRecords } from '@/hooks/useModuleRecords';
+import { orderStatusColor as statusColor } from '@/utils/status-color';
 
 export interface OrderRecord {
   id: number;
@@ -174,21 +175,6 @@ function OrderPage() {
       </Modal>
     </>
   );
-}
-
-function statusColor(status: string): string {
-  switch (status) {
-    case '待支付':
-      return 'gold';
-    case '已支付':
-      return 'green';
-    case '已关闭':
-      return 'default';
-    case '已退款':
-      return 'red';
-    default:
-      return 'processing';
-  }
 }
 
 export default OrderPage;

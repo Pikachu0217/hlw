@@ -12,6 +12,7 @@ import {
 import { AUTHORIZATION_TOKEN_PREFIX } from '@/api/auth-header';
 import PageHero from '@/components/PageHero';
 import { readAuthToken } from '@/utils/auth-storage';
+import { consultStatusColor as statusColor } from '@/utils/status-color';
 
 export interface ConsultRecord {
   id: number;
@@ -247,19 +248,6 @@ function ConsultPage() {
       </div>
     </div>
   );
-}
-
-function statusColor(status: string): string {
-  if (status === '待接单') {
-    return 'gold';
-  }
-  if (status === '咨询中') {
-    return 'blue';
-  }
-  if (status === '已延长') {
-    return 'cyan';
-  }
-  return 'default';
 }
 
 function formatRemaining(seconds?: number): string {

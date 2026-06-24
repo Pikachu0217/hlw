@@ -30,7 +30,7 @@ import java.util.Objects;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * 处方工作流服务，负责处方草稿、提审、审核和驳回落库。
+ * 处方工作流服务，负责处方草稿、提审、审核和驳回落库�?
  */
 @Service
 @RequiredArgsConstructor
@@ -45,25 +45,25 @@ public class PrescriptionWorkflowService {
     private static final String DEFAULT_DOCTOR_NAME = "";
     private static final long DEFAULT_PHARMACIST_ID = 0;
     private static final String STATUS_DRAFT = "草稿";
-    private static final String STATUS_SUBMITTED = "待审方";
-    private static final String STATUS_AUDITED = "待发药";
-    private static final String STATUS_REJECTED = "已驳回";
+    private static final String STATUS_SUBMITTED = "待审�?;
+    private static final String STATUS_AUDITED = "待发�?;
+    private static final String STATUS_REJECTED = "已驳�?;
 
-    /** 处方数据访问组件。 */
+    /** 处方数据访问组件�?*/
     private final PrePrescriptionMapper prePrescriptionMapper;
-    /** 处方药品明细数据访问组件。 */
+    /** 处方药品明细数据访问组件�?*/
     private final PrePrescriptionItemMapper prePrescriptionItemMapper;
-    /** 消息生产者。 */
+    /** 消息生产者�?*/
     private final MessageQueueProducer<String, Long> messageQueueProducer;
 
     /**
-     * 查询处方列表。
+     * 查询处方列表�?
      *
      * @return 处方展示列表
      */
     public List<PrescriptionVO> listPrescriptions() {
         log.info("查询处方列表");
-        return prePrescriptionMapper.selectList(activePrescriptionWrapper())
+        return prePrescriptionMapper.selectList(new LambdaQueryWrapper<>())
             .stream()
             .sorted(Comparator.comparing(PrePrescriptionEntity::getId))
             .map(this::toPrescriptionVO)
@@ -71,24 +71,24 @@ public class PrescriptionWorkflowService {
     }
 
     /**
-     * 创建处方草稿并写入药品明细。
+     * 创建处方草稿并写入药品明细�?
      *
      * @param request 创建请求
      * @return 创建后的处方
      */
     @Transactional
     public PrescriptionVO create(CreatePrescriptionRequest request) {
-        ensureBusinessTenantContext("处方模块操作缺少有效租户上下文");
-        Long consultId = defaultLong(request.getConsultId(), DEFAULT_CONSULT_ID);
-        Long patientId = defaultLong(request.getPatientId(), DEFAULT_PATIENT_ID);
-        Long doctorId = defaultLong(request.getDoctorId(), DEFAULT_DOCTOR_ID);
-        String patientName = defaultIfBlank(request.getPatientName(), DEFAULT_PATIENT_NAME);
-        String doctorName = defaultIfBlank(request.getDoctorName(), DEFAULT_DOCTOR_NAME);
+        TokenPrincipalContext.ensureBusinessTenantContext("处方模块操作缺少有效租户上下�?);
+        Long consultId = DefaultValueUtils.defaultIfNull(request.getConsultId(), DEFAULT_CONSULT_ID);
+        Long patientId = DefaultValueUtils.defaultIfNull(request.getPatientId(), DEFAULT_PATIENT_ID);
+        Long doctorId = DefaultValueUtils.defaultIfNull(request.getDoctorId(), DEFAULT_DOCTOR_ID);
+        String patientName = DefaultValueUtils.defaultIfBlank(request.getPatientName(), DEFAULT_PATIENT_NAME);
+        String doctorName = DefaultValueUtils.defaultIfBlank(request.getDoctorName(), DEFAULT_DOCTOR_NAME);
         List<Long> drugIds = request.getDrugIds() == null
             ? List.of()
             : request.getDrugIds().stream().filter(Objects::nonNull).toList();
-        int drugCount = drugIds.isEmpty() ? defaultInt(request.getDrugCount(), 1) : drugIds.size();
-        String issuedAt = defaultIfBlank(request.getIssuedAt(), currentDisplayTime());
+        int drugCount = drugIds.isEmpty() ? DefaultValueUtils.defaultIfNull(request.getDrugCount(), 1) : drugIds.size();
+        String issuedAt = DefaultValueUtils.defaultIfBlank(request.getIssuedAt(), currentDisplayTime());
         log.info("创建处方草稿，consultId={}，patientId={}，doctorId={}，drugCount={}", consultId, patientId, doctorId, drugCount);
 
         PrePrescriptionEntity entity = new PrePrescriptionEntity();
@@ -109,14 +109,14 @@ public class PrescriptionWorkflowService {
     }
 
     /**
-     * 提交处方进入待审方状态。
+     * 提交处方进入待审方状态�?
      *
      * @param id 处方编号
      * @return 提交后的处方
      */
     @Transactional
     public PrescriptionVO submit(Long id) {
-        ensureBusinessTenantContext("处方模块操作缺少有效租户上下文");
+        TokenPrincipalContext.ensureBusinessTenantContext("处方模块操作缺少有效租户上下�?);
         log.info("提交处方，prescriptionId={}", id);
         PrePrescriptionEntity entity = requireActivePrescription(id);
         if (STATUS_SUBMITTED.equals(entity.getStatus())) {
@@ -133,7 +133,7 @@ public class PrescriptionWorkflowService {
     }
 
     /**
-     * 审核通过处方。
+     * 审核通过处方�?
      *
      * @param id 处方编号
      * @param request 审核请求
@@ -141,9 +141,9 @@ public class PrescriptionWorkflowService {
      */
     @Transactional
     public PrescriptionVO approve(Long id, ApprovePrescriptionRequest request) {
-        ensureBusinessTenantContext("处方模块操作缺少有效租户上下文");
-        Long pharmacistId = request == null ? DEFAULT_PHARMACIST_ID : defaultLong(request.getPharmacistId(), DEFAULT_PHARMACIST_ID);
-        String remark = request == null ? "" : defaultIfBlank(request.getRemark(), "");
+        TokenPrincipalContext.ensureBusinessTenantContext("处方模块操作缺少有效租户上下�?);
+        Long pharmacistId = request == null ? DEFAULT_PHARMACIST_ID : DefaultValueUtils.defaultIfNull(request.getPharmacistId(), DEFAULT_PHARMACIST_ID);
+        String remark = request == null ? "" : DefaultValueUtils.defaultIfBlank(request.getRemark(), "");
         log.info("审核通过处方，prescriptionId={}，pharmacistId={}", id, pharmacistId);
         PrePrescriptionEntity entity = requireActivePrescription(id);
         if (STATUS_AUDITED.equals(entity.getStatus())) {
@@ -163,7 +163,7 @@ public class PrescriptionWorkflowService {
     }
 
     /**
-     * 驳回处方。
+     * 驳回处方�?
      *
      * @param id 处方编号
      * @param request 驳回请求
@@ -171,8 +171,8 @@ public class PrescriptionWorkflowService {
      */
     @Transactional
     public PrescriptionVO reject(Long id, RejectPrescriptionRequest request) {
-        ensureBusinessTenantContext("处方模块操作缺少有效租户上下文");
-        String remark = request == null ? "" : defaultIfBlank(request.getRemark(), "");
+        TokenPrincipalContext.ensureBusinessTenantContext("处方模块操作缺少有效租户上下�?);
+        String remark = request == null ? "" : DefaultValueUtils.defaultIfBlank(request.getRemark(), "");
         log.info("驳回处方，prescriptionId={}，remark={}", id, remark);
         PrePrescriptionEntity entity = requireActivePrescription(id);
         if (STATUS_REJECTED.equals(entity.getStatus())) {
@@ -190,7 +190,7 @@ public class PrescriptionWorkflowService {
     }
 
     /**
-     * 写入处方药品明细。
+     * 写入处方药品明细�?
      *
      * @param prescriptionId 处方编号
      * @param drugIds 药品编号列表
@@ -206,7 +206,7 @@ public class PrescriptionWorkflowService {
     }
 
     /**
-     * 写入单个处方药品明细。
+     * 写入单个处方药品明细�?
      *
      * @param prescriptionId 处方编号
      * @param drugId 药品编号
@@ -217,36 +217,16 @@ public class PrescriptionWorkflowService {
         item.setPrescriptionId(prescriptionId);
         item.setDrugId(drugId);
         item.setDrugName(drugName);
-        item.setDosage("遵医嘱");
-        item.setFrequency("每日一次");
+        item.setDosage("遵医�?);
+        item.setFrequency("每日一�?);
         item.setQuantity(BigDecimal.ONE);
         item.setUsageNote("饭后服用");
         prePrescriptionItemMapper.insert(item);
     }
-
-    /**
-     * 构造激活处方查询条件。
-     *
-     * @return 查询条件
-     */
-    private LambdaQueryWrapper<PrePrescriptionEntity> activePrescriptionWrapper() {
-        return new LambdaQueryWrapper<PrePrescriptionEntity>();
     }
 
     /**
-     * 校验当前请求处于有效业务租户上下文。
-     *
-     * @param message 不满足条件时的错误消息
-     */
-    private void ensureBusinessTenantContext(String message) {
-        Long tenantId = TokenPrincipalContext.get().getTenantId();
-        if (tenantId == null || tenantId <= 0L || TokenPrincipalContext.get().getPlatformRequest()) {
-            throw new BizException(403, message);
-        }
-    }
-
-    /**
-     * 查询处方并校验存在。
+     * 查询处方并校验存在�?
      *
      * @param id 处方编号
      * @return 处方实体
@@ -256,13 +236,13 @@ public class PrescriptionWorkflowService {
             .eq(PrePrescriptionEntity::getId, id)
             .last("limit 1"));
         if (entity == null) {
-            throw new BizException(404, "处方不存在");
+            throw new BizException(404, "处方不存�?);
         }
         return entity;
     }
 
     /**
-     * 转换处方展示对象。
+     * 转换处方展示对象�?
      *
      * @param entity 处方实体
      * @return 处方展示对象
@@ -270,65 +250,56 @@ public class PrescriptionWorkflowService {
     private PrescriptionVO toPrescriptionVO(PrePrescriptionEntity entity) {
         PrescriptionVO vo = new PrescriptionVO();
         vo.setId(entity.getId());
-        vo.setPrescriptionNo(defaultIfBlank(entity.getPrescriptionNo(), resolvePrescriptionNo(entity.getId())));
-        vo.setPatientName(defaultIfBlank(entity.getPatientName(), ""));
-        vo.setDoctorName(defaultIfBlank(entity.getDoctorName(), ""));
-        vo.setDrugCount(defaultInt(entity.getDrugCount(), 0));
-        vo.setIssuedAt(defaultIfBlank(entity.getIssuedAt(), ""));
-        vo.setStatus(defaultIfBlank(entity.getStatus(), STATUS_DRAFT));
-        vo.setRemark(defaultIfBlank(entity.getAuditRemark(), ""));
+        vo.setPrescriptionNo(DefaultValueUtils.defaultIfBlank(entity.getPrescriptionNo(), resolvePrescriptionNo(entity.getId())));
+        vo.setPatientName(DefaultValueUtils.defaultIfBlank(entity.getPatientName(), ""));
+        vo.setDoctorName(DefaultValueUtils.defaultIfBlank(entity.getDoctorName(), ""));
+        vo.setDrugCount(DefaultValueUtils.defaultIfNull(entity.getDrugCount(), 0));
+        vo.setIssuedAt(DefaultValueUtils.defaultIfBlank(entity.getIssuedAt(), ""));
+        vo.setStatus(DefaultValueUtils.defaultIfBlank(entity.getStatus(), STATUS_DRAFT));
+        vo.setRemark(DefaultValueUtils.defaultIfBlank(entity.getAuditRemark(), ""));
         return vo;
     }
 
     /**
-     * 生成处方号。
+     * 生成处方号�?
      *
      * @param id 处方编号
-     * @return 处方号
+     * @return 处方�?
      */
     private String resolvePrescriptionNo(Long id) {
         return "CF" + LocalDate.now().format(PRESCRIPTION_DATE_FORMATTER) + String.format("%04d", id);
     }
 
     /**
-     * 获取当前展示时间。
+     * 获取当前展示时间�?
      *
-     * @return 时分展示值
+     * @return 时分展示�?
      */
     private String currentDisplayTime() {
         return LocalTime.now().format(TIME_FORMATTER);
     }
 
     /**
-     * 设置默认字符串。
+     * 设置默认字符串�?
      *
-     * @param value 原始值
-     * @param defaultValue 默认值
-     * @return 处理后的字符串
+     * @param value 原始�?
+     * @param defaultValue 默认�?
+     * @return 处理后的字符�?
      */
-    private String defaultIfBlank(String value, String defaultValue) {
-        return DefaultValueUtils.defaultIfBlank(value, defaultValue);
-    }
 
     /**
-     * 设置默认长整型。
+     * 设置默认长整型�?
      *
-     * @param value 原始值
-     * @param defaultValue 默认值
-     * @return 处理后的长整型
+     * @param value 原始�?
+     * @param defaultValue 默认�?
+     * @return 处理后的长整�?
      */
-    private Long defaultLong(Long value, Long defaultValue) {
-        return DefaultValueUtils.defaultIfNull(value, defaultValue);
-    }
 
     /**
-     * 设置默认整型。
+     * 设置默认整型�?
      *
-     * @param value 原始值
-     * @param defaultValue 默认值
+     * @param value 原始�?
+     * @param defaultValue 默认�?
      * @return 处理后的整型
      */
-    private int defaultInt(Integer value, int defaultValue) {
-        return DefaultValueUtils.defaultIfNull(value, defaultValue);
-    }
 }

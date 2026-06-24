@@ -41,4 +41,17 @@ public final class TokenPrincipalContext {
     public static void clear() {
         HOLDER.remove();
     }
+
+    /**
+     * 校验当前请求处于有效业务租户上下文，不满足时抛出业务异常。
+     * <p>当 tenantId 为空、≤0 或标记为平台请求时视为无效。</p>
+     *
+     * @param message 不满足条件时的错误消息
+     */
+    public static void ensureBusinessTenantContext(String message) {
+        TokenPrincipal principal = get();
+        if (principal == null || principal.getTenantId() == null || principal.getTenantId() <= 0L || principal.getPlatformRequest()) {
+            throw new com.hlw.common.core.exception.BizException(403, message);
+        }
+    }
 }
