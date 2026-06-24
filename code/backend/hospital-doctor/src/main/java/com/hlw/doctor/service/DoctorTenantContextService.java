@@ -38,6 +38,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -146,18 +147,45 @@ public class DoctorTenantContextService {
     /**
      * 查询医生列表。
      *
+     * @param deptId 科室编号
      * @return 医生展示列表
      */
-    public List<DoctorVO> listDoctors() {
+    @Transactional
+    public List<DoctorVO> listDoctors(Long deptId) {
         Long tenantId = currentBusinessTenantId("查询医生资源缺少有效租户上下文");
-        log.info("查询医生资源列表，tenantId={}", tenantId);
+        log.info("查询医生资源列表，tenantId={}，deptId={}", tenantId, deptId);
         List<InternalUserResp> doctorUsers = readFeignData(systemUserFeignClient.listByUserType(tenantId, DOCTOR_USER_TYPE), "查询医生账号失败");
         Map<String, DocDoctorEntity> extensionMap = docDoctorMapper.selectList(activeDoctorWrapper()).stream()
             .collect(Collectors.toMap(DocDoctorEntity::getUserId, Function.identity(), (current, next) -> current));
-        return doctorUsers.stream()
-            .sorted(Comparator.comparing(InternalUserResp::getId))
-            .map(user -> toDoctorVO(user, extensionMap.get(user.getUserId())))
-            .toList();
+        List<DoctorResource> doctorResources = doctorUsers.stream()
+                .sorted(Comparator.comparing(InternalUserResp::getId))
+                .map(user -> {
+                    DocDoctorEntity extension = ensureDoctorExtension(tenantId, user, extensionMap.get(user.getUserId()));
+                    ensureDefaultDoctorDepartmentBinding(tenantId, user, extension);
+                    return new DoctorResource(user, extension);
+                })
+                .toList();
+        if (deptId == null) {
+            return doctorResources.stream()
+                    .map(resource -> toDoctorVO(resource.user(), resource.extension()))
+                    .toList();
+        }
+        Map<Long, DocDoctorDepartmentEntity> relationMap = docDoctorDepartmentMapper.selectList(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
+                .eq(DocDoctorDepartmentEntity::getDeptId, deptId))
+                .stream()
+                .collect(Collectors.toMap(DocDoctorDepartmentEntity::getDoctorId, Function.identity(), (current, next) -> current));
+        Set<Long> doctorIds = relationMap.keySet();
+        String selectedDepartmentName = resolveDepartmentDisplayName(tenantId, deptId);
+        log.info("按科室过滤医生资源，tenantId={}，deptId={}，departmentName={}，doctorCount={}",
+                tenantId, deptId, selectedDepartmentName, doctorIds.size());
+        return doctorResources.stream()
+                .filter(resource -> resource.extension().getId() != null && doctorIds.contains(resource.extension().getId()))
+                .map(resource -> {
+                    DoctorVO vo = toDoctorVO(resource.user(), resource.extension());
+                    vo.setDepartment(selectedDepartmentName);
+                    return vo;
+                })
+                .toList();
     }
 
     /**
@@ -536,6 +564,22 @@ public class DoctorTenantContextService {
     }
 
     /**
+     * 解析科室展示名称。
+     *
+     * @param tenantId 租户编号
+     * @param deptId 系统部门编号
+     * @return 科室展示名称
+     */
+    private String resolveDepartmentDisplayName(Long tenantId, Long deptId) {
+        DocDepartmentEntity extension = findDepartmentExtensionByDeptId(deptId);
+        if (extension != null) {
+            return defaultIfBlank(extension.getDepartmentName(), extension.getName());
+        }
+        InternalDeptResp dept = readFeignData(systemDeptFeignClient.detail(deptId, tenantId), "查询系统科室失败");
+        return dept == null ? "" : defaultIfBlank(dept.getDeptName(), "");
+    }
+
+    /**
      * 按账号编号查询医生扩展信息。
      *
      * @param userId 医生账号业务编号
@@ -548,6 +592,75 @@ public class DoctorTenantContextService {
         return docDoctorMapper.selectOne(new LambdaQueryWrapper<DocDoctorEntity>()
             .eq(DocDoctorEntity::getUserId, userId)
             .last("limit 1"));
+    }
+
+    /**
+     * 确保医生扩展信息存在。
+     *
+     * @param tenantId 租户编号
+     * @param user 系统医生账号
+     * @param extension 已有医生扩展信息
+     * @return 医生扩展信息
+     */
+    private DocDoctorEntity ensureDoctorExtension(Long tenantId, InternalUserResp user, DocDoctorEntity extension) {
+        if (extension != null) {
+            return extension;
+        }
+        DocDoctorEntity entity = new DocDoctorEntity();
+        entity.setUserId(user.getUserId());
+        entity.setTenantId(tenantId);
+        entity.setPatientCount(0);
+        CreateDoctorRequest request = new CreateDoctorRequest();
+        request.setName(user.getRealName());
+        request.setDepartment(defaultIfBlank(user.getDeptName(), ""));
+        request.setConsultStatus(DEFAULT_CONSULT_STATUS);
+        request.setStatus(DEFAULT_DOCTOR_STATUS);
+        request.setSchedule(DEFAULT_SCHEDULE);
+        fillDoctorExtension(entity, user, request);
+        docDoctorMapper.insert(entity);
+        log.info("自动补齐医生扩展信息，tenantId={}，userId={}，doctorId={}", tenantId, user.getUserId(), entity.getId());
+        return entity;
+    }
+
+    /**
+     * 确保医生默认科室绑定存在。
+     *
+     * @param tenantId 租户编号
+     * @param user 系统医生账号
+     * @param doctor 医生扩展信息
+     */
+    private void ensureDefaultDoctorDepartmentBinding(Long tenantId, InternalUserResp user, DocDoctorEntity doctor) {
+        if (user.getDeptId() == null || doctor.getId() == null) {
+            return;
+        }
+        Long count = docDoctorDepartmentMapper.selectCount(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
+            .eq(DocDoctorDepartmentEntity::getDoctorId, doctor.getId())
+            .eq(DocDoctorDepartmentEntity::getDeptId, user.getDeptId()));
+        if (count != null && count > 0L) {
+            return;
+        }
+        try {
+            DocDepartmentEntity department = ensureDepartmentExtension(user.getDeptId(), tenantId);
+            DocDoctorDepartmentEntity relation = new DocDoctorDepartmentEntity();
+            relation.setTenantId(tenantId);
+            relation.setDoctorId(doctor.getId());
+            relation.setDeptId(user.getDeptId());
+            relation.setIsFree(0);
+            relation.setAppointmentFee(appointmentFeePolicyService.resolveByTitle(doctor.getTitle()));
+            docDoctorDepartmentMapper.insert(relation);
+            refreshDepartmentDoctorCount(user.getDeptId());
+            log.info("自动补齐医生默认科室绑定，tenantId={}，doctorId={}，deptId={}，departmentId={}",
+                tenantId, doctor.getId(), user.getDeptId(), department.getId());
+        } catch (BizException exception) {
+            log.info("跳过医生默认科室绑定，tenantId={}，userId={}，deptId={}，reason={}",
+                tenantId, user.getUserId(), user.getDeptId(), exception.getMessage());
+        }
+    }
+
+    /**
+     * 医生资源上下文，关联系统医生账号与医生扩展信息。
+     */
+    private record DoctorResource(InternalUserResp user, DocDoctorEntity extension) {
     }
 
     /**

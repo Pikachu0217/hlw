@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -90,12 +91,13 @@ public class DoctorManagementController {
     /**
      * 查询医生列表。
      *
+     * @param deptId 科室编号
      * @return 医生列表
      */
     @GetMapping("/doctors")
-    public R<List<DoctorVO>> doctors() {
-        log.info("查询医生列表");
-        return R.ok(doctorTenantContextService.listDoctors());
+    public R<List<DoctorVO>> doctors(@RequestParam(required = false) Long deptId) {
+        log.info("查询医生列表，deptId={}", deptId);
+        return R.ok(doctorTenantContextService.listDoctors(deptId));
     }
 
     /**
