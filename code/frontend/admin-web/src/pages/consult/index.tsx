@@ -41,6 +41,7 @@ function ConsultPage() {
     () => records.find((record) => record.consultId === activeConsultId),
     [activeConsultId, records],
   );
+  const activePatientName = activeRecord ? displayPatientName(activeRecord) : '';
   const canSend = Boolean(activeRecord && activeRecord.status !== '已完成' && activeRecord.status !== '已取消');
 
   const loadWorkbench = useCallback(async () => {
@@ -203,7 +204,7 @@ function ConsultPage() {
                 onClick={() => setActiveConsultId(record.consultId)}
               >
                 <div className="consult-workbench__patient-main">
-                  <strong>{record.patientName}</strong>
+                  <strong>{displayPatientName(record)}</strong>
                   <span>{record.consultNo}</span>
                   <small>{record.lastMessage || '暂无消息'}</small>
                 </div>
@@ -217,7 +218,7 @@ function ConsultPage() {
             <>
               <div className="consult-workbench__chat-header">
                 <div>
-                  <Typography.Title level={4} className="consult-workbench__title">{activeRecord.patientName}</Typography.Title>
+                  <Typography.Title level={4} className="consult-workbench__title">{activePatientName}</Typography.Title>
                   <Typography.Text type="secondary">{activeRecord.channel} · 剩余 {formatRemaining(activeRecord.remainingSeconds)}</Typography.Text>
                 </div>
                 <Space wrap>
@@ -225,6 +226,10 @@ function ConsultPage() {
                   <Button onClick={handleExtend} disabled={!['咨询中', '已延长'].includes(activeRecord.status)} loading={submitting}>延长</Button>
                   <Button type="primary" danger onClick={handleComplete} disabled={!ACTIVE_STATUS.includes(activeRecord.status)} loading={submitting}>完成</Button>
                 </Space>
+              </div>
+              <div className="consult-workbench__chief-complaint">
+                <span>问题描述</span>
+                <strong>{activeRecord.chiefComplaint || activeRecord.lastMessage || '患者暂未填写问题描述'}</strong>
               </div>
               <div className="consult-workbench__messages">
                 {messages.map((item, index) => (
@@ -255,6 +260,14 @@ function formatRemaining(seconds?: number): string {
   const minutes = Math.floor(safeSeconds / 60);
   const restSeconds = safeSeconds % 60;
   return `${minutes}分${restSeconds}秒`;
+}
+
+function displayPatientName(record: DoctorConsultWorkbenchRecord): string {
+  const patientName = record.patientName?.trim();
+  if (patientName) {
+    return patientName;
+  }
+  return record.patientId ? `患者${record.patientId}` : '未知患者';
 }
 
 function resolveConsultWsUrl(consultId: number): string {

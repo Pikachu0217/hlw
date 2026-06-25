@@ -1,9 +1,13 @@
 package com.hlw.consult.ws;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hlw.common.core.exception.BizException;
+import com.hlw.consult.entity.ConConsultEntity;
+import com.hlw.consult.mapper.ConConsultMapper;
+import com.hlw.consult.service.ConsultDisplayStatus;
 import com.hlw.consult.service.ConsultMessageType;
 import com.hlw.consult.service.ConsultParticipantType;
 import org.springframework.stereotype.Component;
@@ -18,16 +22,23 @@ import java.util.Map;
 @Component
 public class ConsultMessageHandler {
     private final ConsultMessageRepository messageRepository;
+    private final ConConsultMapper conConsultMapper;
     private final ObjectMapper objectMapper;
 
     /**
      * 构造问诊消息处理器。
      *
      * @param messageRepository 问诊消息仓储
+     * @param conConsultMapper 问诊单数据访问组件
      * @param objectMapper JSON 转换器
      */
-    public ConsultMessageHandler(ConsultMessageRepository messageRepository, ObjectMapper objectMapper) {
+    public ConsultMessageHandler(
+        ConsultMessageRepository messageRepository,
+        ConConsultMapper conConsultMapper,
+        ObjectMapper objectMapper
+    ) {
         this.messageRepository = messageRepository;
+        this.conConsultMapper = conConsultMapper;
         this.objectMapper = objectMapper;
     }
 
@@ -54,6 +65,7 @@ public class ConsultMessageHandler {
             throw new BizException(400, "消息类型不支持");
         }
         String resolvedSenderType = senderType == null || senderType.isBlank() ? ConsultParticipantType.PATIENT : senderType;
+        validateSendable(consultId, resolvedSenderType);
         ConsultMessage message = new ConsultMessage(
             null,
             consultId,
@@ -65,6 +77,29 @@ public class ConsultMessageHandler {
             LocalDateTime.now()
         );
         return toJson(messageRepository.save(message));
+    }
+
+    /**
+     * 校验当前问诊状态是否允许发送消息。
+     *
+     * @param consultId 问诊编号
+     * @param senderType 发送人类型
+     */
+    private void validateSendable(Long consultId, String senderType) {
+        ConConsultEntity consult = conConsultMapper.selectOne(new LambdaQueryWrapper<ConConsultEntity>()
+            .eq(ConConsultEntity::getId, consultId)
+            .eq(ConConsultEntity::getDeleted, 0)
+            .last("limit 1"));
+        if (consult == null) {
+            throw new BizException(404, "问诊单不存在");
+        }
+        boolean accepted = ConsultDisplayStatus.IN_PROGRESS.equals(consult.getStatus())
+            || ConsultDisplayStatus.EXTENDED.equals(consult.getStatus());
+        if (!accepted) {
+            throw new BizException(409, ConsultParticipantType.PATIENT.equals(senderType)
+                ? "医生接诊后患者才能发送消息"
+                : "问诊接单后才能发送消息");
+        }
     }
 
     /**

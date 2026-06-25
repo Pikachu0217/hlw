@@ -1426,6 +1426,29 @@ body {
   border-bottom: 1px solid rgba(20, 42, 68, 0.08);
 }
 
+.consult-workbench__chief-complaint {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(20, 125, 143, 0.14);
+  border-radius: 12px;
+  background: rgba(20, 125, 143, 0.06);
+}
+
+.consult-workbench__chief-complaint span {
+  color: #607386;
+  font-size: 12px;
+}
+
+.consult-workbench__chief-complaint strong {
+  color: #102b3d;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
 .consult-workbench__messages {
   display: flex;
   height: 360px;

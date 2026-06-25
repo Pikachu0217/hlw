@@ -274,6 +274,7 @@ export interface DoctorConsultWorkbenchRecord {
   channel: string;
   updatedAt: string;
   lastMessage: string;
+  chiefComplaint: string;
   lastMessageTime: string;
   remainingSeconds: number;
 }

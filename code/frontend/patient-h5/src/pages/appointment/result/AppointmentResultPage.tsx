@@ -23,7 +23,7 @@ export function AppointmentResultPage() {
       // 如果是图文问诊入口，支付后自动创建问诊单并跳转到聊天
       if (source === "consult") {
         const consult = await createConsultFromAppointment(appointmentId);
-        navigate(`/consult/chat?consultId=${consult.id}`, { replace: true });
+        navigate(buildConsultChatUrl(consult), { replace: true });
         return;
       }
 
@@ -63,4 +63,13 @@ export function AppointmentResultPage() {
       </Space>
     </div>
   );
+}
+
+function buildConsultChatUrl(consult: { id: number; status?: string; remainingSeconds?: number }): string {
+  const params = new URLSearchParams({
+    consultId: String(consult.id),
+    status: consult.status ?? "",
+    remainingSeconds: String(consult.remainingSeconds ?? 0)
+  });
+  return `/consult/chat?${params.toString()}`;
 }

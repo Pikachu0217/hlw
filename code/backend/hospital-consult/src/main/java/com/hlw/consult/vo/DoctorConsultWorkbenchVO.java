@@ -29,6 +29,8 @@ public class DoctorConsultWorkbenchVO {
     private String updatedAt;
     /** 最新消息内容。 */
     private String lastMessage;
+    /** 患者问题描述。 */
+    private String chiefComplaint;
     /** 最新消息时间。 */
     private String lastMessageTime;
     /** 剩余问诊秒数。 */

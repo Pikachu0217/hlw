@@ -210,13 +210,18 @@ export function ConsultFlowPage() {
 
   async function handleEnterConsult(appointmentId?: number, consultId?: number): Promise<void> {
     if (consultId) {
-      navigate(`/consult/chat?consultId=${consultId}`);
+      const consult = consults.find((record) => record.id === consultId);
+      navigate(buildConsultChatUrl({
+        id: consultId,
+        status: consult?.status,
+        remainingSeconds: consult?.remainingSeconds
+      }));
       return;
     }
     if (appointmentId) {
       try {
         const consult = await createConsultFromAppointment(appointmentId);
-        navigate(`/consult/chat?consultId=${consult.id}`);
+        navigate(buildConsultChatUrl(consult));
       } catch {
         Toast.show("进入问诊失败");
       }
@@ -322,4 +327,13 @@ export function ConsultFlowPage() {
       </List>
     </SectionCard>
   );
+}
+
+function buildConsultChatUrl(consult: { id: number; status?: string; remainingSeconds?: number }): string {
+  const params = new URLSearchParams({
+    consultId: String(consult.id),
+    status: consult.status ?? "",
+    remainingSeconds: String(consult.remainingSeconds ?? 0)
+  });
+  return `/consult/chat?${params.toString()}`;
 }

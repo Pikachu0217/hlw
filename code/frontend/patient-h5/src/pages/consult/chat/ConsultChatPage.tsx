@@ -14,6 +14,9 @@ export function ConsultChatPage() {
   const [textMessage, setTextMessage] = useState("");
   const [doctorName, setDoctorName] = useState("医生");
   const remainingSeconds = Number(searchParams.get("remainingSeconds") ?? 0);
+  const consultStatus = searchParams.get("status") ?? "";
+  const statusText = consultStatus || "待接单";
+  const canSend = ["咨询中", "已延长"].includes(consultStatus);
   const socketRef = useRef<WebSocket | null>(null);
 
   // 加载历史消息
@@ -93,6 +96,10 @@ export function ConsultChatPage() {
   /** 发送消息。 */
   function sendMessage(contentType: "TEXT" | "IMAGE", content: string): void {
     const trimmedContent = content.trim();
+    if (!canSend) {
+      Toast.show("医生接诊后患者才能发送消息");
+      return;
+    }
     if (!trimmedContent) {
       Toast.show(contentType === "TEXT" ? "请输入消息内容" : "请上传图片");
       return;
@@ -161,14 +168,16 @@ export function ConsultChatPage() {
 
         {/* 状态卡 */}
         <div className="chat-page-status-card">
-          <span>问诊中</span>
+          <span>{statusText}</span>
           <span>剩余 {formatRemaining(remainingSeconds)}</span>
         </div>
       </header>
 
       {/* 温馨提示 */}
       <div className="chat-page-notice">
-        温馨提示：图文问诊仅支持文字和图片沟通，如出现胸痛、呼吸困难等紧急情况，请立即线下就医。
+        {canSend
+          ? "温馨提示：图文问诊仅支持文字和图片沟通，如出现胸痛、呼吸困难等紧急情况，请立即线下就医。"
+          : "医生接诊后患者才能发送消息，请耐心等待接单。"}
       </div>
 
       {/* 聊天主体 */}
@@ -177,7 +186,7 @@ export function ConsultChatPage() {
         remainingSeconds={remainingSeconds}
         messages={messages}
         textMessage={textMessage}
-        canSend={Boolean(consultId)}
+        canSend={Boolean(consultId) && canSend}
         onTextChange={setTextMessage}
         onSendText={() => sendMessage("TEXT", textMessage)}
         onSendImage={handleSendImage}

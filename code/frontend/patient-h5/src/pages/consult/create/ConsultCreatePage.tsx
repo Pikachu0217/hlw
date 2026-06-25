@@ -59,7 +59,7 @@ export function ConsultCreatePage() {
 
     try {
       const consult = await createConsult(consultType, chiefComplaint, doctor ?? undefined);
-      navigate(`/consult/chat?consultId=${consult.id}&remainingSeconds=0`);
+      navigate(buildConsultChatUrl(consult));
     } catch {
       Toast.show("问诊服务暂不可用，请稍后重试");
     }
@@ -75,12 +75,12 @@ export function ConsultCreatePage() {
           rules={[{ required: true, message: "请选择问诊类型" }]}
           onClick={() => setPickerVisible(true)}
         >
-          <span style={{ color: selectedLabel ? undefined : "#ccc" }}>
+          <span className={selectedLabel ? "consult-create-type-value" : "consult-create-type-value consult-create-type-value--placeholder"}>
             {selectedLabel || "请选择问诊类型"}
           </span>
         </Form.Item>
-        <Form.Item label="主诉" name="chiefComplaint" rules={[{ required: true, message: "请输入主诉" }]}>
-          <TextArea rows={4} placeholder="请输入主要症状和持续时间" />
+        <Form.Item label="问题描述" name="chiefComplaint" rules={[{ required: true, message: "请输入问题描述" }]}>
+          <TextArea rows={4} placeholder="请描述主要症状、持续时间和希望咨询的问题" />
         </Form.Item>
       </Form>
 
@@ -99,4 +99,13 @@ export function ConsultCreatePage() {
       />
     </SectionCard>
   );
+}
+
+function buildConsultChatUrl(consult: { id: number; status?: string; remainingSeconds?: number }): string {
+  const params = new URLSearchParams({
+    consultId: String(consult.id),
+    status: consult.status ?? "",
+    remainingSeconds: String(consult.remainingSeconds ?? 0)
+  });
+  return `/consult/chat?${params.toString()}`;
 }

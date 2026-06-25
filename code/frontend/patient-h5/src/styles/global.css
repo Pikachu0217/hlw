@@ -121,6 +121,14 @@ body {
   font-size: 22px;
 }
 
+.consult-create-type-value {
+  color: #23413a;
+}
+
+.consult-create-type-value--placeholder {
+  color: #ccc;
+}
+
 .section-card {
   border-radius: 24px;
 }

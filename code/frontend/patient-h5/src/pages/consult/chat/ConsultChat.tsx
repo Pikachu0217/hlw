@@ -95,6 +95,9 @@ export function ConsultChat({
   ];
 
   function handleQuickReply(text: string): void {
+    if (!canSend) {
+      return;
+    }
     onTextChange(text);
   }
 
@@ -147,7 +150,7 @@ export function ConsultChat({
             value={textMessage}
             onChange={(e) => onTextChange(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="请输入回复内容，仅支持文字和图片..."
+            placeholder={canSend ? "请输入回复内容，仅支持文字和图片..." : "医生接诊后可发送消息"}
             disabled={!canSend}
           />
           <button className="chat-send-btn" onClick={onSendText} disabled={!canSend || !textMessage.trim()}>

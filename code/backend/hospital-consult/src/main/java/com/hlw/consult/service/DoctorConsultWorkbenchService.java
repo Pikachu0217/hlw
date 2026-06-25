@@ -54,8 +54,9 @@ public class DoctorConsultWorkbenchService {
             .sorted(Comparator.comparing(ConConsultEntity::getId).reversed())
             .toList();
         Map<Long, ConMessageEntity> latestMessageMap = latestMessageMap(consults);
+        Map<Long, ConMessageEntity> chiefComplaintMap = chiefComplaintMap(consults);
         return consults.stream()
-            .map(entity -> toWorkbenchVO(entity, latestMessageMap.get(entity.getId())))
+            .map(entity -> toWorkbenchVO(entity, latestMessageMap.get(entity.getId()), chiefComplaintMap.get(entity.getId())))
             .toList();
     }
 
@@ -107,18 +108,39 @@ public class DoctorConsultWorkbenchService {
     }
 
     /**
+     * 构造患者问题描述映射。
+     *
+     * @param consults 问诊单列表
+     * @return 患者问题描述映射
+     */
+    private Map<Long, ConMessageEntity> chiefComplaintMap(List<ConConsultEntity> consults) {
+        List<Long> consultIds = consults.stream().map(ConConsultEntity::getId).toList();
+        if (consultIds.isEmpty()) {
+            return Map.of();
+        }
+        return conMessageMapper.selectList(new LambdaQueryWrapper<ConMessageEntity>()
+                .in(ConMessageEntity::getConsultId, consultIds)
+                .eq(ConMessageEntity::getSenderType, ConsultParticipantType.PATIENT)
+                .eq(ConMessageEntity::getDeleted, 0)
+                .orderByAsc(ConMessageEntity::getId))
+            .stream()
+            .collect(Collectors.toMap(ConMessageEntity::getConsultId, Function.identity(), (current, ignored) -> current));
+    }
+
+    /**
      * 转换工作台展示对象。
      *
      * @param entity 问诊单实体
      * @param latestMessage 最新消息实体
+     * @param chiefComplaint 问题描述消息实体
      * @return 工作台展示对象
      */
-    private DoctorConsultWorkbenchVO toWorkbenchVO(ConConsultEntity entity, ConMessageEntity latestMessage) {
+    private DoctorConsultWorkbenchVO toWorkbenchVO(ConConsultEntity entity, ConMessageEntity latestMessage, ConMessageEntity chiefComplaint) {
         DoctorConsultWorkbenchVO vo = new DoctorConsultWorkbenchVO();
         vo.setConsultId(entity.getId());
         vo.setConsultNo(entity.getConsultNo());
         vo.setPatientId(entity.getPatientId());
-        vo.setPatientName(entity.getPatientName());
+        vo.setPatientName(resolvePatientDisplayName(entity.getPatientName(), entity.getPatientId()));
         vo.setDoctorId(entity.getDoctorId());
         vo.setDoctorName(entity.getDoctorName());
         vo.setStatus(ConsultDisplayStatus.labelOf(entity.getStatus()));
@@ -126,7 +148,22 @@ public class DoctorConsultWorkbenchService {
         vo.setUpdatedAt(entity.getUpdatedAt());
         vo.setRemainingSeconds(entity.getRemainingSeconds());
         vo.setLastMessage(latestMessage == null ? "" : latestMessage.getContent());
+        vo.setChiefComplaint(chiefComplaint == null ? "" : chiefComplaint.getContent());
         vo.setLastMessageTime(latestMessage == null || latestMessage.getCreateTime() == null ? "" : latestMessage.getCreateTime().format(MESSAGE_TIME_FORMATTER));
         return vo;
+    }
+
+    /**
+     * 解析患者展示姓名。
+     *
+     * @param patientName 患者姓名
+     * @param patientId 患者编号
+     * @return 患者展示姓名
+     */
+    private String resolvePatientDisplayName(String patientName, Long patientId) {
+        if (patientName != null && !patientName.isBlank()) {
+            return patientName;
+        }
+        return patientId == null || patientId <= 0L ? "未知患者" : "患者" + patientId;
     }
 }

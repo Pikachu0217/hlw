@@ -109,7 +109,7 @@ export function AppointmentListPage() {
   async function handleEnterConsult(appointmentId: number): Promise<void> {
     try {
       const consult = await createConsultFromAppointment(appointmentId);
-      navigate(`/consult/chat?consultId=${consult.id}`);
+      navigate(buildConsultChatUrl(consult));
     } catch {
       Toast.show("进入问诊失败");
     }
@@ -226,4 +226,13 @@ export function AppointmentListPage() {
       </List>
     </SectionCard>
   );
+}
+
+function buildConsultChatUrl(consult: { id: number; status?: string; remainingSeconds?: number }): string {
+  const params = new URLSearchParams({
+    consultId: String(consult.id),
+    status: consult.status ?? "",
+    remainingSeconds: String(consult.remainingSeconds ?? 0)
+  });
+  return `/consult/chat?${params.toString()}`;
 }

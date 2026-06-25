@@ -25,8 +25,8 @@ public class CreateConsultRequest {
     private String doctorName;
     /** 问诊渠道。 */
     private String channel;
-    /** 主诉内容。 */
-    @NotBlank(message = "主诉内容不能为空")
+    /** 问题描述。 */
+    @NotBlank(message = "问题描述不能为空")
     private String chiefComplaint;
     /** 问诊费用。 */
     @DecimalMin(value = "0", message = "问诊费用不能小于 0")

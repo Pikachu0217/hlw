@@ -156,7 +156,7 @@ export function ConsultListPage() {
                   size="mini"
                   color="primary"
                   fill="solid"
-                  onClick={() => navigate(`/consult/chat?consultId=${consult.id}&remainingSeconds=${consult.remainingSeconds ?? 0}`)}
+                  onClick={() => navigate(buildConsultChatUrl(consult))}
                 >
                   进入聊天
                 </Button>
@@ -170,4 +170,13 @@ export function ConsultListPage() {
       </List>
     </SectionCard>
   );
+}
+
+function buildConsultChatUrl(consult: { id: number; status?: string; remainingSeconds?: number }): string {
+  const params = new URLSearchParams({
+    consultId: String(consult.id),
+    status: consult.status ?? "",
+    remainingSeconds: String(consult.remainingSeconds ?? 0)
+  });
+  return `/consult/chat?${params.toString()}`;
 }
