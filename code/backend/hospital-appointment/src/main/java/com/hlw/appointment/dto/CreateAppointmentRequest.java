@@ -35,4 +35,6 @@ public class CreateAppointmentRequest {
     /** 预约费用。 */
     @DecimalMin(value = "0", message = "预约费用不能小于 0")
     private BigDecimal feeAmount;
+    /** 患者问题描述。 */
+    private String chiefComplaint;
 }

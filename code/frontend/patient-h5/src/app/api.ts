@@ -42,6 +42,12 @@ export async function switchTenant(tenantId: string): Promise<LoginResult> {
   return response.data.data;
 }
 
+/** 退出当前登录。 */
+export async function logout(): Promise<void> {
+  console.info("[auth] 退出登录");
+  await http.post<ApiResult<null>>("/auth/logout");
+}
+
 export interface PatientProfile {
   id: number;
   userId?: string;
@@ -135,6 +141,15 @@ export interface CreatedConsult {
   feeAmount?: string;
   remainingSeconds?: number;
   updatedAt?: string;
+}
+
+export interface ConsultImageUploadResult {
+  /** 存储桶名称。 */
+  bucket: string;
+  /** 对象名称。 */
+  objectName: string;
+  /** 图片访问地址。 */
+  url: string;
 }
 
 export interface AppointmentItem {
@@ -409,23 +424,6 @@ export async function fetchConsults(): Promise<CreatedConsult[]> {
   return response.data.data;
 }
 
-export async function createConsult(
-  type: string,
-  chiefComplaint: string,
-  doctor?: Pick<PatientDoctor, "id" | "doctorId" | "name" | "consultFee">
-): Promise<CreatedConsult> {
-  console.info("[consult] 创建问诊", type, chiefComplaint);
-  const response = await http.post<ApiResult<CreatedConsult>>("/consult/consults", {
-    type,
-    chiefComplaint,
-    doctorId: doctor?.doctorId,
-    doctorName: doctor?.name,
-    channel: "PATIENT_H5",
-    feeAmount: doctor?.consultFee
-  });
-  return response.data.data;
-}
-
 export async function fetchConsultMessages(consultId: number): Promise<ConsultMessageItem[]> {
   console.info("[consult] 查询问诊消息", consultId);
   const response = await http.get<ApiResult<BackendConsultMessage[]>>(
@@ -434,10 +432,40 @@ export async function fetchConsultMessages(consultId: number): Promise<ConsultMe
 
   return asList(response.data.data).map((message, index) => ({
     id: message.id ?? index + 1,
-    content: message.content,
+    content: message.contentType === "IMAGE" ? normalizeConsultImageContent(message.content) : message.content,
     contentType: message.contentType,
     senderType: message.senderType
   }));
+}
+
+export async function uploadConsultImage(file: File): Promise<ConsultImageUploadResult> {
+  console.info("[consult] 上传问诊图片", file.name);
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await http.post<ApiResult<ConsultImageUploadResult>>("/consult/files/images", formData);
+  return response.data.data;
+}
+
+/** 构造问诊图片代理访问地址。 */
+export function buildConsultImageUrl(objectName: string): string {
+  const apiBaseUrl = String(http.defaults.baseURL ?? "/api").replace(/\/$/, "");
+  return `${apiBaseUrl}/consult/files/images?objectName=${encodeURIComponent(objectName)}`;
+}
+
+/** 兼容旧 MinIO 直连地址，统一转换为问诊图片代理地址。 */
+export function normalizeConsultImageContent(content: string): string {
+  const bucketSegment = "/consult-images/";
+  try {
+    const url = new URL(content, window.location.origin);
+    const bucketIndex = url.pathname.indexOf(bucketSegment);
+    if (bucketIndex < 0) {
+      return content;
+    }
+    const objectName = decodeURIComponent(url.pathname.slice(bucketIndex + bucketSegment.length));
+    return objectName ? buildConsultImageUrl(objectName) : content;
+  } catch {
+    return content;
+  }
 }
 
 export async function completeConsult(consultId: number): Promise<CreatedConsult> {
@@ -470,6 +498,7 @@ export async function createAppointment(payload: {
   source?: string;
   appointmentType?: string;
   feeAmount?: string;
+  chiefComplaint?: string;
 }): Promise<AppointmentItem> {
   console.info("[appointment] 创建预约", payload.doctorName, payload.timeSlot);
   const response = await http.post<ApiResult<AppointmentItem>>("/appointment/appointments", {

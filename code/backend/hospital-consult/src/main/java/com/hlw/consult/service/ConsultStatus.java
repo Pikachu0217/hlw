@@ -15,7 +15,9 @@ public enum ConsultStatus {
     /** 已取消。 */
     CANCELLED("4", "已取消"),
     /** 已超时。 */
-    TIMEOUT("5", "已超时");
+    TIMEOUT("5", "已超时"),
+    /** 已拒诊。 */
+    REJECTED("6", "已拒诊");
 
     /** 数据库存储值。 */
     private final String dbValue;

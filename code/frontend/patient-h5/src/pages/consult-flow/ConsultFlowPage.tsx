@@ -24,7 +24,8 @@ const STATUS_OPTIONS = [
   { label: "待接单", value: "待接单" },
   { label: "咨询中", value: "咨询中" },
   { label: "已完成", value: "已完成" },
-  { label: "已取消", value: "已取消" }
+  { label: "已取消", value: "已取消" },
+  { label: "已拒诊", value: "已拒诊" }
 ];
 
 /** 统一展示条目。 */
@@ -114,6 +115,7 @@ export function ConsultFlowPage() {
       const consult = findConsult(apt.id);
       const status = consult ? consult.status : apt.status || "待处理";
       const isAptPaid = ["已支付", "已签到", "已完成"].includes(apt.status || "");
+      const isClosed = ["已取消", "已拒诊"].includes(apt.status || "") || ["已取消", "已拒诊", "已超时"].includes(consultStatusLabel(consult?.status || ""));
 
       items.push({
         key: `apt-${apt.id}`,
@@ -126,7 +128,7 @@ export function ConsultFlowPage() {
         rawStatus: consult ? consult.status : (apt.status || "待处理"),
         canPay: apt.status === "待支付",
         canCheckIn: apt.status === "已支付",
-        canEnterConsult: isAptPaid && (Boolean(consult) || Boolean(apt.source) || Boolean(appointmentId)),
+        canEnterConsult: isAptPaid && !isClosed && (Boolean(consult) || Boolean(apt.source) || Boolean(apt.id)),
         canCancel: ["待支付", "已支付"].includes(apt.status || ""),
         appointmentId: apt.id,
         consultId: consult?.id,
@@ -176,6 +178,7 @@ export function ConsultFlowPage() {
       "已延长": "咨询中",
       "已完成": "已完成",
       "已取消": "已取消",
+      "已拒诊": "已拒诊",
       "已超时": "已超时"
     };
     return map[status] || status || "未知";
@@ -202,15 +205,7 @@ export function ConsultFlowPage() {
     try {
       await checkInAppointment(appointmentId);
       Toast.show("签到成功");
-      // 签到成功后自动创建问诊并跳转到聊天
-      try {
-        const consult = await createConsultFromAppointment(appointmentId);
-        navigate(buildConsultChatUrl(consult));
-        return;
-      } catch {
-        // 创建问诊失败则刷新列表，用户可手动点击"进入问诊"
-        await loadData();
-      }
+      await loadData();
     } catch {
       Toast.show("签到失败");
     }

@@ -243,6 +243,7 @@ export interface CreateAppointmentPayload {
   source?: string;
   appointmentType?: string;
   feeAmount?: number;
+  chiefComplaint?: string;
 }
 
 export interface GrabAppointmentPayload {
@@ -290,15 +291,10 @@ export interface ConsultMessageRecord {
   createTime?: string;
 }
 
-export interface CreateConsultPayload {
-  patientId?: number;
-  doctorId?: number;
-  type?: string;
-  patientName?: string;
-  doctorName?: string;
-  channel?: string;
-  chiefComplaint?: string;
-  feeAmount?: number;
+export interface ConsultImageUploadRecord {
+  bucket: string;
+  objectName: string;
+  url: string;
 }
 
 export interface AcceptConsultPayload {
@@ -899,20 +895,54 @@ export function fetchDoctorConsultWorkbench(): Promise<DoctorConsultWorkbenchRec
 export async function fetchConsultMessages(id: string | number): Promise<ConsultMessageRecord[]> {
   console.info('[admin-module] 查询问诊消息', id);
   const response = await apiClient.get<ApiResult<ConsultMessageRecord[]>>(`/consult/consults/${id}/messages`);
+  return response.data.data.map((message) => ({
+    ...message,
+    content: message.contentType === 'IMAGE' ? normalizeConsultImageContent(message.content) : message.content,
+  }));
+}
+
+// 上传问诊图片。
+export async function uploadConsultImage(file: File): Promise<ConsultImageUploadRecord> {
+  console.info('[admin-module] 上传问诊图片', file.name);
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await apiClient.post<ApiResult<ConsultImageUploadRecord>>('/consult/files/images', formData);
   return response.data.data;
 }
 
-// 创建问诊单。
-export async function createConsult(payload: CreateConsultPayload): Promise<ConsultRecord> {
-  console.info('[admin-module] 创建问诊单', payload);
-  const response = await apiClient.post<ApiResult<ConsultRecord>>('/consult/consults', payload);
-  return response.data.data;
+// 构造问诊图片代理访问地址。
+export function buildConsultImageUrl(objectName: string): string {
+  const apiBaseUrl = String(apiClient.defaults.baseURL ?? '/api').replace(/\/$/, '');
+  return `${apiBaseUrl}/consult/files/images?objectName=${encodeURIComponent(objectName)}`;
+}
+
+// 兼容旧 MinIO 直连地址，统一转换为问诊图片代理地址。
+export function normalizeConsultImageContent(content: string): string {
+  const bucketSegment = '/consult-images/';
+  try {
+    const url = new URL(content, window.location.origin);
+    const bucketIndex = url.pathname.indexOf(bucketSegment);
+    if (bucketIndex < 0) {
+      return content;
+    }
+    const objectName = decodeURIComponent(url.pathname.slice(bucketIndex + bucketSegment.length));
+    return objectName ? buildConsultImageUrl(objectName) : content;
+  } catch {
+    return content;
+  }
 }
 
 // 接单问诊。
 export async function acceptConsult(id: string | number, payload: AcceptConsultPayload): Promise<ConsultRecord> {
   console.info('[admin-module] 接单问诊', id, payload);
   const response = await apiClient.post<ApiResult<ConsultRecord>>(`/consult/consults/${id}/accept`, payload);
+  return response.data.data;
+}
+
+// 拒诊问诊。
+export async function rejectConsult(id: string | number, reason: string = '医生拒诊'): Promise<ConsultRecord> {
+  console.info('[admin-module] 拒诊问诊', id);
+  const response = await apiClient.post<ApiResult<ConsultRecord>>(`/consult/consults/${id}/reject`, { reason });
   return response.data.data;
 }
 

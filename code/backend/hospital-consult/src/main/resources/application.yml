@@ -39,6 +39,10 @@ spring:
     port: ${hlw.rabbitmq.port}
     username: ${hlw.rabbitmq.username}
     password: ${hlw.rabbitmq.password}
+  servlet:
+    multipart:
+      max-file-size: ${HLW_CONSULT_IMAGE_MAX_FILE_SIZE:5MB}
+      max-request-size: ${HLW_CONSULT_IMAGE_MAX_REQUEST_SIZE:6MB}
 
 server:
   port: 19500
@@ -87,3 +91,9 @@ hlw:
     port: ${HLW_RABBITMQ_PORT:5672}
     username: ${HLW_RABBITMQ_USERNAME:guest}
     password: ${HLW_RABBITMQ_PASSWORD:guest}
+  minio:
+    endpoint: ${HLW_MINIO_ENDPOINT:http://127.0.0.1:9000}
+    public-endpoint: ${HLW_MINIO_PUBLIC_ENDPOINT:http://127.0.0.1:9000}
+    access-key: ${HLW_MINIO_ACCESS_KEY:minio}
+    secret-key: ${HLW_MINIO_SECRET_KEY:minio123}
+    bucket: ${HLW_MINIO_CONSULT_BUCKET:consult-images}

@@ -52,6 +52,14 @@ public class AptAppointmentEntity {
     private LocalDateTime payTime;
     /** 签到时间。 */
     private LocalDateTime checkInTime;
+    /** 取消时间。 */
+    private LocalDateTime cancelTime;
+    /** 取消原因。 */
+    private String cancelReason;
+    /** 拒诊时间。 */
+    private LocalDateTime rejectTime;
+    /** 拒诊原因。 */
+    private String rejectReason;
     /** 创建时间。 */
     private LocalDateTime createTime;
     /** 更新时间。 */

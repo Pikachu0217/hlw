@@ -19,3 +19,9 @@ hlw:
     port: 5672
     username: guest
     password: guest
+  minio:
+    endpoint: http://127.0.0.1:9000
+    public-endpoint: http://127.0.0.1:9000
+    access-key: minio
+    secret-key: minio123
+    bucket: consult-images

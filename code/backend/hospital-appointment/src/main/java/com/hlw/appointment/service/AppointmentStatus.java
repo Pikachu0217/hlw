@@ -9,6 +9,7 @@ public enum AppointmentStatus {
     CHECKED_IN("已签到"),
     COMPLETED("已完成"),
     CANCELLED("已取消"),
+    REJECTED("已拒诊"),
     GRABBED("已接单");
 
     private final String dbValue;

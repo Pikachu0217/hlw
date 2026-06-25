@@ -1,11 +1,15 @@
-import { App, Button, Card, Empty, Input, List, Space, Tag, Typography } from 'antd';
+import { App, Button, Card, Empty, Input, List, Segmented, Space, Tag, Typography } from 'antd';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   acceptConsult,
+  buildConsultImageUrl,
   completeConsult,
   extendConsult,
   fetchConsultMessages,
   fetchDoctorConsultWorkbench,
+  normalizeConsultImageContent,
+  rejectConsult,
+  uploadConsultImage,
   type ConsultMessageRecord,
   type DoctorConsultWorkbenchRecord,
 } from '@/api/modules';
@@ -24,7 +28,10 @@ export interface ConsultRecord {
   updatedAt: string;
 }
 
-const ACTIVE_STATUS = ['待接单', '咨询中', '已延长'];
+type ConsultViewStatus = '待接诊' | '接诊中' | '已完成';
+
+const VIEW_STATUS_OPTIONS: ConsultViewStatus[] = ['待接诊', '接诊中', '已完成'];
+const IN_CONSULT_STATUS = ['咨询中', '已延长'];
 
 function ConsultPage() {
   const { message } = App.useApp();
@@ -36,20 +43,37 @@ function ConsultPage() {
   const [textMessage, setTextMessage] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const socketRef = useRef<WebSocket | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const activeRecord = useMemo(
     () => records.find((record) => record.consultId === activeConsultId),
     [activeConsultId, records],
   );
+  const [viewStatus, setViewStatus] = useState<ConsultViewStatus>('待接诊');
+  const filteredRecords = useMemo(
+    () => records.filter((record) => toViewStatus(record.status) === viewStatus),
+    [records, viewStatus],
+  );
+  const statusCounts = useMemo(
+    () => VIEW_STATUS_OPTIONS.reduce<Record<ConsultViewStatus, number>>((result, status) => {
+      result[status] = records.filter((record) => toViewStatus(record.status) === status).length;
+      return result;
+    }, {
+      待接诊: 0,
+      接诊中: 0,
+      已完成: 0,
+    }),
+    [records],
+  );
   const activePatientName = activeRecord ? displayPatientName(activeRecord) : '';
-  const canSend = Boolean(activeRecord && activeRecord.status !== '已完成' && activeRecord.status !== '已取消');
+  const canSend = Boolean(activeRecord && IN_CONSULT_STATUS.includes(activeRecord.status));
 
   const loadWorkbench = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchDoctorConsultWorkbench();
       setRecords(data);
-      setActiveConsultId((current) => current ?? data[0]?.consultId);
+      setActiveConsultId((current) => current && data.some((record) => record.consultId === current) ? current : data[0]?.consultId);
     } catch (error) {
       message.warning(error instanceof Error ? error.message : '医生咨询工作台加载失败');
     } finally {
@@ -69,6 +93,12 @@ function ConsultPage() {
   useEffect(() => {
     loadWorkbench();
   }, [loadWorkbench]);
+
+  useEffect(() => {
+    if (!activeRecord || toViewStatus(activeRecord.status) !== viewStatus) {
+      setActiveConsultId(filteredRecords[0]?.consultId);
+    }
+  }, [activeRecord, filteredRecords, viewStatus]);
 
   useEffect(() => {
     if (!activeConsultId) {
@@ -98,7 +128,13 @@ function ConsultPage() {
       socketRef.current = socket;
       socket.onmessage = (event) => {
         const payload = JSON.parse(event.data) as ConsultMessageRecord;
-        setMessages((items) => [...items, payload]);
+        setMessages((items) => [
+          ...items,
+          {
+            ...payload,
+            content: payload.contentType === 'IMAGE' ? normalizeConsultImageContent(payload.content) : payload.content,
+          },
+        ]);
         loadWorkbench();
       };
       socket.onerror = () => {
@@ -166,6 +202,23 @@ function ConsultPage() {
     }
   }
 
+  async function handleReject() {
+    if (!activeRecord) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await rejectConsult(activeRecord.consultId);
+      message.success('问诊已拒诊');
+      setActiveConsultId(undefined);
+      await loadWorkbench();
+    } catch (error) {
+      message.warning(error instanceof Error ? error.message : '问诊拒诊失败');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function sendMessage(contentType: 'TEXT' | 'IMAGE', content: string) {
     const trimmedContent = content.trim();
     if (!trimmedContent) {
@@ -184,20 +237,51 @@ function ConsultPage() {
     }
   }
 
+  async function handleUploadImage(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      message.warning('请选择图片文件');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      message.warning('图片不能超过 5MB');
+      return;
+    }
+    try {
+      const result = await uploadConsultImage(file);
+      sendMessage('IMAGE', buildConsultImageUrl(result.objectName));
+    } catch (error) {
+      message.warning(error instanceof Error ? error.message : '图片上传失败');
+    }
+  }
+
   return (
     <div className="page-shell consult-workbench">
       <PageHero
         eyebrow="咨询中心"
         title="医生患者 IM 工作台"
-        description="当前登录医生可查看待接单、咨询中和已延长的问诊患者，并进行文字或图片 URL 沟通。"
+        description="当前登录医生可按待接诊、接诊中、已完成查看问诊患者，并进行文字或图片沟通。"
         badgeText="医生工作台已接入实时消息"
       />
       <div className="consult-workbench__layout">
         <Card className="consult-workbench__patients" bordered={false} loading={loading}>
-          <Typography.Title level={4} className="consult-workbench__title">咨询患者</Typography.Title>
+          <div className="consult-workbench__patients-header">
+            <Typography.Title level={4} className="consult-workbench__title">咨询患者</Typography.Title>
+            <Segmented
+              className="consult-workbench__status-tabs"
+              value={viewStatus}
+              options={VIEW_STATUS_OPTIONS.map((status) => ({
+                label: `${status} ${statusCounts[status]}`,
+                value: status,
+              }))}
+              onChange={(value) => setViewStatus(value as ConsultViewStatus)}
+            />
+          </div>
           <List
-            dataSource={records}
-            locale={{ emptyText: <Empty description="暂无待处理咨询" /> }}
+            dataSource={filteredRecords}
+            locale={{ emptyText: <Empty description={`暂无${viewStatus}问诊`} /> }}
             renderItem={(record) => (
               <List.Item
                 className={record.consultId === activeConsultId ? 'consult-workbench__patient consult-workbench__patient--active' : 'consult-workbench__patient'}
@@ -208,7 +292,7 @@ function ConsultPage() {
                   <span>{record.consultNo}</span>
                   <small>{record.lastMessage || '暂无消息'}</small>
                 </div>
-                <Tag color={statusColor(record.status)}>{record.status}</Tag>
+                <Tag color={statusColor(record.status)}>{displayConsultStatus(record.status)}</Tag>
               </List.Item>
             )}
           />
@@ -219,12 +303,13 @@ function ConsultPage() {
               <div className="consult-workbench__chat-header">
                 <div>
                   <Typography.Title level={4} className="consult-workbench__title">{activePatientName}</Typography.Title>
-                  <Typography.Text type="secondary">{activeRecord.channel} · 剩余 {formatRemaining(activeRecord.remainingSeconds)}</Typography.Text>
+                  <Typography.Text type="secondary">{activeRecord.channel} · {displayConsultStatus(activeRecord.status)} · 剩余 {formatRemaining(activeRecord.remainingSeconds)}</Typography.Text>
                 </div>
                 <Space wrap>
                   <Button onClick={handleAccept} disabled={activeRecord.status !== '待接单'} loading={submitting}>接单</Button>
-                  <Button onClick={handleExtend} disabled={!['咨询中', '已延长'].includes(activeRecord.status)} loading={submitting}>延长</Button>
-                  <Button type="primary" danger onClick={handleComplete} disabled={!ACTIVE_STATUS.includes(activeRecord.status)} loading={submitting}>完成</Button>
+                  <Button danger onClick={handleReject} disabled={activeRecord.status !== '待接单'} loading={submitting}>拒诊</Button>
+                  <Button onClick={handleExtend} disabled={!IN_CONSULT_STATUS.includes(activeRecord.status)} loading={submitting}>延长</Button>
+                  <Button type="primary" danger onClick={handleComplete} disabled={!IN_CONSULT_STATUS.includes(activeRecord.status)} loading={submitting}>完成</Button>
                 </Space>
               </div>
               <div className="consult-workbench__chief-complaint">
@@ -245,6 +330,18 @@ function ConsultPage() {
                   <Input value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="请输入图片 URL" disabled={!canSend} />
                   <Button onClick={() => sendMessage('IMAGE', imageUrl)} disabled={!canSend}>发送图片</Button>
                 </Space.Compact>
+                <input
+                  ref={imageInputRef}
+                  className="consult-workbench__file-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    void handleUploadImage(file);
+                  }}
+                />
+                <Button onClick={() => imageInputRef.current?.click()} disabled={!canSend}>上传图片</Button>
                 <Button type="primary" onClick={() => sendMessage('TEXT', textMessage)} disabled={!canSend}>发送文字</Button>
               </div>
             </>
@@ -268,6 +365,26 @@ function displayPatientName(record: DoctorConsultWorkbenchRecord): string {
     return patientName;
   }
   return record.patientId ? `患者${record.patientId}` : '未知患者';
+}
+
+function toViewStatus(status: string): ConsultViewStatus {
+  if (status === '待接单') {
+    return '待接诊';
+  }
+  if (IN_CONSULT_STATUS.includes(status)) {
+    return '接诊中';
+  }
+  return '已完成';
+}
+
+function displayConsultStatus(status: string): string {
+  if (status === '待接单') {
+    return '待接诊';
+  }
+  if (status === '已延长') {
+    return '接诊中';
+  }
+  return status;
 }
 
 function resolveConsultWsUrl(consultId: number): string {

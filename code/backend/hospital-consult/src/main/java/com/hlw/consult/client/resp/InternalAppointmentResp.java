@@ -9,6 +9,7 @@ public record InternalAppointmentResp(
     Long doctorId,
     String patientName,
     String doctorName,
-    String feeAmount
+    String feeAmount,
+    String status
 ) {
 }

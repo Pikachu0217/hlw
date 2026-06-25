@@ -2,6 +2,9 @@ package com.hlw.appointment.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.hlw.appointment.client.ConsultFeignClient;
+import com.hlw.appointment.client.req.InternalCreateConsultFromAppointmentRequest;
+import com.hlw.appointment.client.req.InternalSyncConsultStatusRequest;
 import com.hlw.appointment.domain.resp.*;
 import com.hlw.appointment.dto.CreateAppointmentRequest;
 import com.hlw.appointment.dto.CreateReleaseConfigRequest;
@@ -45,7 +48,25 @@ public class AppointmentWorkflowService {
     private static final String STATUS_CHECKED_IN = AppointmentStatus.CHECKED_IN.dbValue();
     private static final String STATUS_COMPLETED = AppointmentStatus.COMPLETED.dbValue();
     private static final String STATUS_CANCELLED = AppointmentStatus.CANCELLED.dbValue();
+    private static final String STATUS_REJECTED = AppointmentStatus.REJECTED.dbValue();
     private static final String STATUS_GRABBED = AppointmentStatus.GRABBED.dbValue();
+    private static final String LEGACY_STATUS_PENDING_PAY = "PENDING_PAY";
+    private static final String LEGACY_STATUS_PAID = "PAID";
+    private static final String LEGACY_STATUS_CHECKED_IN = "CHECKED_IN";
+    private static final String LEGACY_STATUS_COMPLETED = "COMPLETED";
+    private static final String LEGACY_STATUS_CANCELLED = "CANCELLED";
+    private static final String LEGACY_STATUS_REJECTED = "REJECTED";
+    private static final String LEGACY_STATUS_GRABBED = "GRABBED";
+    private static final List<String> ACTIVE_DUPLICATE_CHECK_STATUSES = List.of(
+        STATUS_PENDING_PAY,
+        STATUS_PAID,
+        STATUS_CHECKED_IN,
+        STATUS_GRABBED,
+        LEGACY_STATUS_PENDING_PAY,
+        LEGACY_STATUS_PAID,
+        LEGACY_STATUS_CHECKED_IN,
+        LEGACY_STATUS_GRABBED
+    );
     private static final String NUMBER_STATUS_AVAILABLE = "AVAILABLE";
     private static final String NUMBER_STATUS_LOCKED = "LOCKED";
     private static final String NUMBER_STATUS_USED = "USED";
@@ -61,6 +82,8 @@ public class AppointmentWorkflowService {
     private final AptReleaseConfigMapper aptReleaseConfigMapper;
     /** Redis 分布式锁服务。 */
     private final RedisLockService redisLockService;
+    /** 问诊服务内部客户端。 */
+    private final ConsultFeignClient consultFeignClient;
 
     /**
      * 查询预约单列表。
@@ -162,13 +185,13 @@ public class AppointmentWorkflowService {
                 throw new BizException(409, "预约创建繁忙，请稍后重试");
             }
 
-            // 校验：同一患者同一时间段只能挂一次同一医生和科室组合，允许同一时段挂不同医生。
+            // 校验：同一患者同一时间段只能挂一次未结束的同一医生和科室组合，允许取消后重新预约。
             long existingAppointmentCount = aptAppointmentMapper.selectCount(new LambdaQueryWrapper<AptAppointmentEntity>()
                 .eq(AptAppointmentEntity::getPatientId, patientId)
                 .eq(AptAppointmentEntity::getDoctorId, doctorId)
                 .eq(AptAppointmentEntity::getDepartmentId, departmentId)
                 .eq(AptAppointmentEntity::getClinicTime, clinicTime)
-                .notIn(AptAppointmentEntity::getStatus, AppointmentStatus.CANCELLED.dbValue(), AppointmentStatus.COMPLETED.dbValue()));
+                .in(AptAppointmentEntity::getStatus, ACTIVE_DUPLICATE_CHECK_STATUSES));
             if (existingAppointmentCount > 0) {
                 log.warn("该患者在此时间段已有相同医生科室预约，patientId={}，doctorId={}，departmentId={}，clinicTime={}",
                     patientId, doctorId, departmentId, clinicTime);
@@ -193,6 +216,7 @@ public class AppointmentWorkflowService {
             aptAppointmentMapper.insert(entity);
             entity.setAppointmentNo(resolveAppointmentNo(entity.getId()));
             aptAppointmentMapper.updateById(entity);
+            createBoundConsult(entity, request.getChiefComplaint(), "UNPAID");
             return toAppointmentVO(entity);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -213,16 +237,17 @@ public class AppointmentWorkflowService {
         TokenPrincipalContext.ensureBusinessTenantContext("预约模块操作缺少有效租户上下文");
         log.info("支付预约单，appointmentId={}", id);
         AptAppointmentEntity entity = requireActiveAppointment(id);
-        if (STATUS_PAID.equals(entity.getStatus()) || STATUS_CHECKED_IN.equals(entity.getStatus()) || STATUS_COMPLETED.equals(entity.getStatus())) {
+        if (isPaidStatus(entity.getStatus()) || isCheckedInStatus(entity.getStatus()) || isCompletedStatus(entity.getStatus())) {
             log.info("预约单无需重复支付，appointmentId={}，status={}", id, entity.getStatus());
             return toAppointmentVO(entity);
         }
-        if (!STATUS_PENDING_PAY.equals(entity.getStatus())) {
+        if (!isPendingPayStatus(entity.getStatus())) {
             throw new BizException(409, "预约单当前状态不允许支付");
         }
         entity.setStatus(STATUS_PAID);
         entity.setPayTime(LocalDateTime.now());
         aptAppointmentMapper.updateById(entity);
+        createBoundConsult(entity, "患者暂未填写问题描述", "PAID");
         return toAppointmentVO(entity);
     }
 
@@ -237,11 +262,11 @@ public class AppointmentWorkflowService {
         TokenPrincipalContext.ensureBusinessTenantContext("预约模块操作缺少有效租户上下文");
         log.info("预约签到，appointmentId={}", id);
         AptAppointmentEntity entity = requireActiveAppointment(id);
-        if (STATUS_CHECKED_IN.equals(entity.getStatus()) || STATUS_COMPLETED.equals(entity.getStatus())) {
+        if (isCheckedInStatus(entity.getStatus()) || isCompletedStatus(entity.getStatus())) {
             log.info("预约单无需重复签到，appointmentId={}，status={}", id, entity.getStatus());
             return toAppointmentVO(entity);
         }
-        if (!STATUS_PAID.equals(entity.getStatus())) {
+        if (!isPaidStatus(entity.getStatus())) {
             throw new BizException(409, "预约单当前状态不允许签到");
         }
         entity.setStatus(STATUS_CHECKED_IN);
@@ -263,21 +288,27 @@ public class AppointmentWorkflowService {
         TokenPrincipalContext.ensureBusinessTenantContext("预约模块操作缺少有效租户上下文");
         log.info("取消预约单，appointmentId={}", id);
         AptAppointmentEntity entity = requireActiveAppointment(id);
-        if (STATUS_CANCELLED.equals(entity.getStatus())) {
+        if (isCancelledStatus(entity.getStatus())) {
             log.info("预约单无需重复取消，appointmentId={}", id);
             return toAppointmentVO(entity);
         }
-        if (STATUS_COMPLETED.equals(entity.getStatus())) {
+        if (isCompletedStatus(entity.getStatus())) {
             throw new BizException(409, "已完成预约单不允许取消");
         }
+        if (isRejectedStatus(entity.getStatus())) {
+            throw new BizException(409, "已拒诊预约单不允许取消");
+        }
         // 已支付：先退款（占位），再释放号源
-        if (STATUS_PAID.equals(entity.getStatus()) || STATUS_CHECKED_IN.equals(entity.getStatus())) {
+        if (isPaidStatus(entity.getStatus()) || isCheckedInStatus(entity.getStatus())) {
             refundAppointment(entity);
         }
         // 释放号源
         releaseNumberSource(entity.getNumberSourceId());
         entity.setStatus(STATUS_CANCELLED);
+        entity.setCancelTime(LocalDateTime.now());
+        entity.setCancelReason("患者取消预约");
         aptAppointmentMapper.updateById(entity);
+        syncConsultStatus(entity.getId(), "4", null, "患者取消预约");
         log.info("预约单已取消，appointmentId={}", id);
         return toAppointmentVO(entity);
     }
@@ -317,15 +348,45 @@ public class AppointmentWorkflowService {
     public AppointmentVO onPaySuccess(Long id) {
         log.info("支付成功回调更新预约单，appointmentId={}", id);
         AptAppointmentEntity entity = requireActiveAppointment(id);
-        if (STATUS_PAID.equals(entity.getStatus()) || STATUS_CHECKED_IN.equals(entity.getStatus()) || STATUS_COMPLETED.equals(entity.getStatus())) {
+        if (isPaidStatus(entity.getStatus()) || isCheckedInStatus(entity.getStatus()) || isCompletedStatus(entity.getStatus())) {
             log.info("预约单无需重复支付回调，appointmentId={}，status={}", id, entity.getStatus());
             return toAppointmentVO(entity);
         }
-        if (!STATUS_PENDING_PAY.equals(entity.getStatus())) {
+        if (!isPendingPayStatus(entity.getStatus())) {
             throw new BizException(409, "预约单当前状态不允许支付回调");
         }
         entity.setStatus(STATUS_PAID);
         entity.setPayTime(LocalDateTime.now());
+        aptAppointmentMapper.updateById(entity);
+        createBoundConsult(entity, "患者暂未填写问题描述", "PAID");
+        return toAppointmentVO(entity);
+    }
+
+    /**
+     * 内部接口：医生拒诊后同步预约单状态。
+     *
+     * @param id 预约单编号
+     * @param reason 拒诊原因
+     * @return 更新后的预约单
+     */
+    @Transactional
+    public AppointmentVO rejectFromConsult(Long id, String reason) {
+        log.info("问诊拒诊同步预约单，appointmentId={}，reason={}", id, reason);
+        AptAppointmentEntity entity = requireActiveAppointment(id);
+        if (isRejectedStatus(entity.getStatus())) {
+            log.info("预约单无需重复拒诊，appointmentId={}", id);
+            return toAppointmentVO(entity);
+        }
+        if (isCompletedStatus(entity.getStatus()) || isCancelledStatus(entity.getStatus())) {
+            throw new BizException(409, "预约单当前状态不允许拒诊");
+        }
+        if (isPaidStatus(entity.getStatus()) || isCheckedInStatus(entity.getStatus())) {
+            refundAppointment(entity);
+        }
+        releaseNumberSource(entity.getNumberSourceId());
+        entity.setStatus(STATUS_REJECTED);
+        entity.setRejectTime(LocalDateTime.now());
+        entity.setRejectReason(DefaultValueUtils.defaultIfBlank(reason, "医生拒诊"));
         aptAppointmentMapper.updateById(entity);
         return toAppointmentVO(entity);
     }
@@ -345,11 +406,11 @@ public class AppointmentWorkflowService {
         }
         log.info("抢便民门诊预约单，appointmentId={}，doctorId={}", id, doctorId);
         AptAppointmentEntity entity = requireActiveAppointment(id);
-        if (STATUS_CHECKED_IN.equals(entity.getStatus()) || STATUS_GRABBED.equals(entity.getStatus())) {
+        if (isCheckedInStatus(entity.getStatus()) || isGrabbedStatus(entity.getStatus())) {
             log.info("预约单无需重复抢单，appointmentId={}，status={}", id, entity.getStatus());
             return true;
         }
-        if (STATUS_CANCELLED.equals(entity.getStatus()) || STATUS_COMPLETED.equals(entity.getStatus())) {
+        if (isCancelledStatus(entity.getStatus()) || isCompletedStatus(entity.getStatus())) {
             throw new BizException(409, "预约单当前状态不允许抢单");
         }
         entity.setDoctorId(doctorId);
@@ -491,6 +552,76 @@ public class AppointmentWorkflowService {
     }
 
     /**
+     * 判断预约单是否处于待支付状态。
+     *
+     * @param status 预约单状态
+     * @return 是否待支付状态
+     */
+    private boolean isPendingPayStatus(String status) {
+        return STATUS_PENDING_PAY.equals(status) || LEGACY_STATUS_PENDING_PAY.equals(status);
+    }
+
+    /**
+     * 判断预约单是否处于已支付状态。
+     *
+     * @param status 预约单状态
+     * @return 是否已支付状态
+     */
+    private boolean isPaidStatus(String status) {
+        return STATUS_PAID.equals(status) || LEGACY_STATUS_PAID.equals(status);
+    }
+
+    /**
+     * 判断预约单是否处于已签到状态。
+     *
+     * @param status 预约单状态
+     * @return 是否已签到状态
+     */
+    private boolean isCheckedInStatus(String status) {
+        return STATUS_CHECKED_IN.equals(status) || LEGACY_STATUS_CHECKED_IN.equals(status);
+    }
+
+    /**
+     * 判断预约单是否处于已完成状态。
+     *
+     * @param status 预约单状态
+     * @return 是否已完成状态
+     */
+    private boolean isCompletedStatus(String status) {
+        return STATUS_COMPLETED.equals(status) || LEGACY_STATUS_COMPLETED.equals(status);
+    }
+
+    /**
+     * 判断预约单是否处于已取消状态。
+     *
+     * @param status 预约单状态
+     * @return 是否已取消状态
+     */
+    private boolean isCancelledStatus(String status) {
+        return STATUS_CANCELLED.equals(status) || LEGACY_STATUS_CANCELLED.equals(status);
+    }
+
+    /**
+     * 判断预约单是否处于已拒诊状态。
+     *
+     * @param status 预约单状态
+     * @return 是否已拒诊状态
+     */
+    private boolean isRejectedStatus(String status) {
+        return STATUS_REJECTED.equals(status) || LEGACY_STATUS_REJECTED.equals(status);
+    }
+
+    /**
+     * 判断预约单是否处于已接单状态。
+     *
+     * @param status 预约单状态
+     * @return 是否已接单状态
+     */
+    private boolean isGrabbedStatus(String status) {
+        return STATUS_GRABBED.equals(status) || LEGACY_STATUS_GRABBED.equals(status);
+    }
+
+    /**
      * 标记号源已使用。
      *
      * @param numberSourceId 号源编号
@@ -502,6 +633,54 @@ public class AppointmentWorkflowService {
         aptNumberSourceMapper.update(null, new LambdaUpdateWrapper<AptNumberSourceEntity>()
             .eq(AptNumberSourceEntity::getId, numberSourceId)
             .set(AptNumberSourceEntity::getStatus, NUMBER_STATUS_USED));
+    }
+
+    /**
+     * 创建预约绑定问诊单。
+     *
+     * @param entity 预约单实体
+     * @param chiefComplaint 患者问题描述
+     * @param payStatus 支付状态
+     */
+    private void createBoundConsult(AptAppointmentEntity entity, String chiefComplaint, String payStatus) {
+        InternalCreateConsultFromAppointmentRequest request = new InternalCreateConsultFromAppointmentRequest();
+        request.setAppointmentId(entity.getId());
+        request.setPatientId(entity.getPatientId());
+        request.setDoctorId(entity.getDoctorId());
+        request.setPatientName(entity.getPatientName());
+        request.setDoctorName(entity.getDoctorName());
+        request.setFeeAmount(entity.getFeeAmount());
+        request.setPayStatus(payStatus);
+        request.setChiefComplaint(DefaultValueUtils.defaultIfBlank(chiefComplaint, "患者暂未填写问题描述"));
+        log.info("创建预约绑定问诊，appointmentId={}，patientId={}，doctorId={}，payStatus={}",
+            entity.getId(), entity.getPatientId(), entity.getDoctorId(), payStatus);
+        var response = consultFeignClient.createFromAppointment(request);
+        if (response == null || response.code() != 200) {
+            log.warn("创建预约绑定问诊失败，appointmentId={}，response={}", entity.getId(), response);
+            throw new BizException(500, "创建预约绑定问诊失败");
+        }
+    }
+
+    /**
+     * 同步问诊状态。
+     *
+     * @param appointmentId 预约单编号
+     * @param status 问诊状态
+     * @param payStatus 支付状态
+     * @param reason 同步原因
+     */
+    private void syncConsultStatus(Long appointmentId, String status, String payStatus, String reason) {
+        InternalSyncConsultStatusRequest request = new InternalSyncConsultStatusRequest();
+        request.setAppointmentId(appointmentId);
+        request.setStatus(status);
+        request.setPayStatus(payStatus);
+        request.setReason(reason);
+        log.info("同步问诊状态，appointmentId={}，status={}，payStatus={}，reason={}", appointmentId, status, payStatus, reason);
+        var response = consultFeignClient.syncStatus(request);
+        if (response == null || response.code() != 200) {
+            log.warn("同步问诊状态失败，appointmentId={}，response={}", appointmentId, response);
+            throw new BizException(500, "同步问诊状态失败");
+        }
     }
 
     /**
@@ -550,7 +729,8 @@ public class AppointmentWorkflowService {
             entity.getDoctorId(),
             DefaultValueUtils.defaultIfBlank(entity.getPatientName(), ""),
             DefaultValueUtils.defaultIfBlank(entity.getDoctorName(), ""),
-            DefaultValueUtils.defaultIfNull(entity.getFeeAmount(), BigDecimal.ZERO).toPlainString()
+            DefaultValueUtils.defaultIfNull(entity.getFeeAmount(), BigDecimal.ZERO).toPlainString(),
+            DefaultValueUtils.defaultIfBlank(entity.getStatus(), STATUS_PENDING_PAY)
         );
     }
 

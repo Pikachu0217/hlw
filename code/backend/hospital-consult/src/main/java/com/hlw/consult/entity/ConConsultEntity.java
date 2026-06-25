@@ -52,6 +52,10 @@ public class ConConsultEntity {
     private LocalDateTime startTime;
     /** 问诊结束时间。 */
     private LocalDateTime endTime;
+    /** 拒诊时间。 */
+    private LocalDateTime rejectTime;
+    /** 拒诊原因。 */
+    private String rejectReason;
     /** 前端展示更新时间。 */
     private String updatedAt;
     /** 创建时间。 */

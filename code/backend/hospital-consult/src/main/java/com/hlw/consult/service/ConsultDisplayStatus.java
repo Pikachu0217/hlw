@@ -18,8 +18,10 @@ public final class ConsultDisplayStatus {
     public static final String CANCELLED = ConsultStatus.CANCELLED.dbValue();
     /** 已超时状态码。 */
     public static final String TIMEOUT = ConsultStatus.TIMEOUT.dbValue();
+    /** 已拒诊状态码。 */
+    public static final String REJECTED = ConsultStatus.REJECTED.dbValue();
     /** 医生工作台展示状态集合。 */
-    public static final Set<String> DOCTOR_WORKBENCH_STATUSES = Set.of(WAITING, IN_PROGRESS, EXTENDED);
+    public static final Set<String> DOCTOR_WORKBENCH_STATUSES = Set.of(WAITING, IN_PROGRESS, EXTENDED, FINISHED);
 
     /**
      * 私有构造方法，防止实例化常量类。

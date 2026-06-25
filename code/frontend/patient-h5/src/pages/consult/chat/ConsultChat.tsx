@@ -23,7 +23,7 @@ type ConsultChatProps = {
   /** 发送文本消息。 */
   onSendText: () => void;
   /** 上传/发送图片。 */
-  onSendImage: () => void;
+  onSendImage: (file: File) => void;
 };
 
 /** 格式化剩余时间 mm:ss */
@@ -51,9 +51,7 @@ function MessageBubble({ message }: { message: ConsultMessageItem }) {
       {!isPatient && <div className={avatarClass}>{avatarText}</div>}
       <div className={bubbleClass}>
         {message.contentType === "IMAGE" ? (
-          <div className="chat-img-card">
-            <span className="chat-img-placeholder">检查报告图片</span>
-          </div>
+          <img className="chat-img" src={message.content} alt="问诊图片" />
         ) : (
           message.content
         )}
@@ -78,6 +76,7 @@ export function ConsultChat({
   onSendImage
 }: ConsultChatProps) {
   const listRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   // 新消息时自动滚动到底部
   useEffect(() => {
@@ -106,6 +105,15 @@ export function ConsultChat({
       e.preventDefault();
       onSendText();
     }
+  }
+
+  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>): void {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+    onSendImage(file);
   }
 
   return (
@@ -137,7 +145,14 @@ export function ConsultChat({
 
         {/* 工具行 */}
         <div className="chat-tools">
-          <button className="chat-tool-btn" onClick={onSendImage} disabled={!canSend}>
+          <input
+            ref={imageInputRef}
+            className="chat-file-input"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+          />
+          <button className="chat-tool-btn" onClick={() => imageInputRef.current?.click()} disabled={!canSend}>
             上传图片
           </button>
         </div>

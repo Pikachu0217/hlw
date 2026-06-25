@@ -1388,6 +1388,24 @@ body {
   margin: 0 !important;
 }
 
+.consult-workbench__patients-header {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.consult-workbench__status-tabs {
+  width: 100%;
+}
+
+.consult-workbench__status-tabs .ant-segmented-group {
+  width: 100%;
+}
+
+.consult-workbench__status-tabs .ant-segmented-item {
+  flex: 1;
+}
+
 .consult-workbench__patient {
   cursor: pointer;
   border-radius: 16px;
@@ -1510,6 +1528,10 @@ body {
 
 .consult-workbench__image-input {
   width: 100%;
+}
+
+.consult-workbench__file-input {
+  display: none;
 }
 
 @media (max-width: 960px) {

@@ -6,11 +6,15 @@ import com.hlw.common.core.exception.BizException;
 import com.hlw.common.core.tenant.TokenPrincipalContext;
 import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.consult.client.AppointmentFeignClient;
+import com.hlw.consult.client.req.InternalRejectAppointmentRequest;
 import com.hlw.consult.client.PatientFeignClient;
 import com.hlw.consult.client.resp.InternalAppointmentResp;
 import com.hlw.consult.client.resp.InternalPatientResp;
 import com.hlw.consult.dto.AcceptConsultRequest;
 import com.hlw.consult.dto.CreateConsultRequest;
+import com.hlw.consult.dto.InternalCreateConsultFromAppointmentRequest;
+import com.hlw.consult.dto.InternalSyncConsultStatusRequest;
+import com.hlw.consult.dto.RejectConsultRequest;
 import com.hlw.consult.entity.ConConsultEntity;
 import com.hlw.consult.entity.ConMessageEntity;
 import com.hlw.consult.mapper.ConConsultMapper;
@@ -42,6 +46,8 @@ public class ConsultWorkflowService {
     private static final int DEFAULT_DURATION_LIMIT = 30;
     private static final int EXTEND_MINUTES = 15;
     private static final String DEFAULT_CONSULT_TYPE = "text_and_image_consultation";
+    private static final String PAY_STATUS_PAID = "PAID";
+    private static final String PAY_STATUS_UNPAID = "UNPAID";
 
     /** 问诊单数据访问组件。 */
     private final ConConsultMapper conConsultMapper;
@@ -74,6 +80,88 @@ public class ConsultWorkflowService {
      */
     @Transactional
     public ConsultVO createConsult(CreateConsultRequest request) {
+        log.warn("直接创建问诊入口已关闭，请先通过预约挂号创建绑定问诊");
+        throw new BizException(410, "请先预约挂号后再发起问诊");
+    }
+
+    /**
+     * 内部创建预约绑定问诊并记录首条主诉消息。
+     *
+     * @param request 内部创建请求
+     * @return 创建后的问诊单
+     */
+    @Transactional
+    public ConsultVO createConsultFromAppointment(InternalCreateConsultFromAppointmentRequest request) {
+        if (request == null || request.getAppointmentId() == null || request.getAppointmentId() <= 0L) {
+            throw new BizException(400, "预约单编号不能为空");
+        }
+        ConConsultEntity existing = conConsultMapper.selectOne(new LambdaQueryWrapper<ConConsultEntity>()
+            .eq(ConConsultEntity::getAppointmentId, request.getAppointmentId())
+            .last("limit 1"));
+        if (existing != null) {
+            log.info("预约单已存在绑定问诊，appointmentId={}，consultId={}", request.getAppointmentId(), existing.getId());
+            syncExistingConsult(existing, null, request.getPayStatus(), "预约绑定问诊幂等同步");
+            return toConsultVO(existing);
+        }
+        Long patientId = DefaultValueUtils.defaultIfNull(request.getPatientId(), 0L);
+        Long doctorId = DefaultValueUtils.defaultIfNull(request.getDoctorId(), 0L);
+        String patientName = resolvePatientDisplayName(request.getPatientName(), patientId);
+        String doctorName = DefaultValueUtils.defaultIfBlank(request.getDoctorName(), "");
+        BigDecimal feeAmount = DefaultValueUtils.defaultIfNull(request.getFeeAmount(), BigDecimal.ZERO);
+        String chiefComplaint = DefaultValueUtils.defaultIfBlank(request.getChiefComplaint(), "患者暂未填写问题描述");
+        String payStatus = DefaultValueUtils.defaultIfBlank(request.getPayStatus(), PAY_STATUS_UNPAID);
+        log.info("内部创建预约绑定问诊，appointmentId={}，patientId={}，doctorId={}，payStatus={}",
+            request.getAppointmentId(), patientId, doctorId, payStatus);
+
+        ConConsultEntity entity = new ConConsultEntity();
+        entity.setPatientId(patientId);
+        entity.setDoctorId(doctorId);
+        entity.setAppointmentId(request.getAppointmentId());
+        entity.setConsultType(DEFAULT_CONSULT_TYPE);
+        entity.setConsultNo("");
+        entity.setPatientName(patientName);
+        entity.setDoctorName(doctorName);
+        entity.setChannel(channelName(DEFAULT_CONSULT_TYPE));
+        entity.setStatus(ConsultDisplayStatus.WAITING);
+        entity.setPayStatus(payStatus);
+        entity.setFeeAmount(feeAmount);
+        entity.setDurationLimit(DEFAULT_DURATION_LIMIT);
+        entity.setRemainingSeconds(DEFAULT_DURATION_LIMIT * 60);
+        entity.setUpdatedAt(currentDisplayTime());
+        conConsultMapper.insert(entity);
+        entity.setConsultNo(resolveConsultNo(entity.getId()));
+        conConsultMapper.updateById(entity);
+        insertChiefComplaintMessage(entity.getId(), patientId, chiefComplaint);
+        return toConsultVO(entity);
+    }
+
+    /**
+     * 同步预约对应问诊状态。
+     *
+     * @param request 同步请求
+     */
+    @Transactional
+    public void syncConsultStatus(InternalSyncConsultStatusRequest request) {
+        if (request == null || request.getAppointmentId() == null || request.getAppointmentId() <= 0L) {
+            throw new BizException(400, "预约单编号不能为空");
+        }
+        ConConsultEntity consult = conConsultMapper.selectOne(new LambdaQueryWrapper<ConConsultEntity>()
+            .eq(ConConsultEntity::getAppointmentId, request.getAppointmentId())
+            .last("limit 1"));
+        if (consult == null) {
+            log.warn("预约单未找到绑定问诊，appointmentId={}，reason={}", request.getAppointmentId(), request.getReason());
+            throw new BizException(404, "预约单未绑定问诊");
+        }
+        syncExistingConsult(consult, request.getStatus(), request.getPayStatus(), request.getReason());
+    }
+
+    /**
+     * 直接创建问诊已关闭，保留方法体下方旧逻辑用于内部迁移参考。
+     *
+     * @param request 问诊创建请求
+     * @return 创建后的问诊单
+     */
+    private ConsultVO createStandaloneConsult(CreateConsultRequest request) {
         TokenPrincipalContext.ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
         InternalPatientResp currentPatient = request.getPatientId() == null ? resolveCurrentPatient() : null;
         Long patientId = DefaultValueUtils.defaultIfNull(request.getPatientId(), 0L);
@@ -139,6 +227,10 @@ public class ConsultWorkflowService {
             log.warn("预约单不存在或查询失败，appointmentId={}", appointmentId);
             throw new BizException(404, "预约单不存在");
         }
+        if (!isPaidAppointmentStatus(appointment.status())) {
+            log.warn("未支付预约单不允许进入问诊，appointmentId={}，status={}", appointmentId, appointment.status());
+            throw new BizException(409, "预约单未支付，无法进入问诊");
+        }
         Long doctorId = appointment.doctorId();
         String doctorName = appointment.doctorName();
         Long patientId = appointment.patientId();
@@ -190,6 +282,9 @@ public class ConsultWorkflowService {
         if (!ConsultDisplayStatus.WAITING.equals(consult.getStatus())) {
             throw new BizException(409, "问诊单当前状态不允许接单");
         }
+        if (!PAY_STATUS_PAID.equalsIgnoreCase(DefaultValueUtils.defaultIfBlank(consult.getPayStatus(), PAY_STATUS_UNPAID))) {
+            throw new BizException(409, "问诊单未支付，不允许接单");
+        }
         consult.setDoctorId(doctorId);
         consult.setStatus(ConsultDisplayStatus.IN_PROGRESS);
         consult.setStartTime(LocalDateTime.now());
@@ -197,6 +292,45 @@ public class ConsultWorkflowService {
         consult.setRemainingSeconds(consult.getRemainingSeconds() == null || consult.getRemainingSeconds() <= 0 ? DEFAULT_DURATION_LIMIT * 60 : consult.getRemainingSeconds());
         consult.setUpdatedAt(currentDisplayTime());
         conConsultMapper.updateById(consult);
+        return toConsultVO(consult);
+    }
+
+    /**
+     * 医生拒诊问诊。
+     *
+     * @param id 问诊编号
+     * @param request 拒诊请求
+     * @return 拒诊后的问诊单
+     */
+    @Transactional
+    public ConsultVO reject(Long id, RejectConsultRequest request) {
+        TokenPrincipalContext.ensureBusinessTenantContext("问诊模块操作缺少有效租户上下文");
+        ConConsultEntity consult = requireActiveConsult(id);
+        String reason = request == null ? "" : DefaultValueUtils.defaultIfBlank(request.getReason(), "医生拒诊");
+        log.info("医生拒诊问诊，consultId={}，appointmentId={}，reason={}", id, consult.getAppointmentId(), reason);
+        if (ConsultDisplayStatus.REJECTED.equals(consult.getStatus())) {
+            log.info("问诊单无需重复拒诊，consultId={}", id);
+            return toConsultVO(consult);
+        }
+        if (!ConsultDisplayStatus.WAITING.equals(consult.getStatus())) {
+            throw new BizException(409, "问诊单当前状态不允许拒诊");
+        }
+        consult.setStatus(ConsultDisplayStatus.REJECTED);
+        consult.setRemainingSeconds(0);
+        consult.setEndTime(LocalDateTime.now());
+        consult.setRejectTime(LocalDateTime.now());
+        consult.setRejectReason(reason);
+        consult.setUpdatedAt(currentDisplayTime());
+        conConsultMapper.updateById(consult);
+        if (consult.getAppointmentId() != null) {
+            InternalRejectAppointmentRequest rejectRequest = new InternalRejectAppointmentRequest();
+            rejectRequest.setReason(reason);
+            R<Object> response = appointmentFeignClient.rejectAppointment(consult.getAppointmentId(), rejectRequest);
+            if (response == null || response.code() != 200) {
+                log.warn("拒诊同步预约单失败，consultId={}，appointmentId={}，response={}", id, consult.getAppointmentId(), response);
+                throw new BizException(500, "拒诊同步预约单失败");
+            }
+        }
         return toConsultVO(consult);
     }
 
@@ -217,6 +351,9 @@ public class ConsultWorkflowService {
         }
         if (ConsultDisplayStatus.CANCELLED.equals(consult.getStatus()) || ConsultDisplayStatus.TIMEOUT.equals(consult.getStatus())) {
             throw new BizException(409, "问诊单当前状态不允许完成");
+        }
+        if (ConsultDisplayStatus.REJECTED.equals(consult.getStatus())) {
+            throw new BizException(409, "已拒诊问诊不允许完成");
         }
         consult.setStatus(ConsultDisplayStatus.FINISHED);
         consult.setRemainingSeconds(0);
@@ -326,6 +463,47 @@ public class ConsultWorkflowService {
         vo.setRemainingSeconds(entity.getRemainingSeconds());
         vo.setUpdatedAt(DefaultValueUtils.defaultIfBlank(entity.getUpdatedAt(), ""));
         return vo;
+    }
+
+    /**
+     * 同步已有问诊状态。
+     *
+     * @param consult 问诊实体
+     * @param status 问诊状态
+     * @param payStatus 支付状态
+     * @param reason 同步原因
+     */
+    private void syncExistingConsult(ConConsultEntity consult, String status, String payStatus, String reason) {
+        boolean changed = false;
+        if (status != null && !status.isBlank() && !status.equals(consult.getStatus())) {
+            log.info("同步问诊业务状态，consultId={}，from={}，to={}，reason={}", consult.getId(), consult.getStatus(), status, reason);
+            consult.setStatus(status);
+            if (ConsultDisplayStatus.CANCELLED.equals(status) || ConsultDisplayStatus.REJECTED.equals(status) || ConsultDisplayStatus.TIMEOUT.equals(status)) {
+                consult.setRemainingSeconds(0);
+                consult.setEndTime(LocalDateTime.now());
+            }
+            changed = true;
+        }
+        if (payStatus != null && !payStatus.isBlank() && !payStatus.equals(consult.getPayStatus())) {
+            log.info("同步问诊支付状态，consultId={}，from={}，to={}，reason={}", consult.getId(), consult.getPayStatus(), payStatus, reason);
+            consult.setPayStatus(payStatus);
+            changed = true;
+        }
+        if (changed) {
+            consult.setUpdatedAt(currentDisplayTime());
+            conConsultMapper.updateById(consult);
+        }
+    }
+
+    /**
+     * 判断预约单是否已支付。
+     *
+     * @param status 预约状态
+     * @return 是否允许进入问诊
+     */
+    private boolean isPaidAppointmentStatus(String status) {
+        return "已支付".equals(status) || "已签到".equals(status) || "已完成".equals(status) || "PAID".equals(status)
+            || "CHECKED_IN".equals(status) || "COMPLETED".equals(status);
     }
 
     /**

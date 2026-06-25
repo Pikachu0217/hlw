@@ -171,6 +171,17 @@ body {
   margin-top: 10px;
 }
 
+.appointment-chief-complaint {
+  padding: 10px 12px;
+  border: 1px solid rgba(31, 58, 51, 0.10);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.profile-logout-area {
+  padding: 4px 0 8px;
+}
+
 .consult-action-bar {
   margin-bottom: 12px;
 }
@@ -605,18 +616,13 @@ body {
   border-top-right-radius: 4px;
 }
 
-/* 图片消息卡片 */
-.chat-img-card {
-  width: 150px;
-  height: 104px;
+/* 图片消息 */
+.chat-img {
+  display: block;
+  max-width: 180px;
+  max-height: 220px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #e0f2fe, #f8fafc);
-  border: 1px dashed #93c5fd;
-  display: grid;
-  place-items: center;
-  color: #1677ff;
-  font-weight: 700;
-  font-size: 13px;
+  object-fit: cover;
 }
 
 /* --- 底部输入区 --- */
@@ -655,6 +661,10 @@ body {
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
+}
+
+.chat-file-input {
+  display: none;
 }
 
 .chat-tool-btn {

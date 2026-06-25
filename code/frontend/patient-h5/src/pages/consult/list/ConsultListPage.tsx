@@ -11,6 +11,7 @@ const STATUS_OPTIONS = [
   { label: "咨询中", value: "咨询中" },
   { label: "已完成", value: "已完成" },
   { label: "已取消", value: "已取消" },
+  { label: "已拒诊", value: "已拒诊" },
   { label: "已超时", value: "已超时" }
 ];
 
@@ -61,6 +62,7 @@ export function ConsultListPage() {
       "已延长": "咨询中",
       "已完成": "已完成",
       "已取消": "已取消",
+      "已拒诊": "已拒诊",
       "已超时": "已超时"
     };
     return map[status] || status || "未知";
@@ -72,6 +74,10 @@ export function ConsultListPage() {
 
   function isPaid(payStatus?: string): boolean {
     return payStatus === "PAID";
+  }
+
+  function isClosed(status: string): boolean {
+    return ["已取消", "已拒诊", "已超时"].includes(displayStatus(status));
   }
 
   const displayList = filteredConsults();
@@ -144,7 +150,7 @@ export function ConsultListPage() {
               </div>
             }
             extra={
-              <Tag color={isActive(consult.status) ? "success" : "default"}>
+              <Tag color={isClosed(consult.status) ? "danger" : isActive(consult.status) ? "success" : "default"}>
                 {displayStatus(consult.status)}
               </Tag>
             }

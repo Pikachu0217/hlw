@@ -4,6 +4,7 @@ import com.hlw.appointment.dto.CreateAppointmentRequest;
 import com.hlw.appointment.dto.CreateReleaseConfigRequest;
 import com.hlw.appointment.dto.GrabAppointmentRequest;
 import com.hlw.appointment.dto.InternalCreateReleaseConfigRequest;
+import com.hlw.appointment.dto.InternalRejectAppointmentRequest;
 import com.hlw.appointment.service.AppointmentWorkflowService;
 import com.hlw.appointment.domain.resp.AppointmentVO;
 import com.hlw.appointment.domain.resp.InternalAppointmentResp;
@@ -187,5 +188,19 @@ public class AppointmentController {
     public R<AppointmentVO> onPaySuccess(@PathVariable Long id) {
         log.info("内部接口支付成功回调，appointmentId={}", id);
         return R.ok(appointmentWorkflowService.onPaySuccess(id));
+    }
+
+    /**
+     * 内部接口：医生拒诊后同步预约单状态。
+     *
+     * @param id 预约单编号
+     * @param request 拒诊请求
+     * @return 更新后的预约单
+     */
+    @PostMapping("/internal/appointments/{id}/reject")
+    public R<AppointmentVO> rejectFromConsult(@PathVariable Long id, @RequestBody InternalRejectAppointmentRequest request) {
+        String reason = request == null ? "" : request.getReason();
+        log.info("内部接口同步预约拒诊，appointmentId={}，reason={}", id, reason);
+        return R.ok(appointmentWorkflowService.rejectFromConsult(id, reason));
     }
 }

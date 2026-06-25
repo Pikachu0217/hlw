@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Toast } from "antd-mobile";
-import { completeConsult, extendConsult, fetchConsultMessages, type ConsultMessageItem } from "../../../app/api";
+import { buildConsultImageUrl, completeConsult, extendConsult, fetchConsultMessages, normalizeConsultImageContent, uploadConsultImage, type ConsultMessageItem } from "../../../app/api";
 import { AUTHORIZATION_TOKEN_PREFIX } from "../../../app/auth-header";
 import { useSessionStore } from "../../../store/sessionStore";
 import { ConsultChat } from "./ConsultChat";
@@ -69,7 +69,13 @@ export function ConsultChatPage() {
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data) as ConsultMessageItem;
-          setMessages((items) => [...items, payload]);
+          setMessages((items) => [
+            ...items,
+            {
+              ...payload,
+              content: payload.contentType === "IMAGE" ? normalizeConsultImageContent(payload.content) : payload.content
+            }
+          ]);
         } catch {
           console.warn("[consult-ws] 消息解析失败", event.data);
         }
@@ -114,6 +120,28 @@ export function ConsultChatPage() {
     }
   }
 
+  /** 发送本地图片。 */
+  async function sendImageFile(file: File): Promise<void> {
+    if (!canSend) {
+      Toast.show("医生接诊后患者才能发送消息");
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      Toast.show("请选择图片文件");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      Toast.show("图片不能超过 5MB");
+      return;
+    }
+    try {
+      const result = await uploadConsultImage(file);
+      sendMessage("IMAGE", buildConsultImageUrl(result.objectName));
+    } catch {
+      Toast.show("图片上传失败");
+    }
+  }
+
   async function handleExtend(): Promise<void> {
     if (!consultId) {
       Toast.show("缺少问诊编号");
@@ -139,12 +167,6 @@ export function ConsultChatPage() {
     } catch {
       Toast.show("完成问诊失败");
     }
-  }
-
-  /** 上传图片（模拟）。 */
-  function handleSendImage(): void {
-    // 实际项目中应调用文件选择器，此处发送占位图片
-    sendMessage("IMAGE", "https://via.placeholder.com/300x200?text=report");
   }
 
   return (
@@ -189,7 +211,7 @@ export function ConsultChatPage() {
         canSend={Boolean(consultId) && canSend}
         onTextChange={setTextMessage}
         onSendText={() => sendMessage("TEXT", textMessage)}
-        onSendImage={handleSendImage}
+        onSendImage={sendImageFile}
       />
 
       {/* 底部操作栏 */}

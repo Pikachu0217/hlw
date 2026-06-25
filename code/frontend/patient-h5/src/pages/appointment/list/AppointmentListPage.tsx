@@ -21,6 +21,7 @@ const STATUS_OPTIONS = [
   { label: "已签到", value: "已签到" },
   { label: "已完成", value: "已完成" },
   { label: "已取消", value: "已取消" },
+  { label: "已拒诊", value: "已拒诊" },
   { label: "已接单", value: "已接单" }
 ];
 
@@ -118,6 +119,11 @@ export function AppointmentListPage() {
   /** 是否已支付（含已签到、已完成）。后端返回中文状态值。 */
   function isPaid(status: string): boolean {
     return ["已支付", "已签到", "已完成"].includes(status);
+  }
+
+  /** 是否已结束且不可继续操作。 */
+  function isClosed(status: string): boolean {
+    return ["已取消", "已拒诊"].includes(status);
   }
 
   /** 是否已签到（仅当已支付且未完成时可签到）。 */
@@ -218,7 +224,7 @@ export function AppointmentListPage() {
                 </Space>
               </Space>
             }
-            extra={<Tag color={isPaid(appointment.status) ? "success" : "warning"}>{appointment.status || "待处理"}</Tag>}
+            extra={<Tag color={isClosed(appointment.status) ? "danger" : isPaid(appointment.status) ? "success" : "warning"}>{appointment.status || "待处理"}</Tag>}
           >
             {appointment.appointmentNo || appointment.patientName || "预约单"}
           </List.Item>

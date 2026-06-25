@@ -1,4 +1,4 @@
-import { Button, List, Picker, Space, Tag, Toast } from "antd-mobile";
+import { Button, List, Picker, Space, Tag, TextArea, Toast } from "antd-mobile";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -30,6 +30,7 @@ export function AppointmentConfirm({
 }: AppointmentConfirmProps) {
   const navigate = useNavigate();
   const [scheduleId, setScheduleId] = useState<number | null>(null);
+  const [chiefComplaint, setChiefComplaint] = useState("");
   const [locking, setLocking] = useState(false);
   const selectedSchedule = schedules.find((schedule) => schedule.id === scheduleId) ?? schedules[0];
   const scheduleOptions = useMemo(
@@ -64,6 +65,10 @@ export function AppointmentConfirm({
       Toast.show("请先选择医生排班");
       return;
     }
+    if (!chiefComplaint.trim()) {
+      Toast.show("请填写问题描述");
+      return;
+    }
 
     try {
       const clinicTime = selectedSchedule.scheduleDate && selectedSchedule.timeSlot
@@ -78,6 +83,7 @@ export function AppointmentConfirm({
         doctorName: doctor.name,
         timeSlot: clinicTime,
         feeAmount: doctor.consultFee,
+        chiefComplaint: chiefComplaint.trim(),
         source: source || "PATIENT_H5"
       });
       navigate(`/appointment/result?appointmentNo=${appointment.appointmentNo}&status=${appointment.status}&appointmentId=${appointment.id}&source=${source}`);
@@ -94,6 +100,16 @@ export function AppointmentConfirm({
         <div className="detail-copy">{doctor?.department ?? "正在读取科室"} · {doctor?.title ?? "医生"}</div>
         <div className="detail-copy">就诊人 {patient?.patientName ?? "加载中"}</div>
         <div className="detail-copy">挂号费 {doctor?.consultFee ?? "0.00"} 元</div>
+        <div className="appointment-chief-complaint">
+          <TextArea
+            value={chiefComplaint}
+            onChange={setChiefComplaint}
+            placeholder="请描述您的症状、持续时间和希望咨询的问题"
+            rows={4}
+            maxLength={300}
+            showCount
+          />
+        </div>
         <Picker columns={[scheduleOptions]} value={selectedSchedule ? [selectedSchedule.id] : []} onConfirm={(values) => setScheduleId(Number(values[0]))}>
           {(items, { open }) => (
             <Button block onClick={open}>

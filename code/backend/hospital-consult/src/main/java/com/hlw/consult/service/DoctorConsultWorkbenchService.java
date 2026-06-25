@@ -47,9 +47,10 @@ public class DoctorConsultWorkbenchService {
         InternalDoctorResp doctor = resolveCurrentDoctor();
         log.info("查询医生咨询工作台，doctorId={}，doctorName={}", doctor.id(), doctor.doctorName());
         List<ConConsultEntity> consults = conConsultMapper.selectList(new LambdaQueryWrapper<ConConsultEntity>()
-                .eq(ConConsultEntity::getDoctorId, doctor.id())
-                .in(ConConsultEntity::getStatus, ConsultDisplayStatus.DOCTOR_WORKBENCH_STATUSES)
-                .eq(ConConsultEntity::getDeleted, 0))
+            .eq(ConConsultEntity::getDoctorId, doctor.id())
+            .in(ConConsultEntity::getStatus, ConsultDisplayStatus.DOCTOR_WORKBENCH_STATUSES)
+            .eq(ConConsultEntity::getPayStatus, "PAID")
+            .eq(ConConsultEntity::getDeleted, 0))
             .stream()
             .sorted(Comparator.comparing(ConConsultEntity::getId).reversed())
             .toList();

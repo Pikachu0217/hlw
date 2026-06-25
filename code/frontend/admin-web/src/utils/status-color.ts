@@ -27,6 +27,7 @@ export function appointmentStatusColor(status: string): string {
     '已接单': 'cyan',
     '已完成': 'default',
     '已取消': 'red',
+    '已拒诊': 'red',
   }, 'processing');
 }
 
@@ -46,6 +47,9 @@ export function consultStatusColor(status: string): string {
     '待接单': 'gold',
     '咨询中': 'blue',
     '已延长': 'cyan',
+    '已拒诊': 'red',
+    '已取消': 'red',
+    '已完成': 'default',
   });
 }
 
