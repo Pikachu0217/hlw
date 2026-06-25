@@ -1,10 +1,12 @@
 import { Button, Form, Input, List, Modal, Space, Tag, TextArea, Toast } from "antd-mobile";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   createHealthRecord,
   fetchHealthRecords,
   fetchPatientProfile,
   fetchPatients,
+  logout as requestLogout,
   updatePatientProfile,
   type HealthRecordItem,
   type PatientProfile,
@@ -18,11 +20,14 @@ interface ProfileFormValues extends Omit<UpdatePatientProfilePayload, "age"> {
 }
 
 export function ProfilePage() {
+  const navigate = useNavigate();
   const patientName = useSessionStore((state) => state.patientName);
   const setPatientName = useSessionStore((state) => state.setPatientName);
+  const logout = useSessionStore((state) => state.logout);
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [patients, setPatients] = useState<PatientProfile[]>([]);
   const [healthRecords, setHealthRecords] = useState<HealthRecordItem[]>([]);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [profileForm] = Form.useForm<ProfileFormValues>();
   const [healthForm] = Form.useForm<{ title?: string; summary?: string; allergies?: string; history?: string }>();
 
@@ -94,6 +99,28 @@ export function ProfilePage() {
     } catch {
       Toast.show("健康档案新增失败");
     }
+  }
+
+  function handleLogout(): void {
+    Modal.confirm({
+      title: "退出登录",
+      content: "确认退出当前账号吗？",
+      confirmText: "退出",
+      cancelText: "取消",
+      onConfirm: async () => {
+        setLoggingOut(true);
+        try {
+          await requestLogout();
+          Toast.show("已退出登录");
+        } catch {
+          Toast.show("已清除本地登录状态");
+        } finally {
+          logout();
+          setLoggingOut(false);
+          navigate("/login", { replace: true });
+        }
+      }
+    });
   }
 
   return (
@@ -174,6 +201,12 @@ export function ProfilePage() {
       <Button color="primary" block>
         联系在线客服
       </Button>
+
+      <div className="profile-logout-area">
+        <Button block color="danger" fill="outline" loading={loggingOut} onClick={handleLogout}>
+          退出登录
+        </Button>
+      </div>
     </Space>
   );
 }
