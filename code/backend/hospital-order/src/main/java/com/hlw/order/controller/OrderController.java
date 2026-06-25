@@ -2,7 +2,9 @@ package com.hlw.order.controller;
 
 import com.hlw.common.core.domain.R;
 import com.hlw.order.dto.CreateOrderRequest;
+import com.hlw.order.dto.PayCallbackRequest;
 import com.hlw.order.dto.PayOrderRequest;
+import com.hlw.order.dto.RefundCallbackRequest;
 import com.hlw.order.service.OrderWorkflowService;
 import com.hlw.order.vo.OrderVO;
 import jakarta.validation.Valid;
@@ -67,5 +69,29 @@ public class OrderController {
     public R<List<OrderVO>> orders() {
         log.info("查询订单列表");
         return R.ok(orderWorkflowService.listOrders());
+    }
+
+    /**
+     * 支付成功回调（供支付网关或手动调用）。
+     *
+     * @param request 回调请求
+     * @return 更新后的订单
+     */
+    @PostMapping("/callback/pay-success")
+    public R<OrderVO> payCallback(@RequestBody PayCallbackRequest request) {
+        log.info("支付成功回调，orderNo={}", request.getOrderNo());
+        return R.ok(orderWorkflowService.payCallback(request));
+    }
+
+    /**
+     * 退款成功回调（供支付网关或手动调用）。
+     *
+     * @param request 退款回调请求
+     * @return 更新后的订单
+     */
+    @PostMapping("/callback/refund-success")
+    public R<OrderVO> refundCallback(@RequestBody RefundCallbackRequest request) {
+        log.info("退款成功回调，orderNo={}", request.getOrderNo());
+        return R.ok(orderWorkflowService.refundCallback(request));
     }
 }

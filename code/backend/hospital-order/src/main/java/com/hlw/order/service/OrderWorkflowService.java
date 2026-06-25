@@ -7,7 +7,9 @@ import com.hlw.common.core.util.DefaultValueUtils;
 import com.hlw.common.mq.enums.MessageQueueEnum;
 import com.hlw.common.mq.service.producer.MessageQueueProducer;
 import com.hlw.order.dto.CreateOrderRequest;
+import com.hlw.order.dto.PayCallbackRequest;
 import com.hlw.order.dto.PayOrderRequest;
+import com.hlw.order.dto.RefundCallbackRequest;
 import com.hlw.order.entity.OrdOrderEntity;
 import com.hlw.order.mapper.OrdOrderMapper;
 import com.hlw.order.vo.OrderVO;
@@ -119,6 +121,57 @@ public class OrderWorkflowService {
         order.setPayTime(LocalDateTime.now());
         ordOrderMapper.updateById(order);
         messageQueueProducer.send(MessageQueueEnum.QUEUE_ORDER_PAID, "{\"orderId\":" + id + "}");
+        return toOrderVO(order);
+    }
+
+    /**
+     * 支付成功回调（供支付网关或手动调用）。
+     *
+     * @param request 回调请求
+     * @return 更新后的订单
+     */
+    @Transactional
+    public OrderVO payCallback(PayCallbackRequest request) {
+        log.info("支付成功回调，orderNo={}，tradeNo={}，payAmount={}", request.getOrderNo(), request.getTradeNo(), request.getPayAmount());
+        OrdOrderEntity order = ordOrderMapper.selectOne(new LambdaQueryWrapper<OrdOrderEntity>()
+            .eq(OrdOrderEntity::getOrderNo, request.getOrderNo())
+            .last("limit 1"));
+        if (order == null) {
+            throw new BizException(404, "订单不存在");
+        }
+        if (STATUS_PAID.equals(order.getPayStatus())) {
+            log.info("订单无需重复支付回调，orderId={}", order.getId());
+            return toOrderVO(order);
+        }
+        order.setPayStatus(STATUS_PAID);
+        order.setStatus(STATUS_PAID);
+        order.setPayMethod(DefaultValueUtils.defaultIfBlank(request.getPayMethod(), order.getPayMethod()));
+        order.setPayTime(request.getPayTime() == null ? LocalDateTime.now() : request.getPayTime());
+        ordOrderMapper.updateById(order);
+        log.info("支付回调处理完成，orderId={}，orderNo={}", order.getId(), request.getOrderNo());
+        return toOrderVO(order);
+    }
+
+    /**
+     * 退款成功回调（供支付网关或手动调用）。
+     *
+     * @param request 退款回调请求
+     * @return 更新后的订单
+     */
+    @Transactional
+    public OrderVO refundCallback(RefundCallbackRequest request) {
+        log.info("退款成功回调，orderNo={}，tradeNo={}，refundAmount={}", request.getOrderNo(), request.getTradeNo(), request.getRefundAmount());
+        OrdOrderEntity order = ordOrderMapper.selectOne(new LambdaQueryWrapper<OrdOrderEntity>()
+            .eq(OrdOrderEntity::getOrderNo, request.getOrderNo())
+            .last("limit 1"));
+        if (order == null) {
+            throw new BizException(404, "订单不存在");
+        }
+        order.setStatus("已退款");
+        order.setPayStatus("已退款");
+        order.setPayTime(request.getRefundTime() == null ? LocalDateTime.now() : request.getRefundTime());
+        ordOrderMapper.updateById(order);
+        log.info("退款回调处理完成，orderId={}，orderNo={}", order.getId(), request.getOrderNo());
         return toOrderVO(order);
     }
 

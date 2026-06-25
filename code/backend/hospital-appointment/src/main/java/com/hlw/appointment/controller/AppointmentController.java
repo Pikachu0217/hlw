@@ -109,6 +109,17 @@ public class AppointmentController {
     }
 
     /**
+     * 取消预约单。
+     *
+     * @param id 预约编号
+     * @return 取消结果
+     */
+    @PostMapping("/appointments/{id}/cancel")
+    public R<AppointmentVO> cancel(@PathVariable Long id) {
+        return R.ok(appointmentWorkflowService.cancel(id));
+    }
+
+    /**
      * 抢便民门诊预约单。
      *
      * @param id 预约编号
@@ -164,5 +175,17 @@ public class AppointmentController {
     public R<InternalAppointmentResp> getInternalAppointment(@PathVariable Long id) {
         log.info("内部接口查询预约单，appointmentId={}", id);
         return R.ok(appointmentWorkflowService.getInternalAppointment(id));
+    }
+
+    /**
+     * 内部接口：支付成功回调，更新预约单状态为已支付。
+     *
+     * @param id 预约单编号
+     * @return 更新后的预约单
+     */
+    @PostMapping("/internal/appointments/{id}/pay-success")
+    public R<AppointmentVO> onPaySuccess(@PathVariable Long id) {
+        log.info("内部接口支付成功回调，appointmentId={}", id);
+        return R.ok(appointmentWorkflowService.onPaySuccess(id));
     }
 }

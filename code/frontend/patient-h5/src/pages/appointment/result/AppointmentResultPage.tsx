@@ -1,6 +1,6 @@
 import { Button, Result, Space, Toast } from "antd-mobile";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { checkInAppointment, createConsultFromAppointment, payAppointment } from "../../../app/api";
+import { payAppointment } from "../../../app/api";
 
 export function AppointmentResultPage() {
   const navigate = useNavigate();
@@ -20,13 +20,7 @@ export function AppointmentResultPage() {
       await payAppointment(appointmentId);
       Toast.show("预约单已支付");
 
-      // 如果是图文问诊入口，支付后自动创建问诊单并跳转到聊天
-      if (source === "consult") {
-        const consult = await createConsultFromAppointment(appointmentId);
-        navigate(buildConsultChatUrl(consult), { replace: true });
-        return;
-      }
-
+      // 支付后刷新结果页，由用户在预约问诊流程页签到后进入问诊
       navigate(`/appointment/result?appointmentNo=${appointmentNo}&status=PAID&appointmentId=${appointmentId}`, { replace: true });
     } catch {
       Toast.show("预约支付失败");
@@ -63,13 +57,4 @@ export function AppointmentResultPage() {
       </Space>
     </div>
   );
-}
-
-function buildConsultChatUrl(consult: { id: number; status?: string; remainingSeconds?: number }): string {
-  const params = new URLSearchParams({
-    consultId: String(consult.id),
-    status: consult.status ?? "",
-    remainingSeconds: String(consult.remainingSeconds ?? 0)
-  });
-  return `/consult/chat?${params.toString()}`;
 }

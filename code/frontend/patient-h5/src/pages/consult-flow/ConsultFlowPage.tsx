@@ -2,6 +2,7 @@ import { Button, List, Popup, Space, SpinLoading, Tag, Toast } from "antd-mobile
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  cancelAppointment,
   checkInAppointment,
   createConsultFromAppointment,
   fetchAppointments,
@@ -50,6 +51,8 @@ interface FlowItem {
   canCheckIn: boolean;
   /** 是否可以进入问诊聊天。 */
   canEnterConsult: boolean;
+  /** 是否可以取消。 */
+  canCancel: boolean;
   /** 关联预约单编号。 */
   appointmentId?: number;
   /** 关联问诊单编号。 */
@@ -123,7 +126,8 @@ export function ConsultFlowPage() {
         rawStatus: consult ? consult.status : (apt.status || "待处理"),
         canPay: apt.status === "待支付",
         canCheckIn: apt.status === "已支付",
-        canEnterConsult: isAptPaid && (consult || apt.source !== "CONSULT"),
+        canEnterConsult: isAptPaid && (Boolean(consult) || Boolean(apt.source) || Boolean(appointmentId)),
+        canCancel: ["待支付", "已支付"].includes(apt.status || ""),
         appointmentId: apt.id,
         consultId: consult?.id,
         remainingSeconds: consult?.remainingSeconds
@@ -147,7 +151,8 @@ export function ConsultFlowPage() {
         rawStatus: consult.status,
         canPay: false,
         canCheckIn: false,
-        canEnterConsult: consult.payStatus === "PAID" && isActiveConsult(consult.status),
+        canEnterConsult: ["待接单", "咨询中", "已延长"].includes(consultStatusLabel(consult.status)),
+        canCancel: false,
         consultId: consult.id,
         remainingSeconds: consult.remainingSeconds
       });
@@ -176,11 +181,6 @@ export function ConsultFlowPage() {
     return map[status] || status || "未知";
   }
 
-  /** 问诊是否活跃（可聊天）。 */
-  function isActiveConsult(status: string): boolean {
-    return ["待接单", "咨询中"].includes(consultStatusLabel(status));
-  }
-
   /** 根据筛选过滤。 */
   function filterItems(items: FlowItem[]): FlowItem[] {
     const filter = statusFilter[0];
@@ -202,9 +202,27 @@ export function ConsultFlowPage() {
     try {
       await checkInAppointment(appointmentId);
       Toast.show("签到成功");
-      await loadData();
+      // 签到成功后自动创建问诊并跳转到聊天
+      try {
+        const consult = await createConsultFromAppointment(appointmentId);
+        navigate(buildConsultChatUrl(consult));
+        return;
+      } catch {
+        // 创建问诊失败则刷新列表，用户可手动点击"进入问诊"
+        await loadData();
+      }
     } catch {
       Toast.show("签到失败");
+    }
+  }
+
+  async function handleCancel(appointmentId: number): Promise<void> {
+    try {
+      await cancelAppointment(appointmentId);
+      Toast.show("预约单已取消");
+      await loadData();
+    } catch {
+      Toast.show("取消预约失败");
     }
   }
 
@@ -306,6 +324,11 @@ export function ConsultFlowPage() {
                   {item.canEnterConsult ? (
                     <Button size="mini" color="primary" fill="solid" onClick={() => handleEnterConsult(item.appointmentId, item.consultId)}>
                       {item.consultId ? "进入聊天" : "进入问诊"}
+                    </Button>
+                  ) : null}
+                  {item.canCancel ? (
+                    <Button size="mini" color="default" fill="none" onClick={() => item.appointmentId && handleCancel(item.appointmentId)}>
+                      取消预约
                     </Button>
                   ) : null}
                 </Space>

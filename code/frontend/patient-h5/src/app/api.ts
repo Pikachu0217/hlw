@@ -498,6 +498,13 @@ export async function checkInAppointment(appointmentId: number): Promise<Appoint
   return response.data.data;
 }
 
+/** 取消预约单。 */
+export async function cancelAppointment(appointmentId: number): Promise<AppointmentItem> {
+  console.info("[appointment] 取消预约单", appointmentId);
+  const response = await http.post<ApiResult<AppointmentItem>>(`/appointment/appointments/${appointmentId}/cancel`);
+  return response.data.data;
+}
+
 export async function grabAppointment(appointmentId: number, doctorId: number): Promise<boolean> {
   console.info("[appointment] 抢便民门诊预约单", appointmentId, doctorId);
   const response = await http.post<ApiResult<boolean>>(`/appointment/appointments/${appointmentId}/grab`, { doctorId });

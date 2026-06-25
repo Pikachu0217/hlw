@@ -252,6 +252,85 @@ public class AppointmentWorkflowService {
     }
 
     /**
+     * 取消预约单。
+     * <p>未支付直接释放号源；已支付则先退款（占位，待接入真实支付），再释放号源。</p>
+     *
+     * @param id 预约单编号
+     * @return 取消后的预约单
+     */
+    @Transactional
+    public AppointmentVO cancel(Long id) {
+        TokenPrincipalContext.ensureBusinessTenantContext("预约模块操作缺少有效租户上下文");
+        log.info("取消预约单，appointmentId={}", id);
+        AptAppointmentEntity entity = requireActiveAppointment(id);
+        if (STATUS_CANCELLED.equals(entity.getStatus())) {
+            log.info("预约单无需重复取消，appointmentId={}", id);
+            return toAppointmentVO(entity);
+        }
+        if (STATUS_COMPLETED.equals(entity.getStatus())) {
+            throw new BizException(409, "已完成预约单不允许取消");
+        }
+        // 已支付：先退款（占位），再释放号源
+        if (STATUS_PAID.equals(entity.getStatus()) || STATUS_CHECKED_IN.equals(entity.getStatus())) {
+            refundAppointment(entity);
+        }
+        // 释放号源
+        releaseNumberSource(entity.getNumberSourceId());
+        entity.setStatus(STATUS_CANCELLED);
+        aptAppointmentMapper.updateById(entity);
+        log.info("预约单已取消，appointmentId={}", id);
+        return toAppointmentVO(entity);
+    }
+
+    /**
+     * 释放号源（将 LOCKED 状态改为 AVAILABLE）。
+     *
+     * @param numberSourceId 号源编号
+     */
+    private void releaseNumberSource(Long numberSourceId) {
+        if (numberSourceId == null) {
+            return;
+        }
+        aptNumberSourceMapper.update(null, new LambdaUpdateWrapper<AptNumberSourceEntity>()
+            .eq(AptNumberSourceEntity::getId, numberSourceId)
+            .set(AptNumberSourceEntity::getStatus, NUMBER_STATUS_AVAILABLE)
+            .set(AptNumberSourceEntity::getLockTime, null));
+        log.info("号源已释放，numberSourceId={}", numberSourceId);
+    }
+
+    /**
+     * 退款占位方法，待接入真实支付后实现实际退款逻辑。
+     *
+     * @param entity 预约单实体
+     */
+    private void refundAppointment(AptAppointmentEntity entity) {
+        log.info("[支付占位] 预约取消需退款，appointmentId={}，amount={}，待接入真实支付后实现", entity.getId(), entity.getFeeAmount());
+    }
+
+    /**
+     * 内部接口：支付成功回调，更新预约单状态为已支付。
+     *
+     * @param id 预约单编号
+     * @return 更新后的预约单
+     */
+    @Transactional
+    public AppointmentVO onPaySuccess(Long id) {
+        log.info("支付成功回调更新预约单，appointmentId={}", id);
+        AptAppointmentEntity entity = requireActiveAppointment(id);
+        if (STATUS_PAID.equals(entity.getStatus()) || STATUS_CHECKED_IN.equals(entity.getStatus()) || STATUS_COMPLETED.equals(entity.getStatus())) {
+            log.info("预约单无需重复支付回调，appointmentId={}，status={}", id, entity.getStatus());
+            return toAppointmentVO(entity);
+        }
+        if (!STATUS_PENDING_PAY.equals(entity.getStatus())) {
+            throw new BizException(409, "预约单当前状态不允许支付回调");
+        }
+        entity.setStatus(STATUS_PAID);
+        entity.setPayTime(LocalDateTime.now());
+        aptAppointmentMapper.updateById(entity);
+        return toAppointmentVO(entity);
+    }
+
+    /**
      * 抢便民门诊预约单。
      *
      * @param id 预约单编号
