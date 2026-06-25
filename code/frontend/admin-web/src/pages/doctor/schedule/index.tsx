@@ -36,6 +36,7 @@ function SchedulePage() {
       fetchDoctors().then(setDoctors).catch(() => {}),
       fetchDepartments().then(setDepartments).catch(() => {}),
     ]);
+    void loadSchedules();
   }, []);
 
   useEffect(() => {
