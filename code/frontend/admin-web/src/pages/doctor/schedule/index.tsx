@@ -5,6 +5,7 @@ import {
   fetchDepartments,
   fetchDoctors,
   fetchDoctorDepartmentBindings,
+  fetchSchedules,
   createSchedule,
   updateSchedule,
   deleteSchedule,
