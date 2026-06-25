@@ -2,6 +2,7 @@ package com.hlw.patient.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.Setter;
@@ -43,5 +44,6 @@ public class PatHealthRecordEntity {
     /** 更新人编号。 */
     private Long updateBy;
     /** 逻辑删除标识。 */
+    @TableLogic
     private Integer deleted;
 }
