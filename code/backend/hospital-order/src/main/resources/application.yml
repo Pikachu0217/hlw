@@ -10,13 +10,11 @@ spring:
   datasource:
     url: ${hlw.datasource.url}
     username: ${hlw.datasource.username}
-    password: ${hlw.datasource.password}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
       host: ${hlw.redis.host}
       port: ${hlw.redis.port}
-      password: ${hlw.redis.password}
       database: ${hlw.redis.database}
   cloud:
     nacos:
