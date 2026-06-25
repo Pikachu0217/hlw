@@ -457,6 +457,73 @@ public class DoctorTenantContextService {
     }
 
     /**
+     * 更新排班。
+     *
+     * @param id 排班编号
+     * @param request 更新排班请求
+     * @return 排班展示对象
+     */
+    @Transactional
+    public ScheduleVO updateSchedule(Long id, CreateScheduleRequest request) {
+        Long tenantId = currentBusinessTenantId("医生模块操作缺少有效租户上下文");
+        log.info("更新医生排班，scheduleId={}，doctorId={}，deptId={}，slot={}，scheduleDate={}",
+            id, request.getDoctorId(), request.getDeptId(), request.getSlot(), request.getScheduleDate());
+        DocScheduleEntity entity = docScheduleMapper.selectOne(new LambdaQueryWrapper<DocScheduleEntity>()
+            .eq(DocScheduleEntity::getId, id)
+            .last("limit 1"));
+        if (entity == null) {
+            throw new BizException(404, "排班不存在");
+        }
+        DocDoctorEntity doctor = requireActiveDoctor(request.getDoctorId());
+        DocDepartmentEntity department = ensureDepartmentExtension(request.getDeptId(), tenantId);
+        requireDoctorDepartmentBinding(request.getDoctorId(), request.getDeptId());
+
+        LocalDate scheduleDate = parseDate(defaultIfBlank(request.getScheduleDate(), LocalDate.now().format(DATE_FORMATTER)));
+        String timeSlot = defaultIfBlank(request.getTimeSlot(), request.getSlot());
+        // 校验：同一医生同一日期时间段不能与其他排班重复（排除自身）
+        long existingCount = docScheduleMapper.selectCount(new LambdaQueryWrapper<DocScheduleEntity>()
+            .eq(DocScheduleEntity::getDoctorId, request.getDoctorId())
+            .eq(DocScheduleEntity::getScheduleDate, scheduleDate)
+            .eq(DocScheduleEntity::getTimeSlot, timeSlot)
+            .ne(DocScheduleEntity::getId, id));
+        if (existingCount > 0) {
+            log.warn("更新排班冲突，该医生在此时间段已有其他排班，doctorId={}，scheduleDate={}，timeSlot={}",
+                request.getDoctorId(), scheduleDate, timeSlot);
+            throw new BizException(409, "该医生在此时间段已有排班，请勿重复创建");
+        }
+
+        entity.setDoctorId(request.getDoctorId());
+        entity.setDeptId(request.getDeptId());
+        entity.setScheduleDate(scheduleDate);
+        entity.setTimeSlot(timeSlot);
+        entity.setSlot(defaultIfBlank(request.getSlot(), scheduleDate.format(DATE_FORMATTER) + " " + timeSlot));
+        entity.setTotalNumber(defaultInt(request.getTotalNumber(), entity.getTotalNumber()));
+        entity.setRemainNumber(defaultInt(request.getRemainNumber(), entity.getTotalNumber()));
+        docScheduleMapper.updateById(entity);
+        log.info("排班更新成功，scheduleId={}", id);
+        return toScheduleVO(entity, defaultIfBlank(doctor.getDoctorName(), doctor.getName()), defaultIfBlank(department.getDepartmentName(), department.getName()));
+    }
+
+    /**
+     * 删除排班（逻辑删除）。
+     *
+     * @param id 排班编号
+     */
+    @Transactional
+    public void deleteSchedule(Long id) {
+        log.info("删除排班，scheduleId={}", id);
+        DocScheduleEntity entity = docScheduleMapper.selectOne(new LambdaQueryWrapper<DocScheduleEntity>()
+            .eq(DocScheduleEntity::getId, id)
+            .last("limit 1"));
+        if (entity == null) {
+            throw new BizException(404, "排班不存在");
+        }
+        entity.setDeleted(1);
+        docScheduleMapper.updateById(entity);
+        log.info("排班已删除，scheduleId={}", id);
+    }
+
+    /**
      * 刷新科室医生数量。
      *
      * @param deptId 科室编号

@@ -865,6 +865,26 @@ export function fetchSchedules(params?: ScheduleQueryParams): Promise<ScheduleRe
   return fetchModuleRecords<ScheduleRecord>('/doctor/schedules', '排班', params as Record<string, unknown> | undefined);
 }
 
+/** 创建排班。 */
+export async function createSchedule(data: Partial<ScheduleRecord> & { slot: string; totalNumber?: number }): Promise<ScheduleRecord> {
+  console.info('[admin-module] 创建排班', data);
+  const response = await apiClient.post<ApiResult<ScheduleRecord>>('/doctor/schedules', data);
+  return response.data.data;
+}
+
+/** 更新排班。 */
+export async function updateSchedule(id: number, data: Partial<ScheduleRecord> & { slot: string; totalNumber?: number }): Promise<ScheduleRecord> {
+  console.info('[admin-module] 更新排班', id, data);
+  const response = await apiClient.put<ApiResult<ScheduleRecord>>(`/doctor/schedules/${id}`, data);
+  return response.data.data;
+}
+
+/** 删除排班。 */
+export async function deleteSchedule(id: number): Promise<void> {
+  console.info('[admin-module] 删除排班', id);
+  await apiClient.delete<ApiResult<void>>(`/doctor/schedules/${id}`);
+}
+
 // 查询问诊单列表。
 export function fetchConsults(): Promise<ConsultRecord[]> {
   return fetchModuleRecords<ConsultRecord>('/consult/consults', '问诊单');

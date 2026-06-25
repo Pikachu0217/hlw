@@ -14,6 +14,7 @@ import com.hlw.doctor.vo.DoctorDepartmentBindingVO;
 import com.hlw.doctor.vo.DoctorVO;
 import com.hlw.doctor.vo.ScheduleVO;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -202,6 +203,32 @@ public class DoctorManagementController {
         log.info("创建医生排班，doctorId={}，deptId={}，scheduleDate={}，timeSlot={}",
             request.getDoctorId(), request.getDeptId(), request.getScheduleDate(), request.getTimeSlot());
         return R.ok(doctorTenantContextService.createSchedule(request));
+    }
+
+    /**
+     * 更新排班。
+     *
+     * @param id 排班编号
+     * @param request 更新排班请求
+     * @return 排班展示对象
+     */
+    @PutMapping("/schedules/{id}")
+    public R<ScheduleVO> updateSchedule(@PathVariable Long id, @Valid @RequestBody CreateScheduleRequest request) {
+        log.info("更新排班，scheduleId={}，doctorId={}，deptId={}", id, request.getDoctorId(), request.getDeptId());
+        return R.ok(doctorTenantContextService.updateSchedule(id, request));
+    }
+
+    /**
+     * 删除排班。
+     *
+     * @param id 排班编号
+     * @return 操作结果
+     */
+    @DeleteMapping("/schedules/{id}")
+    public R<Void> deleteSchedule(@PathVariable Long id) {
+        log.info("删除排班，scheduleId={}", id);
+        doctorTenantContextService.deleteSchedule(id);
+        return R.ok();
     }
 
     /**
