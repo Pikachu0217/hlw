@@ -379,6 +379,7 @@ public class DoctorTenantContextService {
             .collect(Collectors.toMap(this::resolveDeptId, entity -> defaultIfBlank(entity.getDepartmentName(), entity.getName()), (current, next) -> current));
 
         LambdaQueryWrapper<DocScheduleEntity> wrapper = new LambdaQueryWrapper<DocScheduleEntity>();
+        wrapper.eq(DocScheduleEntity::getDeleted, 0);
         if (scheduleDate != null && !scheduleDate.isBlank()) {
             try {
                 wrapper.eq(DocScheduleEntity::getScheduleDate, LocalDate.parse(scheduleDate, DATE_FORMATTER));
@@ -419,6 +420,7 @@ public class DoctorTenantContextService {
         LocalDate scheduleDate = parseDate(defaultIfBlank(request.getScheduleDate(), LocalDate.now().format(DATE_FORMATTER)));
         String timeSlot = defaultIfBlank(request.getTimeSlot(), request.getSlot());
         long existingCount = docScheduleMapper.selectCount(new LambdaQueryWrapper<DocScheduleEntity>()
+            .eq(DocScheduleEntity::getDeleted, 0)
             .eq(DocScheduleEntity::getDoctorId, request.getDoctorId())
             .eq(DocScheduleEntity::getScheduleDate, scheduleDate)
             .eq(DocScheduleEntity::getTimeSlot, timeSlot));
@@ -482,6 +484,7 @@ public class DoctorTenantContextService {
         String timeSlot = defaultIfBlank(request.getTimeSlot(), request.getSlot());
         // 校验：同一医生同一日期时间段不能与其他排班重复（排除自身）
         long existingCount = docScheduleMapper.selectCount(new LambdaQueryWrapper<DocScheduleEntity>()
+            .eq(DocScheduleEntity::getDeleted, 0)
             .eq(DocScheduleEntity::getDoctorId, request.getDoctorId())
             .eq(DocScheduleEntity::getScheduleDate, scheduleDate)
             .eq(DocScheduleEntity::getTimeSlot, timeSlot)
