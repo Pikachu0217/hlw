@@ -1,10 +1,10 @@
-import { Button, DatePicker, Form, Row, Col, Select, Space, Table, Tag, message, Modal, InputNumber, Input } from 'antd';
+import { Button, DatePicker, Form, Row, Col, Select, Space, Table, Tag, message, Modal, InputNumber } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   fetchDepartments,
   fetchDoctors,
-  fetchSchedules,
+  fetchDoctorDepartmentBindings,
   createSchedule,
   updateSchedule,
   deleteSchedule,
@@ -15,27 +15,67 @@ import {
 import type { DepartmentRecord } from '@/pages/doctor/departments';
 import PageHero from '@/components/PageHero';
 
-const TIME_SLOT_OPTIONS = [
-  { label: '上午', value: '上午' },
-  { label: '下午', value: '下午' },
-  { label: '夜间', value: '夜间' },
-];
+const SCHEDULE_TIME_SLOT_OPTIONS = [
+  '09:00-09:30',
+  '09:30-10:00',
+  '10:00-10:30',
+  '10:30-11:00',
+  '11:00-11:30',
+  '13:30-14:00',
+  '14:00-14:30',
+  '14:30-15:00',
+  '15:00-15:30',
+  '15:30-16:00',
+  '16:00-16:30',
+  '16:30-17:00',
+  '17:00-17:30',
+].map((value) => ({ label: value, value }));
+
+function formatDateValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function parseScheduleSlotStart(value: string) {
+  const [hour = '0', minute = '0'] = value.split('-')[0].split(':');
+  return Number(hour) * 60 + Number(minute);
+}
+
+function buildScheduleDateOptions() {
+  return Array.from({ length: 14 }).map((_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() + index);
+    const value = formatDateValue(date);
+    return { label: value, value };
+  }).filter((option) => {
+    const today = formatDateValue(new Date());
+    if (option.value !== today) return true;
+    const now = new Date();
+    const currentSlotStart = now.getHours() * 60 + Math.floor(now.getMinutes() / 30) * 30;
+    return SCHEDULE_TIME_SLOT_OPTIONS.some((slot) => parseScheduleSlotStart(slot.value) >= currentSlotStart);
+  });
+}
 
 function SchedulePage() {
-  const [form] = Form.useForm();
   const [searchForm] = Form.useForm();
+  const [form] = Form.useForm();
   const [schedules, setSchedules] = useState<ScheduleRecord[]>([]);
   const [doctors, setDoctors] = useState<DoctorRecord[]>([]);
   const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
+  const [doctorDepartmentBindings, setDoctorDepartmentBindings] = useState<{ doctorId: number; deptId: number; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ScheduleRecord | null>(null);
-  const [filteredDeptOptions, setFilteredDeptOptions] = useState<{ label: string; value: number }[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const scheduleDateOptions = useMemo(() => buildScheduleDateOptions(), []);
 
   useEffect(() => {
     void Promise.all([
       fetchDoctors().then(setDoctors).catch(() => {}),
       fetchDepartments().then(setDepartments).catch(() => {}),
+      fetchDoctorDepartmentBindings().then(setDoctorDepartmentBindings).catch(() => {}),
     ]);
     void loadSchedules();
   }, []);
@@ -44,27 +84,19 @@ function SchedulePage() {
     if (!modalOpen) {
       setEditingRecord(null);
       form.resetFields();
-      setFilteredDeptOptions([]);
     }
   }, [modalOpen]);
 
-  /** 选中医生时联动过滤其关联科室。 */
+  /** 选中医生时联动过滤其关联科室，并更新 bindingKey 选项。 */
+  const [filteredBindingOptions, setFilteredBindingOptions] = useState<{ label: string; value: string }[]>([]);
+
   function handleDoctorChange(doctorId: number): void {
-    const doctor = doctors.find((d) => (d.doctorId ?? d.id) === doctorId);
-    const deptIds = doctor?.deptIds;
-    if (deptIds && deptIds.length > 0) {
-      // 按医生关联的科室编号过滤
-      const matched = departments.filter((d) => deptIds.includes(d.deptId ?? d.id));
-      setFilteredDeptOptions(matched.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
-      // 如果当前选中的科室不在过滤结果中，清空
-      const currentDeptId = form.getFieldValue('deptId');
-      if (currentDeptId && !matched.some((d) => (d.deptId ?? d.id) === currentDeptId)) {
-        form.setFieldValue('deptId', undefined);
-      }
-    } else {
-      // 医生无科室绑定信息时展示全部科室
-      setFilteredDeptOptions(departments.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
-    }
+    const doctorBindings = doctorDepartmentBindings.filter((b) => b.doctorId === doctorId);
+    setFilteredBindingOptions(
+      doctorBindings.map((b) => ({ label: b.label, value: `${b.doctorId}:${b.deptId}` })),
+    );
+    // 清空已选的科室绑定
+    form.setFieldValue('bindingKey', undefined);
   }
 
   async function loadSchedules(params?: ScheduleQueryParams): Promise<void> {
@@ -109,23 +141,21 @@ function SchedulePage() {
   /** 打开编辑弹窗。 */
   function handleOpenEdit(record: ScheduleRecord): void {
     setEditingRecord(record);
+    // 查找对应的 bindingKey
+    const binding = doctorDepartmentBindings.find((b) => b.doctorId === record.doctorId && b.deptId === record.deptId);
+    const defaultDate = scheduleDateOptions[0]?.value ?? record.scheduleDate;
     form.setFieldsValue({
       doctorId: record.doctorId,
-      deptId: record.deptId,
-      slot: record.slot,
-      scheduleDate: record.scheduleDate,
+      bindingKey: binding ? `${binding.doctorId}:${binding.deptId}` : `${record.doctorId}:${record.deptId}`,
+      scheduleDate: record.scheduleDate || defaultDate,
       timeSlot: record.timeSlot,
       totalNumber: record.totalNumber,
     });
-    // 编辑时联动过滤科室
-    const doctor = doctors.find((d) => (d.doctorId ?? d.id) === record.doctorId);
-    const deptIds = doctor?.deptIds;
-    if (deptIds && deptIds.length > 0) {
-      const matched = departments.filter((d) => deptIds.includes(d.deptId ?? d.id));
-      setFilteredDeptOptions(matched.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
-    } else {
-      setFilteredDeptOptions(departments.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
-    }
+    // 联动过滤 binding 选项
+    const doctorBindings = doctorDepartmentBindings.filter((b) => b.doctorId === record.doctorId);
+    setFilteredBindingOptions(
+      doctorBindings.map((b) => ({ label: b.label, value: `${b.doctorId}:${b.deptId}` })),
+    );
     setModalOpen(true);
   }
 
@@ -133,20 +163,33 @@ function SchedulePage() {
   async function handleSubmit(): Promise<void> {
     try {
       const values = await form.validateFields();
+      const [doctorId, deptId] = String(values.bindingKey).split(':').map(Number);
+      const payload = {
+        doctorId,
+        deptId,
+        slot: `${values.scheduleDate} ${values.timeSlot}`,
+        scheduleDate: values.scheduleDate,
+        timeSlot: values.timeSlot,
+        totalNumber: values.totalNumber,
+      };
+
+      setSubmitting(true);
       if (editingRecord) {
-        await updateSchedule(editingRecord.id, values);
+        await updateSchedule(editingRecord.id, payload);
         message.success('排班更新成功');
       } else {
-        await createSchedule(values);
+        await createSchedule(payload);
         message.success('排班创建成功');
       }
       setModalOpen(false);
       void loadSchedules();
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'errorFields' in err) {
-        return; // 表单校验未通过
+        return;
       }
       message.error(editingRecord ? '排班更新失败' : '排班创建失败');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -165,6 +208,25 @@ function SchedulePage() {
         }
       },
     });
+  }
+
+  /** 排班日期变化时联动更新时间段。 */
+  function handleScheduleDateChange(): void {
+    const selectedDate = form.getFieldValue('scheduleDate');
+    if (selectedDate) {
+      const today = formatDateValue(new Date());
+      const slots = selectedDate !== today
+        ? SCHEDULE_TIME_SLOT_OPTIONS
+        : SCHEDULE_TIME_SLOT_OPTIONS.filter((option) => {
+            const now = new Date();
+            const currentSlotStart = now.getHours() * 60 + Math.floor(now.getMinutes() / 30) * 30;
+            return parseScheduleSlotStart(option.value) >= currentSlotStart;
+          });
+      const firstSlot = slots[0]?.value;
+      if (firstSlot) {
+        form.setFieldValue('timeSlot', firstSlot);
+      }
+    }
   }
 
   const columns: ColumnsType<ScheduleRecord> = [
@@ -262,47 +324,32 @@ function SchedulePage() {
         onCancel={() => setModalOpen(false)}
         okText="保存"
         cancelText="取消"
-        width={560}
+        confirmLoading={submitting}
+        width={520}
+        destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="doctorId" label="医生" rules={[{ required: true, message: '请选择医生' }]}>
-                <Select
-                  placeholder="选择医生"
-                  showSearch
-                  optionFilterProp="label"
-                  onChange={handleDoctorChange}
-                  options={doctors.map((d) => ({ label: d.name, value: d.doctorId ?? d.id }))}
-                />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="deptId" label="科室" rules={[{ required: true, message: '请选择科室' }]}>
-                <Select
-                  placeholder="选择科室"
-                  showSearch
-                  optionFilterProp="label"
-                  options={filteredDeptOptions}
-                  notFoundContent={filteredDeptOptions.length === 0 ? '请先选择医生' : '无匹配科室'}
-                />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="scheduleDate" label="排班日期">
-                <DatePicker style={{ width: '100%' }} placeholder="选择日期" />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="timeSlot" label="时间段" rules={[{ required: true, message: '请选择时间段' }]}>
-                <Select placeholder="选择时间段" options={TIME_SLOT_OPTIONS} />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="slot" label="排班描述" rules={[{ required: true, message: '请输入排班描述' }]}>
-            <Input placeholder="例如：2026-06-25 上午" />
+          <Form.Item name="doctorId" label="医生" rules={[{ required: true, message: '请选择医生' }]}>
+            <Select
+              placeholder="请选择医生"
+              showSearch
+              optionFilterProp="label"
+              onChange={handleDoctorChange}
+              options={doctors.map((d) => ({ label: d.name, value: d.doctorId ?? d.id }))}
+            />
+          </Form.Item>
+          <Form.Item name="bindingKey" label="医生科室绑定" rules={[{ required: true, message: '请选择科室绑定关系' }]}>
+            <Select
+              placeholder={filteredBindingOptions.length === 0 ? '请先选择医生' : '请选择科室'}
+              options={filteredBindingOptions}
+              notFoundContent={filteredBindingOptions.length === 0 ? '请先选择医生' : '无匹配科室'}
+            />
+          </Form.Item>
+          <Form.Item name="scheduleDate" label="排班日期" rules={[{ required: true, message: '请选择排班日期' }]}>
+            <Select placeholder="请选择排班日期" options={scheduleDateOptions} onChange={handleScheduleDateChange} />
+          </Form.Item>
+          <Form.Item name="timeSlot" label="时间段" rules={[{ required: true, message: '请选择时间段' }]}>
+            <Select placeholder="请选择时间段" />
           </Form.Item>
           <Form.Item name="totalNumber" label="总号源数量" rules={[{ required: true, message: '请输入总号源数量' }]}>
             <InputNumber min={1} max={999} style={{ width: '100%' }} placeholder="输入总号源数量" />
