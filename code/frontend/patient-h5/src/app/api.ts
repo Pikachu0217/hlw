@@ -158,6 +158,7 @@ export interface NumberSourceItem {
 export interface ScheduleItem {
   id: number;
   doctorId: number;
+  deptId: number;
   doctorName: string;
   slot: string;
   scheduleDate: string;

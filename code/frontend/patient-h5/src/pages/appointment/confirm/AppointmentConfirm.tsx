@@ -66,13 +66,17 @@ export function AppointmentConfirm({
     }
 
     try {
+      const clinicTime = selectedSchedule.scheduleDate && selectedSchedule.timeSlot
+        ? `${selectedSchedule.scheduleDate} ${selectedSchedule.timeSlot}`
+        : selectedSchedule.slot || doctor.schedule;
       const appointment = await createAppointment({
         patientId: patient?.id,
         patientName: patient?.patientName,
         doctorId: doctor.doctorId,
+        departmentId: selectedSchedule.deptId,
         scheduleId: selectedSchedule.id,
         doctorName: doctor.name,
-        timeSlot: selectedSchedule.timeSlot || selectedSchedule.slot || doctor.schedule,
+        timeSlot: clinicTime,
         feeAmount: doctor.consultFee,
         source: source || "PATIENT_H5"
       });
