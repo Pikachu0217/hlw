@@ -518,8 +518,7 @@ public class DoctorTenantContextService {
         if (entity == null) {
             throw new BizException(404, "排班不存在");
         }
-        entity.setDeleted(1);
-        docScheduleMapper.updateById(entity);
+        docScheduleMapper.deleteById(id);
         log.info("排班已删除，scheduleId={}", id);
     }
 
