@@ -113,8 +113,9 @@ public class ConfigService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteConfig(Long id) {
         log.info("删除参数配置，id={}", id);
-        requireConfig(id);
-        sysConfigMapper.deleteById(id);
+        SysConfigEntity entity = requireConfig(id);
+        entity.setDeleted(1);
+        sysConfigMapper.updateById(entity);
     }
 
     /**

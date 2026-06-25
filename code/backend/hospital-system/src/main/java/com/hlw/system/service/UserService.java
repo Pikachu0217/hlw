@@ -163,7 +163,8 @@ public class UserService {
         log.info("删除系统用户，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         SysUserEntity entity = requireUser(id);
         SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "用户");
-        sysUserMapper.deleteById(id);
+        entity.setDeleted(1);
+        sysUserMapper.updateById(entity);
     }
 
     /**

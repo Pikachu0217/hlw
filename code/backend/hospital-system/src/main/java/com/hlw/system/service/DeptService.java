@@ -120,7 +120,8 @@ public class DeptService {
         log.info("删除部门，id={}", id);
         SysDeptEntity entity = requireDept(id);
         SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "部门");
-        sysDeptMapper.deleteById(id);
+        entity.setDeleted(1);
+        sysDeptMapper.updateById(entity);
     }
 
     /**

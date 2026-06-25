@@ -188,7 +188,8 @@ public class TenantService {
         log.info("删除租户，id={}", id);
         SysTenantEntity entity = requireTenant(id);
         SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "租户");
-        sysTenantMapper.deleteById(id);
+        entity.setDeleted(1);
+        sysTenantMapper.updateById(entity);
     }
 
     /**

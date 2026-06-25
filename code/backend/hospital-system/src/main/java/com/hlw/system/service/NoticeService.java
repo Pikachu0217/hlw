@@ -103,8 +103,9 @@ public class NoticeService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteNotice(Long id) {
         log.info("删除通知公告，id={}", id);
-        requireNotice(id);
-        sysNoticeMapper.deleteById(id);
+        SysNoticeEntity entity = requireNotice(id);
+        entity.setDeleted(1);
+        sysNoticeMapper.updateById(entity);
     }
 
     /**

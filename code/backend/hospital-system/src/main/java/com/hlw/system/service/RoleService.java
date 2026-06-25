@@ -126,7 +126,8 @@ public class RoleService {
         log.info("删除角色，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         SysRoleEntity entity = requireRole(id);
         SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "角色");
-        sysRoleMapper.deleteById(id);
+        entity.setDeleted(1);
+        sysRoleMapper.updateById(entity);
     }
 
     /**

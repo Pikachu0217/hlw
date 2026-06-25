@@ -1,6 +1,7 @@
 package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.hlw.system.domain.req.BindRoleMenuReq;
 import com.hlw.system.domain.req.BindUserRoleReq;
 import com.hlw.system.domain.resp.RelationBindingResp;
@@ -116,7 +117,10 @@ public class AuthorizationService {
         log.info("绑定用户角色，tenantId={}，userId={}，roleIds={}", tenantId, request.getUserId(), request.getRoleIds());
         SysUserEntity user = requireUser(tenantId, request.getUserId());
         request.getRoleIds().forEach(roleId -> requireRole(tenantId, roleId));
-        sysUserRoleMapper.physicalDeleteByUserId(tenantId, request.getUserId());
+        sysUserRoleMapper.update(null, new LambdaUpdateWrapper<SysUserRoleEntity>()
+            .eq(SysUserRoleEntity::getTenantId, tenantId)
+            .eq(SysUserRoleEntity::getUserId, request.getUserId())
+            .set(SysUserRoleEntity::getDeleted, 1));
         return request.getRoleIds().stream()
             .distinct()
             .map(roleId -> {
@@ -140,7 +144,10 @@ public class AuthorizationService {
         String tenantId = MybatisTenantHelpers.currentTenantIdString();
         log.info("删除用户角色授权，tenantId={}，relationId={}", tenantId, relationId);
         requireUserRole(tenantId, relationId);
-        sysUserRoleMapper.physicalDeleteById(tenantId, relationId);
+        sysUserRoleMapper.update(null, new LambdaUpdateWrapper<SysUserRoleEntity>()
+            .eq(SysUserRoleEntity::getTenantId, tenantId)
+            .eq(SysUserRoleEntity::getId, relationId)
+            .set(SysUserRoleEntity::getDeleted, 1));
     }
 
     /**
@@ -213,7 +220,10 @@ public class AuthorizationService {
         log.info("绑定角色菜单，tenantId={}，roleId={}，menuIds={}", tenantId, request.getRoleId(), request.getMenuIds());
         SysRoleEntity role = requireRole(tenantId, request.getRoleId());
         request.getMenuIds().forEach(menuId -> requireMenu(tenantId, menuId));
-        sysRoleMenuMapper.physicalDeleteByRoleId(role.getTenantId(), request.getRoleId());
+        sysRoleMenuMapper.update(null, new LambdaUpdateWrapper<SysRoleMenuEntity>()
+            .eq(SysRoleMenuEntity::getTenantId, role.getTenantId())
+            .eq(SysRoleMenuEntity::getRoleId, request.getRoleId())
+            .set(SysRoleMenuEntity::getDeleted, 1));
         return request.getMenuIds().stream()
             .distinct()
             .map(menuId -> {
@@ -237,7 +247,10 @@ public class AuthorizationService {
         String tenantId = MybatisTenantHelpers.currentTenantIdString();
         log.info("删除角色菜单授权，tenantId={}，relationId={}", tenantId, relationId);
         requireRoleMenu(tenantId, relationId);
-        sysRoleMenuMapper.physicalDeleteById(tenantId, relationId);
+        sysRoleMenuMapper.update(null, new LambdaUpdateWrapper<SysRoleMenuEntity>()
+            .eq(SysRoleMenuEntity::getTenantId, tenantId)
+            .eq(SysRoleMenuEntity::getId, relationId)
+            .set(SysRoleMenuEntity::getDeleted, 1));
     }
 
     /**

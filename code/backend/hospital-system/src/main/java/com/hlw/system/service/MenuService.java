@@ -157,7 +157,8 @@ public class MenuService {
         log.info("删除菜单，tenantId={}，id={}", MybatisTenantHelpers.currentTenantIdString(), id);
         SysMenuEntity entity = requireMenu(id);
         SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "菜单");
-        sysMenuMapper.deleteById(id);
+        entity.setDeleted(1);
+        sysMenuMapper.updateById(entity);
     }
 
     /**

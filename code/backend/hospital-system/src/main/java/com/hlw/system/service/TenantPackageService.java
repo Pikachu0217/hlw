@@ -1,6 +1,7 @@
 package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hlw.common.core.domain.PageQuery;
 import com.hlw.common.core.domain.PageResult;
@@ -133,8 +134,8 @@ public class TenantPackageService {
         log.info("删除租户套餐，id={}", id);
         SysTenantPackageEntity entity = requirePackage(id);
         SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "套餐");
-        sysTenantPackageMenuMapper.physicalDeleteByPackageId(SystemTenantConstants.PLATFORM_TENANT_ID, id);
-        sysTenantPackageMapper.deleteById(id);
+        entity.setDeleted(1);
+        sysTenantPackageMapper.updateById(entity);
     }
 
     /**
@@ -147,7 +148,10 @@ public class TenantPackageService {
         List<Long> distinctMenuIds = normalizeMenuIds(menuIds);
         log.info("替换租户套餐菜单绑定，packageId={}，menuIds={}", packageId, distinctMenuIds);
         distinctMenuIds.forEach(this::requireMenu);
-        sysTenantPackageMenuMapper.physicalDeleteByPackageId(SystemTenantConstants.PLATFORM_TENANT_ID, packageId);
+        sysTenantPackageMenuMapper.update(null, new LambdaUpdateWrapper<SysTenantPackageMenuEntity>()
+            .eq(SysTenantPackageMenuEntity::getTenantId, SystemTenantConstants.PLATFORM_TENANT_ID)
+            .eq(SysTenantPackageMenuEntity::getPackageId, packageId)
+            .set(SysTenantPackageMenuEntity::getDeleted, 1));
         if (distinctMenuIds.isEmpty()) {
             return;
         }

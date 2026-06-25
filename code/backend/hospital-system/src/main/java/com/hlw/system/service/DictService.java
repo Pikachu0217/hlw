@@ -135,7 +135,8 @@ public class DictService {
         log.info("删除字典数据，id={}", id);
         SysDictDataEntity entity = requireDictData(id);
         SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "字典数据");
-        sysDictDataMapper.deleteById(id);
+        entity.setDeleted(1);
+        sysDictDataMapper.updateById(entity);
     }
 
     /**

@@ -112,7 +112,8 @@ public class PostService {
         log.info("删除岗位，id={}", id);
         SysPostEntity entity = requirePost(id);
         SystemDefaultDataGuard.ensureCanDelete(entity.getIsDefault(), "岗位");
-        sysPostMapper.deleteById(id);
+        entity.setDeleted(1);
+        sysPostMapper.updateById(entity);
     }
 
     /**

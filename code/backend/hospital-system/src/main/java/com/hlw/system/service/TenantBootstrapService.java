@@ -1,6 +1,7 @@
 package com.hlw.system.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.plugins.InterceptorIgnoreHelper;
 import com.hlw.common.core.enums.HttpStatusEnum;
 import com.hlw.common.core.exception.BizException;
@@ -236,8 +237,12 @@ public class TenantBootstrapService {
      */
     private void clearTenantPackageBindings(String tenantId) {
         ignoreTenantLine(() -> {
-            int roleMenuCount = sysRoleMenuMapper.physicalDeleteByTenantId(tenantId);
-            int menuCount = sysMenuMapper.physicalDeleteByTenantId(tenantId);
+            int roleMenuCount = sysRoleMenuMapper.update(null, new LambdaUpdateWrapper<SysRoleMenuEntity>()
+            .eq(SysRoleMenuEntity::getTenantId, tenantId)
+            .set(SysRoleMenuEntity::getDeleted, 1));
+            int menuCount = sysMenuMapper.update(null, new LambdaUpdateWrapper<SysMenuEntity>()
+            .eq(SysMenuEntity::getTenantId, tenantId)
+            .set(SysMenuEntity::getDeleted, 1));
             log.info("清理租户菜单和角色菜单绑定，tenantId={}，roleMenuCount={}，menuCount={}", tenantId, roleMenuCount, menuCount);
             return null;
         });
@@ -748,7 +753,10 @@ public class TenantBootstrapService {
         List<Long> distinctMenuIds = menuIds.stream().filter(Objects::nonNull).distinct().toList();
         log.info("初始化绑定角色菜单，tenantId={}，roleId={}，menuIds={}", tenantId, roleId, distinctMenuIds);
         ignoreTenantLine(() -> {
-            sysRoleMenuMapper.physicalDeleteByRoleId(tenantId, roleId);
+            sysRoleMenuMapper.update(null, new LambdaUpdateWrapper<SysRoleMenuEntity>()
+            .eq(SysRoleMenuEntity::getTenantId, tenantId)
+            .eq(SysRoleMenuEntity::getRoleId, roleId)
+            .set(SysRoleMenuEntity::getDeleted, 1));
             for (Long menuId : distinctMenuIds) {
                 SysRoleMenuEntity relation = new SysRoleMenuEntity();
                 relation.setTenantId(tenantId);
@@ -772,7 +780,10 @@ public class TenantBootstrapService {
     private void bindUserRole(String tenantId, String userId, Long roleId) {
         log.info("初始化绑定管理员角色，tenantId={}，userId={}，roleId={}", tenantId, userId, roleId);
         ignoreTenantLine(() -> {
-            sysUserRoleMapper.physicalDeleteByUserId(tenantId, userId);
+            sysUserRoleMapper.update(null, new LambdaUpdateWrapper<SysUserRoleEntity>()
+            .eq(SysUserRoleEntity::getTenantId, tenantId)
+            .eq(SysUserRoleEntity::getUserId, userId)
+            .set(SysUserRoleEntity::getDeleted, 1));
             SysUserRoleEntity relation = new SysUserRoleEntity();
             relation.setTenantId(tenantId);
             relation.setUserId(userId);

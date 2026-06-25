@@ -126,8 +126,9 @@ public class RouteConfigService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteRoute(Long routeId) {
         log.info("删除网关路由配置，routeId={}", routeId);
-        requireActiveRoute(routeId);
-        ignoreTenantLine(() -> gwRouteConfigMapper.deleteById(routeId));
+        GwRouteConfigEntity entity = requireActiveRoute(routeId);
+        entity.setDeleted(1);
+        ignoreTenantLine(() -> gwRouteConfigMapper.updateById(entity));
     }
 
     /**
