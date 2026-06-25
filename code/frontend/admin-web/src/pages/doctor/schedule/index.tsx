@@ -30,6 +30,7 @@ function SchedulePage() {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ScheduleRecord | null>(null);
+  const [filteredDeptOptions, setFilteredDeptOptions] = useState<{ label: string; value: number }[]>([]);
 
   useEffect(() => {
     void Promise.all([
@@ -43,8 +44,27 @@ function SchedulePage() {
     if (!modalOpen) {
       setEditingRecord(null);
       form.resetFields();
+      setFilteredDeptOptions([]);
     }
   }, [modalOpen]);
+
+  /** 选中医生时联动过滤其关联科室。 */
+  function handleDoctorChange(doctorId: number): void {
+    const doctor = doctors.find((d) => (d.doctorId ?? d.id) === doctorId);
+    if (doctor?.department) {
+      // 按医生所属科室名称匹配过滤科室列表
+      const matched = departments.filter((d) => d.name === doctor.department);
+      setFilteredDeptOptions(matched.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
+      // 如果当前选中的科室不在过滤结果中，清空
+      const currentDeptId = form.getFieldValue('deptId');
+      if (currentDeptId && !matched.some((d) => (d.deptId ?? d.id) === currentDeptId)) {
+        form.setFieldValue('deptId', undefined);
+      }
+    } else {
+      // 医生无科室信息时展示全部科室
+      setFilteredDeptOptions(departments.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
+    }
+  }
 
   async function loadSchedules(params?: ScheduleQueryParams): Promise<void> {
     setLoading(true);
@@ -96,6 +116,14 @@ function SchedulePage() {
       timeSlot: record.timeSlot,
       totalNumber: record.totalNumber,
     });
+    // 编辑时联动过滤科室
+    const doctor = doctors.find((d) => (d.doctorId ?? d.id) === record.doctorId);
+    if (doctor?.department) {
+      const matched = departments.filter((d) => d.name === doctor.department);
+      setFilteredDeptOptions(matched.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
+    } else {
+      setFilteredDeptOptions(departments.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
+    }
     setModalOpen(true);
   }
 
@@ -242,6 +270,7 @@ function SchedulePage() {
                   placeholder="选择医生"
                   showSearch
                   optionFilterProp="label"
+                  onChange={handleDoctorChange}
                   options={doctors.map((d) => ({ label: d.name, value: d.doctorId ?? d.id }))}
                 />
               </Form.Item>
@@ -252,7 +281,8 @@ function SchedulePage() {
                   placeholder="选择科室"
                   showSearch
                   optionFilterProp="label"
-                  options={departments.map((d) => ({ label: d.name, value: d.deptId ?? d.id }))}
+                  options={filteredDeptOptions}
+                  notFoundContent={filteredDeptOptions.length === 0 ? '请先选择医生' : '无匹配科室'}
                 />
               </Form.Item>
             </Col>
