@@ -70,6 +70,15 @@ function SchedulePage() {
   const [editingRecord, setEditingRecord] = useState<ScheduleRecord | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const scheduleDateOptions = useMemo(() => buildScheduleDateOptions(), []);
+  const selectedScheduleDate = Form.useWatch('scheduleDate', form);
+  const scheduleTimeSlotOptions = useMemo(() => {
+    if (!selectedScheduleDate) return SCHEDULE_TIME_SLOT_OPTIONS;
+    const today = formatDateValue(new Date());
+    if (selectedScheduleDate !== today) return SCHEDULE_TIME_SLOT_OPTIONS;
+    const now = new Date();
+    const currentSlotStart = now.getHours() * 60 + Math.floor(now.getMinutes() / 30) * 30;
+    return SCHEDULE_TIME_SLOT_OPTIONS.filter((option) => parseScheduleSlotStart(option.value) >= currentSlotStart);
+  }, [selectedScheduleDate]);
 
   useEffect(() => {
     void Promise.all([
@@ -141,16 +150,6 @@ function SchedulePage() {
   /** 打开编辑弹窗。 */
   function handleOpenEdit(record: ScheduleRecord): void {
     setEditingRecord(record);
-    // 查找对应的 bindingKey
-    const binding = doctorDepartmentBindings.find((b) => b.doctorId === record.doctorId && b.deptId === record.deptId);
-    const defaultDate = scheduleDateOptions[0]?.value ?? record.scheduleDate;
-    form.setFieldsValue({
-      doctorId: record.doctorId,
-      bindingKey: binding ? `${binding.doctorId}:${binding.deptId}` : `${record.doctorId}:${record.deptId}`,
-      scheduleDate: record.scheduleDate || defaultDate,
-      timeSlot: record.timeSlot,
-      totalNumber: record.totalNumber,
-    });
     // 联动过滤 binding 选项
     const doctorBindings = doctorDepartmentBindings.filter((b) => b.doctorId === record.doctorId);
     setFilteredBindingOptions(
@@ -158,6 +157,23 @@ function SchedulePage() {
     );
     setModalOpen(true);
   }
+
+  // 编辑弹窗打开后回填表单
+  useEffect(() => {
+    if (modalOpen && editingRecord) {
+      const binding = doctorDepartmentBindings.find(
+        (b) => b.doctorId === editingRecord.doctorId && b.deptId === editingRecord.deptId,
+      );
+      const defaultDate = scheduleDateOptions[0]?.value ?? editingRecord.scheduleDate;
+      form.setFieldsValue({
+        doctorId: editingRecord.doctorId,
+        bindingKey: binding ? `${binding.doctorId}:${binding.deptId}` : `${editingRecord.doctorId}:${editingRecord.deptId}`,
+        scheduleDate: editingRecord.scheduleDate || defaultDate,
+        timeSlot: editingRecord.timeSlot,
+        totalNumber: editingRecord.totalNumber,
+      });
+    }
+  }, [modalOpen]);
 
   /** 提交新增或更新。 */
   async function handleSubmit(): Promise<void> {
@@ -212,20 +228,9 @@ function SchedulePage() {
 
   /** 排班日期变化时联动更新时间段。 */
   function handleScheduleDateChange(): void {
-    const selectedDate = form.getFieldValue('scheduleDate');
-    if (selectedDate) {
-      const today = formatDateValue(new Date());
-      const slots = selectedDate !== today
-        ? SCHEDULE_TIME_SLOT_OPTIONS
-        : SCHEDULE_TIME_SLOT_OPTIONS.filter((option) => {
-            const now = new Date();
-            const currentSlotStart = now.getHours() * 60 + Math.floor(now.getMinutes() / 30) * 30;
-            return parseScheduleSlotStart(option.value) >= currentSlotStart;
-          });
-      const firstSlot = slots[0]?.value;
-      if (firstSlot) {
-        form.setFieldValue('timeSlot', firstSlot);
-      }
+    const firstSlot = scheduleTimeSlotOptions[0]?.value;
+    if (firstSlot) {
+      form.setFieldValue('timeSlot', firstSlot);
     }
   }
 
@@ -349,7 +354,7 @@ function SchedulePage() {
             <Select placeholder="请选择排班日期" options={scheduleDateOptions} onChange={handleScheduleDateChange} />
           </Form.Item>
           <Form.Item name="timeSlot" label="时间段" rules={[{ required: true, message: '请选择时间段' }]}>
-            <Select placeholder="请选择时间段" />
+            <Select placeholder="请选择时间段" options={scheduleTimeSlotOptions} />
           </Form.Item>
           <Form.Item name="totalNumber" label="总号源数量" rules={[{ required: true, message: '请输入总号源数量' }]}>
             <InputNumber min={1} max={999} style={{ width: '100%' }} placeholder="输入总号源数量" />
