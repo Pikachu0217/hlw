@@ -51,9 +51,10 @@ function SchedulePage() {
   /** 选中医生时联动过滤其关联科室。 */
   function handleDoctorChange(doctorId: number): void {
     const doctor = doctors.find((d) => (d.doctorId ?? d.id) === doctorId);
-    if (doctor?.department) {
-      // 按医生所属科室名称匹配过滤科室列表
-      const matched = departments.filter((d) => d.name === doctor.department);
+    const deptIds = doctor?.deptIds;
+    if (deptIds && deptIds.length > 0) {
+      // 按医生关联的科室编号过滤
+      const matched = departments.filter((d) => deptIds.includes(d.deptId ?? d.id));
       setFilteredDeptOptions(matched.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
       // 如果当前选中的科室不在过滤结果中，清空
       const currentDeptId = form.getFieldValue('deptId');
@@ -61,7 +62,7 @@ function SchedulePage() {
         form.setFieldValue('deptId', undefined);
       }
     } else {
-      // 医生无科室信息时展示全部科室
+      // 医生无科室绑定信息时展示全部科室
       setFilteredDeptOptions(departments.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
     }
   }
@@ -118,8 +119,9 @@ function SchedulePage() {
     });
     // 编辑时联动过滤科室
     const doctor = doctors.find((d) => (d.doctorId ?? d.id) === record.doctorId);
-    if (doctor?.department) {
-      const matched = departments.filter((d) => d.name === doctor.department);
+    const deptIds = doctor?.deptIds;
+    if (deptIds && deptIds.length > 0) {
+      const matched = departments.filter((d) => deptIds.includes(d.deptId ?? d.id));
       setFilteredDeptOptions(matched.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));
     } else {
       setFilteredDeptOptions(departments.map((d) => ({ label: d.name, value: d.deptId ?? d.id })));

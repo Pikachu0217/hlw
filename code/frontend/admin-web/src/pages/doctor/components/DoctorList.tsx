@@ -10,6 +10,7 @@ export interface DoctorRecord {
   name: string;
   title: string;
   department: string;
+  deptIds?: number[];
   specialty: string;
   status: string;
   consultStatus: string;

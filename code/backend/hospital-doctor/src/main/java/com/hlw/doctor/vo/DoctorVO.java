@@ -3,6 +3,8 @@ package com.hlw.doctor.vo;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 /**
  * 医生展示对象。
  */
@@ -19,8 +21,10 @@ public class DoctorVO {
     private String name;
     /** 医生职称。 */
     private String title;
-    /** 所属科室。 */
+    /** 所属科室名称。 */
     private String department;
+    /** 关联科室编号列表。 */
+    private List<Long> deptIds;
     /** 擅长方向。 */
     private String specialty;
     /** 展示状态。 */

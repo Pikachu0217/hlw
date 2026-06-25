@@ -1007,6 +1007,7 @@ public class DoctorTenantContextService {
         vo.setName(extension == null ? user.getRealName() : resolveDoctorName(extension));
         vo.setTitle(extension == null ? "医师" : extension.getTitle());
         vo.setDepartment(extension == null ? defaultIfBlank(user.getDeptName(), "") : extension.getDepartment());
+        vo.setDeptIds(resolveDoctorDeptIds(extension));
         vo.setSpecialty(extension == null ? DEFAULT_SPECIALTY : extension.getSpecialty());
         vo.setStatus(extension == null ? DEFAULT_DOCTOR_STATUS : extension.getStatus());
         vo.setConsultStatus(extension == null ? DEFAULT_CONSULT_STATUS : extension.getConsultStatus());
@@ -1015,6 +1016,26 @@ public class DoctorTenantContextService {
         vo.setConsultFee(extension == null ? "0" : defaultDecimal(extension.getConsultFee(), BigDecimal.ZERO).stripTrailingZeros().toPlainString());
         vo.setConfigured(extension != null);
         return vo;
+    }
+
+    /**
+     * 解析医生关联的科室编号列表。
+     *
+     * @param extension 医生扩展信息
+     * @return 科室编号列表
+     */
+    private List<Long> resolveDoctorDeptIds(DocDoctorEntity extension) {
+        if (extension == null || extension.getId() == null) {
+            return List.of();
+        }
+        return docDoctorDepartmentMapper.selectList(new LambdaQueryWrapper<DocDoctorDepartmentEntity>()
+                .eq(DocDoctorDepartmentEntity::getDoctorId, extension.getId())
+                .eq(DocDoctorDepartmentEntity::getDeleted, 0))
+            .stream()
+            .map(DocDoctorDepartmentEntity::getDeptId)
+            .filter(Objects::nonNull)
+            .distinct()
+            .toList();
     }
 
     /**
