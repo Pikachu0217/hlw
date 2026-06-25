@@ -70,7 +70,7 @@ function SchedulePage() {
   const [editingRecord, setEditingRecord] = useState<ScheduleRecord | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const scheduleDateOptions = useMemo(() => buildScheduleDateOptions(), []);
-  const selectedScheduleDate = Form.useWatch('scheduleDate', form);
+  const [selectedScheduleDate, setSelectedScheduleDate] = useState<string>();
   const scheduleTimeSlotOptions = useMemo(() => {
     if (!selectedScheduleDate) return SCHEDULE_TIME_SLOT_OPTIONS;
     const today = formatDateValue(new Date());
@@ -227,7 +227,8 @@ function SchedulePage() {
   }
 
   /** 排班日期变化时联动更新时间段。 */
-  function handleScheduleDateChange(): void {
+  function handleScheduleDateChange(value: string): void {
+    setSelectedScheduleDate(value);
     const firstSlot = scheduleTimeSlotOptions[0]?.value;
     if (firstSlot) {
       form.setFieldValue('timeSlot', firstSlot);
