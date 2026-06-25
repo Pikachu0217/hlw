@@ -1,5 +1,8 @@
 package com.hlw.consult.ws;
 
+import com.hlw.common.core.exception.BizException;
+import com.hlw.common.core.security.TokenPrincipal;
+import com.hlw.common.core.tenant.TokenPrincipalContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
@@ -60,8 +63,14 @@ public class ConsultWebSocketEndpoint extends TextWebSocketHandler {
         Long consultId = sessionLongAttribute(session, CONSULT_ID_ATTRIBUTE);
         Long senderId = sessionLongAttribute(session, SENDER_ID_ATTRIBUTE);
         String senderType = String.valueOf(session.getAttributes().get(SENDER_TYPE_ATTRIBUTE));
-        String broadcast = messageHandler.handle(consultId, senderId, senderType, message.getPayload());
-        broadcast(consultId, broadcast);
+        TokenPrincipal principal = sessionPrincipalAttribute(session);
+        TokenPrincipalContext.set(principal);
+        try {
+            String broadcast = messageHandler.handle(consultId, senderId, senderType, message.getPayload());
+            broadcast(consultId, broadcast);
+        } finally {
+            TokenPrincipalContext.clear();
+        }
     }
 
     /**
@@ -122,5 +131,20 @@ public class ConsultWebSocketEndpoint extends TextWebSocketHandler {
     private Long sessionLongAttribute(WebSocketSession session, String attributeName) {
         Object value = session.getAttributes().get(attributeName);
         return value instanceof Long ? (Long) value : Long.valueOf(String.valueOf(value));
+    }
+
+    /**
+     * 读取会话登录主体属性。
+     *
+     * @param session WebSocket 会话
+     * @return 登录主体
+     */
+    private TokenPrincipal sessionPrincipalAttribute(WebSocketSession session) {
+        Object value = session.getAttributes().get(ConsultWebSocketHandshakeInterceptor.PRINCIPAL_ATTRIBUTE);
+        if (value instanceof TokenPrincipal principal) {
+            return principal;
+        }
+        log.warn("问诊 WebSocket 会话上下文缺失，sessionId={}", session.getId());
+        throw new BizException(403, "问诊 WebSocket 会话上下文已失效");
     }
 }

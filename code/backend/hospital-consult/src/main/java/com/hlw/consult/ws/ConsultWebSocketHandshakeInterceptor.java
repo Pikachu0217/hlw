@@ -21,7 +21,7 @@ import java.net.URI;
 import java.util.Map;
 
 /**
- * 问诊 WebSocket 握手鉴权拦截器。
+ * 问诊 WebSocket 握手上下文拦截器。
  */
 @Component
 @Slf4j
@@ -29,12 +29,14 @@ public class ConsultWebSocketHandshakeInterceptor implements HandshakeIntercepto
     private static final String CONSULT_ID_ATTRIBUTE = "consultId";
     private static final String SENDER_ID_ATTRIBUTE = "senderId";
     private static final String SENDER_TYPE_ATTRIBUTE = "senderType";
+    /** 登录主体会话属性。 */
+    public static final String PRINCIPAL_ATTRIBUTE = "principal";
 
     /** JWT 签名密钥。 */
     private final String jwtSecret;
     /** 公共认证令牌配置属性。 */
     private final AuthTokenProperties authTokenProperties;
-    /** 问诊参与人鉴权服务。 */
+    /** 问诊参与人校验服务。 */
     private final ConsultWebSocketPermissionService permissionService;
 
     /**
@@ -55,7 +57,7 @@ public class ConsultWebSocketHandshakeInterceptor implements HandshakeIntercepto
     }
 
     /**
-     * 握手前解析登录用户并校验咨询参与权限。
+     * 握手前解析用户上下文并校验咨询参与权限。
      *
      * @param request 握手请求
      * @param response 握手响应
@@ -82,6 +84,7 @@ public class ConsultWebSocketHandshakeInterceptor implements HandshakeIntercepto
         attributes.put(CONSULT_ID_ATTRIBUTE, consultId);
         attributes.put(SENDER_ID_ATTRIBUTE, participant.senderId());
         attributes.put(SENDER_TYPE_ATTRIBUTE, participant.senderType());
+        attributes.put(PRINCIPAL_ATTRIBUTE, principal);
         log.info("问诊 WebSocket 握手通过，consultId={}，senderId={}，senderType={}", consultId, participant.senderId(), participant.senderType());
         return true;
     }
@@ -130,10 +133,11 @@ public class ConsultWebSocketHandshakeInterceptor implements HandshakeIntercepto
         if (token == null || token.isBlank()) {
             token = UriComponentsBuilder.fromUri(request.getURI()).build().getQueryParams().getFirst("token");
         }
-        TokenPrincipal principal = JwtPrincipalResolver.resolveNullable(token, jwtSecret);
-        if (principal == null || principal.getTenantId() == null || principal.getBusinessUserId() == null || principal.getBusinessUserId().isBlank()) {
-            log.warn("问诊 WebSocket 鉴权失败，令牌无效");
-            throw new BizException(401, "登录令牌无效");
+        TokenPrincipal tokenPrincipal = JwtPrincipalResolver.resolveNullable(token, jwtSecret);
+        TokenPrincipal principal = buildPrincipal(headers, tokenPrincipal);
+        if (principal.getTenantId() == null || principal.getTenantId() < 0L || principal.getBusinessUserId() == null || principal.getBusinessUserId().isBlank()) {
+            log.warn("问诊 WebSocket 上下文缺失，tenantId={}，businessUserId={}", principal.getTenantId(), principal.getBusinessUserId());
+            throw new BizException(403, "问诊 WebSocket 缺少有效用户上下文");
         }
         if (Boolean.TRUE.equals(principal.getPlatformRequest())) {
             throw new BizException(403, "平台租户不允许连接问诊 WebSocket");
@@ -142,5 +146,117 @@ public class ConsultWebSocketHandshakeInterceptor implements HandshakeIntercepto
             principal.setUserType(ConsultParticipantType.PATIENT);
         }
         return principal;
+    }
+
+    /**
+     * 构造 WebSocket 握手用户上下文。
+     *
+     * @param headers 握手请求头
+     * @param tokenPrincipal JWT 登录主体
+     * @return 用户上下文
+     */
+    private TokenPrincipal buildPrincipal(HttpHeaders headers, TokenPrincipal tokenPrincipal) {
+        Long headerTenantId = resolveLongHeader(headers, authTokenProperties.getTenantHeaderName());
+        Long tokenTenantId = tokenPrincipal == null ? null : tokenPrincipal.getTenantId();
+        boolean tenantMatched = !isTenantMismatch(headerTenantId, tokenTenantId);
+
+        TokenPrincipal principal = new TokenPrincipal();
+        principal.setTenantId(headerTenantId != null ? headerTenantId : tokenTenantId);
+        principal.setUserId(resolveUserId(headers, tokenPrincipal, tenantMatched));
+        principal.setBusinessUserId(resolveBusinessUserId(headers, tokenPrincipal, tenantMatched));
+        principal.setUserType(resolveUserType(headers, tokenPrincipal, tenantMatched));
+        principal.setPlatformRequest(com.hlw.common.core.constants.CommonConstants.isPlatformTenant(principal.getTenantId()));
+        if (isTenantMismatch(headerTenantId, tokenTenantId)) {
+            log.warn("问诊 WebSocket 租户请求头与 JWT 租户不一致，按请求头租户构建上下文，headerTenantId={}，tokenTenantId={}",
+                    headerTenantId, tokenTenantId);
+        }
+        return principal;
+    }
+
+    /**
+     * 解析系统用户编号。
+     *
+     * @param headers 握手请求头
+     * @param tokenPrincipal JWT 登录主体
+     * @param tenantMatched 租户是否匹配
+     * @return 系统用户编号
+     */
+    private Long resolveUserId(HttpHeaders headers, TokenPrincipal tokenPrincipal, boolean tenantMatched) {
+        Long headerUserId = resolveLongHeader(headers, authTokenProperties.getUserHeaderName());
+        Long tokenUserId = tokenPrincipal == null || !tenantMatched ? null : tokenPrincipal.getUserId();
+        return tokenUserId != null ? tokenUserId : headerUserId;
+    }
+
+    /**
+     * 解析业务用户编号。
+     *
+     * @param headers 握手请求头
+     * @param tokenPrincipal JWT 登录主体
+     * @param tenantMatched 租户是否匹配
+     * @return 业务用户编号
+     */
+    private String resolveBusinessUserId(HttpHeaders headers, TokenPrincipal tokenPrincipal, boolean tenantMatched) {
+        String headerBusinessUserId = resolveStringHeader(headers, authTokenProperties.getBusinessUserHeaderName());
+        String tokenBusinessUserId = tokenPrincipal == null || !tenantMatched ? null : tokenPrincipal.getBusinessUserId();
+        return tokenBusinessUserId != null && !tokenBusinessUserId.isBlank() ? tokenBusinessUserId : headerBusinessUserId;
+    }
+
+    /**
+     * 解析用户类型。
+     *
+     * @param headers 握手请求头
+     * @param tokenPrincipal JWT 登录主体
+     * @param tenantMatched 租户是否匹配
+     * @return 用户类型
+     */
+    private String resolveUserType(HttpHeaders headers, TokenPrincipal tokenPrincipal, boolean tenantMatched) {
+        String headerUserType = resolveStringHeader(headers, authTokenProperties.getUserTypeHeaderName());
+        String tokenUserType = tokenPrincipal == null || !tenantMatched ? null : tokenPrincipal.getUserType();
+        return tokenUserType != null && !tokenUserType.isBlank() ? tokenUserType : headerUserType;
+    }
+
+    /**
+     * 解析 Long 类型请求头。
+     *
+     * @param headers 握手请求头
+     * @param headerName 请求头名称
+     * @return Long 类型请求头值，缺失或格式错误时返回 null
+     */
+    private Long resolveLongHeader(HttpHeaders headers, String headerName) {
+        String headerValue = resolveStringHeader(headers, headerName);
+        if (headerValue == null) {
+            return null;
+        }
+        try {
+            return Long.parseLong(headerValue);
+        } catch (NumberFormatException exception) {
+            log.warn("问诊 WebSocket 请求头格式错误，headerName={}，headerValue={}", headerName, headerValue);
+            return null;
+        }
+    }
+
+    /**
+     * 解析字符串请求头。
+     *
+     * @param headers 握手请求头
+     * @param headerName 请求头名称
+     * @return 字符串请求头值，缺失时返回 null
+     */
+    private String resolveStringHeader(HttpHeaders headers, String headerName) {
+        String headerValue = headerName == null || headerName.isBlank() ? null : headers.getFirst(headerName);
+        return headerValue == null || headerValue.isBlank() ? null : headerValue.trim();
+    }
+
+    /**
+     * 判断请求头租户和令牌租户是否冲突。
+     *
+     * @param headerTenantId 请求头租户编号
+     * @param tokenTenantId 令牌租户编号
+     * @return 是否冲突
+     */
+    private boolean isTenantMismatch(Long headerTenantId, Long tokenTenantId) {
+        return headerTenantId != null
+                && tokenTenantId != null
+                && !headerTenantId.equals(tokenTenantId);
     }
 }

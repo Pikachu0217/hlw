@@ -21,7 +21,7 @@ import java.io.IOException;
 
 /**
  * 租户上下文过滤器，从 JWT 令牌或请求头解析租户上下文并写入线程变量。
- * 所有业务模块共用此过滤器。
+ * <p>鉴权统一由网关负责，业务模块仅在请求处理期间组装租户和用户上下文。</p>
  */
 @Component
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
@@ -46,7 +46,7 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 解析请求中的 JWT 或租户头，并在过滤链执行期间设置租户上下文。
+     * 解析请求中的 JWT、租户头或直连用户头，并在过滤链执行期间设置上下文。
      *
      * @param request     当前 HTTP 请求
      * @param response    当前 HTTP 响应
@@ -65,7 +65,7 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
                 request.getHeader(authTokenProperties.getTokenName()),
                 authTokenProperties.getTokenPrefix()
         );
-        TokenPrincipal principal = resolvePrincipal(tenantHeader, token);
+        TokenPrincipal principal = resolvePrincipal(request, tenantHeader, token);
         TokenPrincipalContext.set(principal);
         try {
             filterChain.doFilter(request, response);
@@ -77,21 +77,18 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
     /**
      * 解析当前请求登录主体。
      *
+     * @param request 当前 HTTP 请求
      * @param tenantHeader 网关透传的可信租户请求头
      * @param token 已剥离前缀的 JWT 令牌
      * @return 登录主体
      */
-    private TokenPrincipal resolvePrincipal(String tenantHeader, String token) {
+    private TokenPrincipal resolvePrincipal(HttpServletRequest request, String tenantHeader, String token) {
         TokenPrincipal tokenPrincipal = JwtPrincipalResolver.resolveNullable(token, jwtSecret);
         Long tokenTenantId = tokenPrincipal == null ? null : tokenPrincipal.getTenantId();
         Long headerTenantId = resolveTenantHeader(tenantHeader);
         TokenPrincipal principal = new TokenPrincipal();
         principal.setTenantId(resolveEffectiveTenantId(headerTenantId, tokenTenantId));
-        if (!isTenantMismatch(headerTenantId, tokenTenantId)) {
-            principal.setUserId(tokenPrincipal == null ? null : tokenPrincipal.getUserId());
-            principal.setBusinessUserId(tokenPrincipal == null ? null : tokenPrincipal.getBusinessUserId());
-            principal.setUserType(tokenPrincipal == null ? null : tokenPrincipal.getUserType());
-        }
+        fillUserPrincipal(request, principal, tokenPrincipal, headerTenantId, tokenTenantId);
         principal.setPlatformRequest(CommonConstants.isPlatformTenant(principal.getTenantId()));
         return principal;
     }
@@ -107,7 +104,8 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
             return null;
         }
         try {
-            return Long.parseLong(tenantHeader.trim());
+            long tenantId = Long.parseLong(tenantHeader.trim());
+            return tenantId >= CommonConstants.PLATFORM_TENANT_ID ? tenantId : CommonConstants.ISOLATED_TENANT_ID;
         } catch (NumberFormatException exception) {
             log.warn("解析租户请求头失败，tenantHeader={}", tenantHeader);
             return CommonConstants.ISOLATED_TENANT_ID;
@@ -115,7 +113,7 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
     }
 
     /**
-     * 解析最终生效租户编号。
+     * 解析最终生效租户编号，子模块直连时以请求头租户为准。
      *
      * @param headerTenantId 请求头租户编号
      * @param tokenTenantId 令牌租户编号
@@ -123,12 +121,8 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
      */
     private Long resolveEffectiveTenantId(Long headerTenantId, Long tokenTenantId) {
         if (isTenantMismatch(headerTenantId, tokenTenantId)) {
-            log.warn("租户请求头与 JWT 租户不一致，headerTenantId={}，tokenTenantId={}", headerTenantId, tokenTenantId);
-            return CommonConstants.ISOLATED_TENANT_ID;
-        }
-        if (CommonConstants.PLATFORM_TENANT_ID.equals(headerTenantId) && tokenTenantId == null) {
-            log.warn("拒绝无令牌的平台租户请求头，headerTenantId={}", headerTenantId);
-            return CommonConstants.ISOLATED_TENANT_ID;
+            log.warn("租户请求头与 JWT 租户不一致，按请求头租户构建上下文，headerTenantId={}，tokenTenantId={}",
+                    headerTenantId, tokenTenantId);
         }
         if (headerTenantId != null) {
             return headerTenantId;
@@ -150,5 +144,103 @@ public class JwtTenantContextFilter extends OncePerRequestFilter {
         return headerTenantId != null
                 && tokenTenantId != null
                 && !headerTenantId.equals(tokenTenantId);
+    }
+
+    /**
+     * 填充当前请求用户上下文。
+     * <p>有效 JWT 用户声明优先；没有可用 JWT 用户声明时，才使用直连用户头。</p>
+     *
+     * @param request 当前 HTTP 请求
+     * @param principal 当前请求登录主体
+     * @param tokenPrincipal JWT 登录主体
+     * @param headerTenantId 请求头租户编号
+     * @param tokenTenantId 令牌租户编号
+     */
+    private void fillUserPrincipal(
+            HttpServletRequest request,
+            TokenPrincipal principal,
+            TokenPrincipal tokenPrincipal,
+            Long headerTenantId,
+            Long tokenTenantId
+    ) {
+        Long headerUserId = resolveLongHeader(request, authTokenProperties.getUserHeaderName());
+        String headerBusinessUserId = resolveStringHeader(request, authTokenProperties.getBusinessUserHeaderName());
+        String headerUserType = resolveStringHeader(request, authTokenProperties.getUserTypeHeaderName());
+
+        boolean tenantMatched = !isTenantMismatch(headerTenantId, tokenTenantId);
+        Long tokenUserId = resolveTokenUserId(tokenPrincipal, tenantMatched);
+        String tokenBusinessUserId = resolveTokenBusinessUserId(tokenPrincipal, tenantMatched);
+        String tokenUserType = resolveTokenUserType(tokenPrincipal, tenantMatched);
+        principal.setUserId(tokenUserId != null ? tokenUserId : headerUserId);
+        principal.setBusinessUserId(StringUtils.hasText(tokenBusinessUserId) ? tokenBusinessUserId : headerBusinessUserId);
+        principal.setUserType(StringUtils.hasText(tokenUserType) ? tokenUserType : headerUserType);
+    }
+
+    /**
+     * 解析 Long 类型请求头。
+     *
+     * @param request 当前 HTTP 请求
+     * @param headerName 请求头名称
+     * @return Long 类型请求头值，缺失或格式错误时返回 null
+     */
+    private Long resolveLongHeader(HttpServletRequest request, String headerName) {
+        String headerValue = resolveStringHeader(request, headerName);
+        if (!StringUtils.hasText(headerValue)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(headerValue);
+        } catch (NumberFormatException exception) {
+            log.warn("解析 Long 类型请求头失败，headerName={}，headerValue={}", headerName, headerValue);
+            return null;
+        }
+    }
+
+    /**
+     * 解析字符串请求头。
+     *
+     * @param request 当前 HTTP 请求
+     * @param headerName 请求头名称
+     * @return 字符串请求头值，缺失时返回 null
+     */
+    private String resolveStringHeader(HttpServletRequest request, String headerName) {
+        if (!StringUtils.hasText(headerName)) {
+            return null;
+        }
+        String headerValue = request.getHeader(headerName);
+        return StringUtils.hasText(headerValue) ? headerValue.trim() : null;
+    }
+
+    /**
+     * 解析 JWT 中的系统用户编号。
+     *
+     * @param tokenPrincipal JWT 登录主体
+     * @param tenantMatched 租户是否匹配
+     * @return 系统用户编号
+     */
+    private Long resolveTokenUserId(TokenPrincipal tokenPrincipal, boolean tenantMatched) {
+        return tokenPrincipal != null && tenantMatched ? tokenPrincipal.getUserId() : null;
+    }
+
+    /**
+     * 解析 JWT 中的业务用户编号。
+     *
+     * @param tokenPrincipal JWT 登录主体
+     * @param tenantMatched 租户是否匹配
+     * @return 业务用户编号
+     */
+    private String resolveTokenBusinessUserId(TokenPrincipal tokenPrincipal, boolean tenantMatched) {
+        return tokenPrincipal != null && tenantMatched ? tokenPrincipal.getBusinessUserId() : null;
+    }
+
+    /**
+     * 解析 JWT 中的用户类型。
+     *
+     * @param tokenPrincipal JWT 登录主体
+     * @param tenantMatched 租户是否匹配
+     * @return 用户类型
+     */
+    private String resolveTokenUserType(TokenPrincipal tokenPrincipal, boolean tenantMatched) {
+        return tokenPrincipal != null && tenantMatched ? tokenPrincipal.getUserType() : null;
     }
 }

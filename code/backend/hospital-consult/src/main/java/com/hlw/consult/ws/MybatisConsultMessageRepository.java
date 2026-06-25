@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -35,7 +36,9 @@ public class MybatisConsultMessageRepository implements ConsultMessageRepository
         if (message.content() == null || message.content().isBlank()) {
             throw new BizException(400, "消息内容不能为空");
         }
-        String contentType = message.contentType() == null || message.contentType().isBlank() ? ConsultMessageType.TEXT : message.contentType();
+        String contentType = message.contentType() == null || message.contentType().isBlank()
+            ? ConsultMessageType.TEXT
+            : message.contentType().trim().toUpperCase(Locale.ROOT);
         if (!ConsultMessageType.isSendable(contentType)) {
             throw new BizException(400, "消息类型不支持");
         }

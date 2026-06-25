@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -61,6 +62,7 @@ public class ConsultMessageHandler {
         if (contentType == null || contentType.isBlank()) {
             contentType = ConsultMessageType.TEXT;
         }
+        contentType = contentType.trim().toUpperCase(Locale.ROOT);
         if (!ConsultMessageType.isSendable(contentType)) {
             throw new BizException(400, "消息类型不支持");
         }

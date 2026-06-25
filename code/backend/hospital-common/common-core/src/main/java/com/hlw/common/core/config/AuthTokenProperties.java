@@ -28,4 +28,19 @@ public class AuthTokenProperties {
      */
     private String tenantHeaderName;
 
+    /**
+     * 子模块直连时可选透传的系统用户编号请求头名称。
+     */
+    private String userHeaderName = "X-User-Id";
+
+    /**
+     * 子模块直连时可选透传的业务用户编号请求头名称。
+     */
+    private String businessUserHeaderName = "X-Business-User-Id";
+
+    /**
+     * 子模块直连时可选透传的用户类型请求头名称。
+     */
+    private String userTypeHeaderName = "X-User-Type";
+
 }

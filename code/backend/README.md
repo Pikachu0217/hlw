@@ -159,7 +159,7 @@ mysql -uroot -p < resources/sql/001-mysql8-baseline.sql
 - 网关只信任 `hlw.auth.token-name` 请求头中的登录令牌解析出的租户编号，普通业务接口会移除外部传入的 `hlw.auth.tenant-header-name` 并重新写入可信租户头；非公开接口必须解析出平台租户 `0` 或正数业务租户才会放行。
 - 网关公开接口路径由 `hlw.gateway.public-paths` 配置读取，默认包含 `/auth/login`、`/auth/phone-code`、`/auth/phone-login` 和 `/system/tenant/options`；登录令牌请求头、前缀和租户头由 `hlw.auth` 公共配置读取。
 - 登录接口属于公开接口，平台账号使用请求体 `tenantId=0` 登录；业务租户账号允许携带正数可信租户头辅助网关透传租户上下文，后端认证优先以该请求头作为账号查询租户条件。
-- 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，优先消费网关透传的可信租户头，缺少租户头时再兜底解析 JWT；令牌无效或租户缺失时进入隔离租户 `-1`。
+- 业务服务通过 `common-security` 中的 `JwtTenantContextFilter` 写入 `TenantContext`，只负责上下文解析，不做登录鉴权；直连子模块时可通过 `X-Tenant-Id` 指定租户上下文，通过 `X-User-Id`、`X-Business-User-Id`、`X-User-Type` 补充当前用户上下文，缺少租户头时再兜底解析 JWT，令牌无效或租户缺失时进入隔离租户 `-1`。
 
 认证与租户相关环境变量：
 
@@ -652,7 +652,7 @@ drug.shipped
 ```text
 请求头：${hlw.auth.token-name}: ${hlw.auth.token-prefix} <token>
 转发头：${hlw.auth.tenant-header-name}: <token 中解析出的租户 ID>
-业务服务：优先读取 ${hlw.auth.tenant-header-name} 写入 TenantContext，缺少该头时兜底解析 JWT
+业务服务：只解析上下文，不做登录鉴权；优先读取 ${hlw.auth.tenant-header-name} 写入 TenantContext，直连时可选读取 ${hlw.auth.user-header-name}、${hlw.auth.business-user-header-name}、${hlw.auth.user-type-header-name} 补充当前用户
 ```
 
 ## 文档维护规则
